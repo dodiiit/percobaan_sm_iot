@@ -1,0 +1,194 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100;200;300;400;500;600;700;800;900&family=Lexend:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply h-full;
+  }
+  
+  body {
+    @apply h-full font-sans antialiased text-gray-900 bg-gray-50;
+  }
+  
+  body.dark {
+    @apply text-gray-100 bg-gray-900;
+  }
+  
+  #root {
+    @apply h-full;
+  }
+  
+  .App {
+    @apply h-full;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2;
+  }
+  
+  .btn-primary {
+    @apply text-white bg-primary-600 hover:bg-primary-700 focus:ring-primary-500;
+  }
+  
+  .btn-secondary {
+    @apply text-white bg-secondary-600 hover:bg-secondary-700 focus:ring-secondary-500;
+  }
+  
+  .btn-accent {
+    @apply text-white bg-accent-600 hover:bg-accent-700 focus:ring-accent-500;
+  }
+  
+  .btn-success {
+    @apply text-white bg-success-600 hover:bg-success-700 focus:ring-success-500;
+  }
+  
+  .btn-warning {
+    @apply text-white bg-warning-600 hover:bg-warning-700 focus:ring-warning-500;
+  }
+  
+  .btn-danger {
+    @apply text-white bg-danger-600 hover:bg-danger-700 focus:ring-danger-500;
+  }
+  
+  .btn-outline {
+    @apply text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 focus:ring-primary-500;
+  }
+  
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  
+  .btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+  
+  .form-input {
+    @apply block w-full px-3 py-2 placeholder-gray-400 border border-gray-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm;
+  }
+  
+  .form-label {
+    @apply block text-sm font-medium text-gray-700;
+  }
+  
+  .form-error {
+    @apply mt-1 text-sm text-danger-600;
+  }
+  
+  .card {
+    @apply overflow-hidden bg-white rounded-lg shadow;
+  }
+  
+  .card-header {
+    @apply px-4 py-5 border-b border-gray-200 sm:px-6;
+  }
+  
+  .card-body {
+    @apply px-4 py-5 sm:p-6;
+  }
+  
+  .card-footer {
+    @apply px-4 py-4 border-t border-gray-200 sm:px-6;
+  }
+  
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+  }
+  
+  .badge-primary {
+    @apply bg-primary-100 text-primary-800;
+  }
+  
+  .badge-secondary {
+    @apply bg-secondary-100 text-secondary-800;
+  }
+  
+  .badge-success {
+    @apply bg-success-100 text-success-800;
+  }
+  
+  .badge-warning {
+    @apply bg-warning-100 text-warning-800;
+  }
+  
+  .badge-danger {
+    @apply bg-danger-100 text-danger-800;
+  }
+  
+  .badge-info {
+    @apply bg-blue-100 text-blue-800;
+  }
+  
+  .badge-gray {
+    @apply bg-gray-100 text-gray-800;
+  }
+  
+  /* Water-themed components */
+  .water-card {
+    @apply overflow-hidden bg-white rounded-lg shadow-water;
+  }
+  
+  .water-gradient {
+    @apply bg-gradient-to-r from-primary-500 to-secondary-500;
+  }
+  
+  .water-text-gradient {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-primary-500 to-secondary-500;
+  }
+  
+  .water-button {
+    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gradient-to-r from-primary-500 to-secondary-500 hover:from-primary-600 hover:to-secondary-600 focus:ring-primary-500;
+  }
+  
+  .water-input {
+    @apply block w-full px-3 py-2 placeholder-gray-400 border border-primary-300 rounded-md shadow-sm appearance-none focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm;
+  }
+  
+  .water-badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800;
+  }
+  
+  .water-progress {
+    @apply h-2 rounded-full bg-primary-200;
+  }
+  
+  .water-progress-bar {
+    @apply h-2 rounded-full bg-gradient-to-r from-primary-500 to-secondary-500;
+  }
+  
+  .water-icon {
+    @apply text-primary-500;
+  }
+  
+  .water-link {
+    @apply text-primary-600 hover:text-primary-700;
+  }
+  
+  .water-bg-pattern {
+    @apply bg-water-pattern bg-repeat-x bg-bottom;
+  }
+  
+  .wave-bg-pattern {
+    @apply bg-wave-pattern bg-repeat-x bg-bottom;
+  }
+  
+  .droplet-bg-pattern {
+    @apply bg-droplet-pattern bg-repeat;
+  }
+  
+  .water-flow-animation {
+    @apply animate-water-flow;
+  }
+  
+  .droplet-fall-animation {
+    @apply animate-droplet-fall;
+  }
+  
+  .wave-animation {
+    @apply animate-wave;
+  }
+}
