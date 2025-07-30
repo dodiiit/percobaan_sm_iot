@@ -55,6 +55,10 @@ return function (App $app) {
             '/api/auth/register',
             '/api/auth/forgot-password',
             '/api/auth/reset-password',
+            '/api/auth/verify-email',
+            '/api/auth/resend-verification',
+            '/health',
+            '/webhooks',
         ],
         'secret' => $settings['jwt']['secret'],
         'algorithm' => 'HS256',
@@ -70,7 +74,18 @@ return function (App $app) {
                 ->withHeader('Content-Type', 'application/json')
                 ->withStatus(401);
         },
-        'before' => function (Request $request, $arguments) {
+        'before' => function (Request $request, $arguments) use ($container) {
+            // Get user from database
+            $db = $container->get(PDO::class);
+            $userModel = new \IndoWater\Api\Models\User($db);
+            $user = $userModel->findById($arguments['decoded']->sub);
+            
+            if ($user) {
+                return $request
+                    ->withAttribute('jwt', $arguments['decoded'])
+                    ->withAttribute('user', $user);
+            }
+            
             return $request->withAttribute('jwt', $arguments['decoded']);
         },
     ]));

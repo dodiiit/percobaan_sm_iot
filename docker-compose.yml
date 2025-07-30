@@ -17,22 +17,9 @@ services:
     networks:
       - indowater-network
     ports:
-      - "8000:80"
-    environment:
-      - APP_ENV=development
-      - APP_DEBUG=true
-      - DB_HOST=db
-      - DB_PORT=3306
-      - DB_DATABASE=indowater
-      - DB_USERNAME=indowater
-      - DB_PASSWORD=indowater_password
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - MAIL_HOST=mailhog
-      - MAIL_PORT=1025
-      - MAIL_USERNAME=null
-      - MAIL_PASSWORD=null
-      - MAIL_ENCRYPTION=null
+      - "${API_PORT:-8000}:80"
+    env_file:
+      - ./api/.env
 
   # MySQL Database
   db:
@@ -40,17 +27,17 @@ services:
     container_name: indowater-db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: indowater
-      MYSQL_USER: indowater
-      MYSQL_PASSWORD: indowater_password
-      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: ${DB_DATABASE:-indowater}
+      MYSQL_USER: ${DB_USERNAME:-indowater}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-indowater_password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
     volumes:
       - indowater-db-data:/var/lib/mysql
       - ./api/database/init:/docker-entrypoint-initdb.d
     networks:
       - indowater-network
     ports:
-      - "3306:3306"
+      - "${DB_PORT:-3306}:3306"
 
   # React Frontend
   frontend:
@@ -67,10 +54,9 @@ services:
     networks:
       - indowater-network
     ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=development
-      - REACT_APP_API_URL=http://localhost:8000/api
+      - "${FRONTEND_PORT:-3000}:3000"
+    env_file:
+      - ./frontend/.env
 
   # PHPMyAdmin for Database Management
   phpmyadmin:
@@ -79,10 +65,11 @@ services:
     restart: unless-stopped
     environment:
       - PMA_HOST=db
-      - PMA_PORT=3306
+      - PMA_PORT=${DB_PORT:-3306}
       - UPLOAD_LIMIT=300M
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
     ports:
-      - "8080:80"
+      - "${PMA_PORT:-8080}:80"
     depends_on:
       - db
     networks:
@@ -96,7 +83,7 @@ services:
     networks:
       - indowater-network
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - indowater-redis-data:/data
 
@@ -106,8 +93,8 @@ services:
     container_name: indowater-mailhog
     restart: unless-stopped
     ports:
-      - "1025:1025" # SMTP port
-      - "8025:8025" # Web UI port
+      - "${MAILHOG_SMTP_PORT:-1025}:1025" # SMTP port
+      - "${MAILHOG_WEB_PORT:-8025}:8025" # Web UI port
     networks:
       - indowater-network
 
