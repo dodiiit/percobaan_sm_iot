@@ -15,6 +15,8 @@ use IndoWater\Api\Middleware\SessionMiddleware;
 use IndoWater\Api\Middleware\RateLimitMiddleware;
 use IndoWater\Api\Middleware\LoggerMiddleware;
 use IndoWater\Api\Middleware\SecurityHeadersMiddleware;
+use IndoWater\Api\Middleware\SecurityMiddleware;
+use IndoWater\Api\Handlers\ErrorHandler;
 
 return function (App $app) {
     $container = $app->getContainer();
@@ -44,8 +46,20 @@ return function (App $app) {
     // Add security headers middleware
     $app->add(SecurityHeadersMiddleware::class);
 
+    // Add security middleware
+    $app->add(SecurityMiddleware::class);
+
     // Add Twig middleware
     $app->add(TwigMiddleware::class);
+    
+    // Set up error handling
+    $errorHandler = new ErrorHandler($container->get('logger'), $settings['app']['debug']);
+    $errorMiddleware = $app->addErrorMiddleware(
+        $settings['app']['debug'],
+        true,
+        true
+    );
+    $errorMiddleware->setDefaultErrorHandler($errorHandler);
 
     // Add JWT authentication middleware
     $app->add(new JwtAuthentication([
@@ -55,6 +69,10 @@ return function (App $app) {
             '/api/auth/register',
             '/api/auth/forgot-password',
             '/api/auth/reset-password',
+            '/api/auth/verify-email',
+            '/api/auth/resend-verification',
+            '/health',
+            '/webhooks',
         ],
         'secret' => $settings['jwt']['secret'],
         'algorithm' => 'HS256',
@@ -70,7 +88,18 @@ return function (App $app) {
                 ->withHeader('Content-Type', 'application/json')
                 ->withStatus(401);
         },
-        'before' => function (Request $request, $arguments) {
+        'before' => function (Request $request, $arguments) use ($container) {
+            // Get user from database
+            $db = $container->get(PDO::class);
+            $userModel = new \IndoWater\Api\Models\User($db);
+            $user = $userModel->findById($arguments['decoded']->sub);
+            
+            if ($user) {
+                return $request
+                    ->withAttribute('jwt', $arguments['decoded'])
+                    ->withAttribute('user', $user);
+            }
+            
             return $request->withAttribute('jwt', $arguments['decoded']);
         },
     ]));

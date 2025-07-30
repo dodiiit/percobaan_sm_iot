@@ -39,11 +39,16 @@ return function (App $app) {
 
         // User Routes
         $group->group('/users', function (RouteCollectorProxy $group) {
-            $group->get('', [UserController::class, 'index']);
-            $group->get('/{id}', [UserController::class, 'show']);
-            $group->post('', [UserController::class, 'store']);
-            $group->put('/{id}', [UserController::class, 'update']);
-            $group->delete('/{id}', [UserController::class, 'delete']);
+            // Routes accessible only by superadmin
+            $group->group('', function (RouteCollectorProxy $group) {
+                $group->get('', [UserController::class, 'index']);
+                $group->get('/{id}', [UserController::class, 'show']);
+                $group->post('', [UserController::class, 'store']);
+                $group->put('/{id}', [UserController::class, 'update']);
+                $group->delete('/{id}', [UserController::class, 'delete']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['superadmin']));
+            
+            // Routes accessible by any authenticated user
             $group->get('/me', [UserController::class, 'me']);
             $group->put('/me', [UserController::class, 'updateProfile']);
             $group->put('/me/password', [UserController::class, 'updatePassword']);
@@ -51,13 +56,18 @@ return function (App $app) {
 
         // Client Routes
         $group->group('/clients', function (RouteCollectorProxy $group) {
-            $group->get('', [ClientController::class, 'index']);
+            // Routes accessible only by superadmin
+            $group->group('', function (RouteCollectorProxy $group) {
+                $group->get('', [ClientController::class, 'index']);
+                $group->post('', [ClientController::class, 'store']);
+                $group->put('/{id}/activate', [ClientController::class, 'activate']);
+                $group->put('/{id}/deactivate', [ClientController::class, 'deactivate']);
+                $group->delete('/{id}', [ClientController::class, 'delete']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['superadmin']));
+            
+            // Routes accessible by superadmin and client (with appropriate checks in controller)
             $group->get('/{id}', [ClientController::class, 'show']);
-            $group->post('', [ClientController::class, 'store']);
             $group->put('/{id}', [ClientController::class, 'update']);
-            $group->delete('/{id}', [ClientController::class, 'delete']);
-            $group->put('/{id}/activate', [ClientController::class, 'activate']);
-            $group->put('/{id}/deactivate', [ClientController::class, 'deactivate']);
             $group->get('/{id}/properties', [ClientController::class, 'properties']);
             $group->get('/{id}/customers', [ClientController::class, 'customers']);
             $group->get('/{id}/meters', [ClientController::class, 'meters']);
@@ -68,13 +78,18 @@ return function (App $app) {
 
         // Customer Routes
         $group->group('/customers', function (RouteCollectorProxy $group) {
-            $group->get('', [CustomerController::class, 'index']);
+            // Routes accessible by superadmin and client
+            $group->group('', function (RouteCollectorProxy $group) {
+                $group->get('', [CustomerController::class, 'index']);
+                $group->post('', [CustomerController::class, 'store']);
+                $group->put('/{id}/activate', [CustomerController::class, 'activate']);
+                $group->put('/{id}/deactivate', [CustomerController::class, 'deactivate']);
+                $group->delete('/{id}', [CustomerController::class, 'delete']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['superadmin', 'client']));
+            
+            // Routes accessible by all authenticated users (with appropriate checks in controller)
             $group->get('/{id}', [CustomerController::class, 'show']);
-            $group->post('', [CustomerController::class, 'store']);
             $group->put('/{id}', [CustomerController::class, 'update']);
-            $group->delete('/{id}', [CustomerController::class, 'delete']);
-            $group->put('/{id}/activate', [CustomerController::class, 'activate']);
-            $group->put('/{id}/deactivate', [CustomerController::class, 'deactivate']);
             $group->get('/{id}/meters', [CustomerController::class, 'meters']);
             $group->get('/{id}/payments', [CustomerController::class, 'payments']);
             $group->get('/{id}/credits', [CustomerController::class, 'credits']);
@@ -84,37 +99,52 @@ return function (App $app) {
 
         // Property Routes
         $group->group('/properties', function (RouteCollectorProxy $group) {
-            $group->get('', [PropertyController::class, 'index']);
+            // Routes accessible by superadmin and client
+            $group->group('', function (RouteCollectorProxy $group) {
+                $group->get('', [PropertyController::class, 'index']);
+                $group->post('', [PropertyController::class, 'store']);
+                $group->put('/{id}', [PropertyController::class, 'update']);
+                $group->delete('/{id}', [PropertyController::class, 'delete']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['superadmin', 'client']));
+            
+            // Routes accessible by all authenticated users (with appropriate checks in controller)
             $group->get('/{id}', [PropertyController::class, 'show']);
-            $group->post('', [PropertyController::class, 'store']);
-            $group->put('/{id}', [PropertyController::class, 'update']);
-            $group->delete('/{id}', [PropertyController::class, 'delete']);
             $group->get('/{id}/meters', [PropertyController::class, 'meters']);
             $group->get('/{id}/customers', [PropertyController::class, 'customers']);
         });
 
         // Meter Routes
         $group->group('/meters', function (RouteCollectorProxy $group) {
-            $group->get('', [MeterController::class, 'index']);
+            // Routes accessible by superadmin and client
+            $group->group('', function (RouteCollectorProxy $group) {
+                $group->get('', [MeterController::class, 'index']);
+                $group->post('', [MeterController::class, 'store']);
+                $group->put('/{id}', [MeterController::class, 'update']);
+                $group->delete('/{id}', [MeterController::class, 'delete']);
+                $group->post('/{id}/ota', [MeterController::class, 'ota']);
+                $group->post('/{id}/control', [MeterController::class, 'control']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['superadmin', 'client']));
+            
+            // Routes accessible by all authenticated users (with appropriate checks in controller)
             $group->get('/{id}', [MeterController::class, 'show']);
-            $group->post('', [MeterController::class, 'store']);
-            $group->put('/{id}', [MeterController::class, 'update']);
-            $group->delete('/{id}', [MeterController::class, 'delete']);
             $group->get('/{id}/consumption', [MeterController::class, 'consumption']);
             $group->get('/{id}/credits', [MeterController::class, 'credits']);
             $group->post('/{id}/topup', [MeterController::class, 'topup']);
-            $group->post('/{id}/ota', [MeterController::class, 'ota']);
-            $group->post('/{id}/control', [MeterController::class, 'control']);
             $group->get('/{id}/status', [MeterController::class, 'status']);
         });
 
         // Payment Routes
         $group->group('/payments', function (RouteCollectorProxy $group) {
-            $group->get('', [PaymentController::class, 'index']);
+            // Routes accessible by superadmin and client
+            $group->group('', function (RouteCollectorProxy $group) {
+                $group->get('', [PaymentController::class, 'index']);
+                $group->put('/{id}', [PaymentController::class, 'update']);
+                $group->delete('/{id}', [PaymentController::class, 'delete']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['superadmin', 'client']));
+            
+            // Routes accessible by all authenticated users (with appropriate checks in controller)
             $group->get('/{id}', [PaymentController::class, 'show']);
             $group->post('', [PaymentController::class, 'store']);
-            $group->put('/{id}', [PaymentController::class, 'update']);
-            $group->delete('/{id}', [PaymentController::class, 'delete']);
             $group->post('/midtrans', [PaymentController::class, 'midtrans']);
             $group->post('/doku', [PaymentController::class, 'doku']);
             $group->get('/{id}/receipt', [PaymentController::class, 'receipt']);
@@ -122,55 +152,95 @@ return function (App $app) {
 
         // Credit Routes
         $group->group('/credits', function (RouteCollectorProxy $group) {
-            $group->get('', [CreditController::class, 'index']);
+            // Routes accessible by superadmin and client
+            $group->group('', function (RouteCollectorProxy $group) {
+                $group->get('', [CreditController::class, 'index']);
+                $group->put('/{id}', [CreditController::class, 'update']);
+                $group->delete('/{id}', [CreditController::class, 'delete']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['superadmin', 'client']));
+            
+            // Routes accessible by all authenticated users (with appropriate checks in controller)
             $group->get('/{id}', [CreditController::class, 'show']);
             $group->post('', [CreditController::class, 'store']);
-            $group->put('/{id}', [CreditController::class, 'update']);
-            $group->delete('/{id}', [CreditController::class, 'delete']);
             $group->get('/denominations', [CreditController::class, 'denominations']);
         });
 
         // Report Routes
         $group->group('/reports', function (RouteCollectorProxy $group) {
-            $group->get('/revenue', [ReportController::class, 'revenue']);
-            $group->get('/consumption', [ReportController::class, 'consumption']);
-            $group->get('/customers', [ReportController::class, 'customers']);
-            $group->get('/payments', [ReportController::class, 'payments']);
-            $group->get('/credits', [ReportController::class, 'credits']);
-            $group->get('/service-fees', [ReportController::class, 'serviceFees']);
-            $group->get('/export/{type}', [ReportController::class, 'export']);
+            // Routes accessible by superadmin only
+            $group->group('/admin', function (RouteCollectorProxy $group) {
+                $group->get('/service-fees', [ReportController::class, 'serviceFees']);
+                $group->get('/all-clients', [ReportController::class, 'allClients']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['superadmin']));
+            
+            // Routes accessible by superadmin and client
+            $group->group('', function (RouteCollectorProxy $group) {
+                $group->get('/revenue', [ReportController::class, 'revenue']);
+                $group->get('/consumption', [ReportController::class, 'consumption']);
+                $group->get('/customers', [ReportController::class, 'customers']);
+                $group->get('/payments', [ReportController::class, 'payments']);
+                $group->get('/credits', [ReportController::class, 'credits']);
+                $group->get('/export/{type}', [ReportController::class, 'export']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['superadmin', 'client']));
         });
 
         // Notification Routes
         $group->group('/notifications', function (RouteCollectorProxy $group) {
+            // Routes accessible by superadmin and client
+            $group->group('/admin', function (RouteCollectorProxy $group) {
+                $group->post('', [NotificationController::class, 'store']);
+                $group->put('/{id}', [NotificationController::class, 'update']);
+                $group->delete('/{id}', [NotificationController::class, 'delete']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['superadmin', 'client']));
+            
+            // Routes accessible by all authenticated users
             $group->get('', [NotificationController::class, 'index']);
             $group->get('/{id}', [NotificationController::class, 'show']);
-            $group->post('', [NotificationController::class, 'store']);
-            $group->put('/{id}', [NotificationController::class, 'update']);
-            $group->delete('/{id}', [NotificationController::class, 'delete']);
             $group->put('/{id}/read', [NotificationController::class, 'markAsRead']);
             $group->put('/read-all', [NotificationController::class, 'markAllAsRead']);
         });
 
         // Dashboard Routes
         $group->group('/dashboard', function (RouteCollectorProxy $group) {
-            $group->get('/superadmin', [DashboardController::class, 'superadmin']);
-            $group->get('/client', [DashboardController::class, 'client']);
-            $group->get('/customer', [DashboardController::class, 'customer']);
+            // Routes accessible by superadmin only
+            $group->group('/superadmin', function (RouteCollectorProxy $group) {
+                $group->get('', [DashboardController::class, 'superadmin']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['superadmin']));
+            
+            // Routes accessible by client only
+            $group->group('/client', function (RouteCollectorProxy $group) {
+                $group->get('', [DashboardController::class, 'client']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['client']));
+            
+            // Routes accessible by customer only
+            $group->group('/customer', function (RouteCollectorProxy $group) {
+                $group->get('', [DashboardController::class, 'customer']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['customer']));
+            
+            // Routes accessible by all authenticated users
             $group->get('/stats', [DashboardController::class, 'stats']);
             $group->get('/charts', [DashboardController::class, 'charts']);
         });
 
         // Setting Routes
         $group->group('/settings', function (RouteCollectorProxy $group) {
-            $group->get('', [SettingController::class, 'index']);
-            $group->put('', [SettingController::class, 'update']);
-            $group->get('/payment-gateways', [SettingController::class, 'paymentGateways']);
-            $group->put('/payment-gateways', [SettingController::class, 'updatePaymentGateways']);
-            $group->get('/service-fees', [SettingController::class, 'serviceFees']);
-            $group->put('/service-fees', [SettingController::class, 'updateServiceFees']);
-            $group->get('/notifications', [SettingController::class, 'notifications']);
-            $group->put('/notifications', [SettingController::class, 'updateNotifications']);
+            // Routes accessible by superadmin only
+            $group->group('/global', function (RouteCollectorProxy $group) {
+                $group->get('', [SettingController::class, 'globalSettings']);
+                $group->put('', [SettingController::class, 'updateGlobalSettings']);
+                $group->get('/service-fees', [SettingController::class, 'serviceFees']);
+                $group->put('/service-fees', [SettingController::class, 'updateServiceFees']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['superadmin']));
+            
+            // Routes accessible by superadmin and client
+            $group->group('', function (RouteCollectorProxy $group) {
+                $group->get('', [SettingController::class, 'index']);
+                $group->put('', [SettingController::class, 'update']);
+                $group->get('/payment-gateways', [SettingController::class, 'paymentGateways']);
+                $group->put('/payment-gateways', [SettingController::class, 'updatePaymentGateways']);
+                $group->get('/notifications', [SettingController::class, 'notifications']);
+                $group->put('/notifications', [SettingController::class, 'updateNotifications']);
+            })->add(new \IndoWater\Api\Middleware\RoleMiddleware(['superadmin', 'client']));
         });
     });
 
