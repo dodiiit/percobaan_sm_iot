@@ -15,6 +15,8 @@ use IndoWater\Api\Middleware\SessionMiddleware;
 use IndoWater\Api\Middleware\RateLimitMiddleware;
 use IndoWater\Api\Middleware\LoggerMiddleware;
 use IndoWater\Api\Middleware\SecurityHeadersMiddleware;
+use IndoWater\Api\Middleware\SecurityMiddleware;
+use IndoWater\Api\Handlers\ErrorHandler;
 
 return function (App $app) {
     $container = $app->getContainer();
@@ -44,8 +46,20 @@ return function (App $app) {
     // Add security headers middleware
     $app->add(SecurityHeadersMiddleware::class);
 
+    // Add security middleware
+    $app->add(SecurityMiddleware::class);
+
     // Add Twig middleware
     $app->add(TwigMiddleware::class);
+    
+    // Set up error handling
+    $errorHandler = new ErrorHandler($container->get('logger'), $settings['app']['debug']);
+    $errorMiddleware = $app->addErrorMiddleware(
+        $settings['app']['debug'],
+        true,
+        true
+    );
+    $errorMiddleware->setDefaultErrorHandler($errorHandler);
 
     // Add JWT authentication middleware
     $app->add(new JwtAuthentication([
