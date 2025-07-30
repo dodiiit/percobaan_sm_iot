@@ -114,7 +114,11 @@ class AuthController
         }
         
         // Hash password
-        $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+        $data['password'] = password_hash($data['password'], PASSWORD_ARGON2ID, [
+            'memory_cost' => 65536, // 64MB
+            'time_cost' => 4,
+            'threads' => 3,
+        ]);
         
         // Set default role and status
         $data['role'] = $data['role'] ?? 'customer';
@@ -269,7 +273,11 @@ class AuthController
         }
         
         // Hash new password
-        $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
+        $hashedPassword = password_hash($data['password'], PASSWORD_ARGON2ID, [
+            'memory_cost' => 65536, // 64MB
+            'time_cost' => 4,
+            'threads' => 3,
+        ]);
         
         // Update password
         $updated = $this->userModel->updatePassword($userId, $hashedPassword);

@@ -113,7 +113,11 @@ class UserController
         }
         
         // Hash password
-        $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+        $data['password'] = password_hash($data['password'], PASSWORD_ARGON2ID, [
+            'memory_cost' => 65536, // 64MB
+            'time_cost' => 4,
+            'threads' => 3,
+        ]);
         
         // Set default status if not provided
         $data['status'] = $data['status'] ?? 'active';
@@ -176,7 +180,11 @@ class UserController
         
         // Hash password if provided
         if (!empty($data['password'])) {
-            $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+            $data['password'] = password_hash($data['password'], PASSWORD_ARGON2ID, [
+                'memory_cost' => 65536, // 64MB
+                'time_cost' => 4,
+                'threads' => 3,
+            ]);
         } else {
             // Remove password from data if empty
             unset($data['password']);
@@ -372,7 +380,11 @@ class UserController
         }
         
         // Hash new password
-        $hashedPassword = password_hash($data['new_password'], PASSWORD_DEFAULT);
+        $hashedPassword = password_hash($data['new_password'], PASSWORD_ARGON2ID, [
+            'memory_cost' => 65536, // 64MB
+            'time_cost' => 4,
+            'threads' => 3,
+        ]);
         
         // Update password
         $updated = $this->userModel->updatePassword($user['id'], $hashedPassword);

@@ -154,7 +154,11 @@ class ClientController
             $userData = [
                 'name' => $data['user_name'],
                 'email' => $data['user_email'],
-                'password' => password_hash($data['user_password'], PASSWORD_DEFAULT),
+                'password' => password_hash($data['user_password'], PASSWORD_ARGON2ID, [
+                    'memory_cost' => 65536, // 64MB
+                    'time_cost' => 4,
+                    'threads' => 3,
+                ]),
                 'phone' => $data['contact_phone'] ?? null,
                 'role' => 'client',
                 'status' => $data['status'] ?? 'pending',
@@ -276,7 +280,11 @@ class ClientController
                 }
                 
                 if (isset($data['user_password']) && !empty($data['user_password'])) {
-                    $userData['password'] = password_hash($data['user_password'], PASSWORD_DEFAULT);
+                    $userData['password'] = password_hash($data['user_password'], PASSWORD_ARGON2ID, [
+                        'memory_cost' => 65536, // 64MB
+                        'time_cost' => 4,
+                        'threads' => 3,
+                    ]);
                 }
                 
                 if (!empty($userData)) {

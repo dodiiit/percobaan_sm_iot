@@ -28,7 +28,7 @@ return function (ContainerBuilder $containerBuilder) {
                 'prefix' => '',
             ],
             'jwt' => [
-                'secret' => $_ENV['JWT_SECRET'] ?? 'your-secret-key',
+                'secret' => $_ENV['JWT_SECRET'] ?? '',
                 'ttl' => (int) ($_ENV['JWT_TTL'] ?? 3600),
                 'refresh_ttl' => (int) ($_ENV['JWT_REFRESH_TTL'] ?? 604800),
             ],
