@@ -263,4 +263,91 @@ class EmailService
 
         return $this->send($data['to'], $subject, $template);
     }
+
+    /**
+     * Send property registration notification to superadmin
+     */
+    public function sendPropertyRegistrationNotification(string $email, array $property): bool
+    {
+        $subject = 'New Property Registration - IndoWater';
+        $template = $this->getTemplate('property_registration_notification', [
+            'property_name' => $property['name'],
+            'property_code' => $property['property_code'],
+            'property_type' => ucfirst(str_replace('_', ' ', $property['type'])),
+            'client_name' => $property['client_name'],
+            'address' => $property['address'],
+            'city' => $property['city'],
+            'province' => $property['province'],
+            'admin_url' => $this->config['app_url'] . '/admin/properties/' . $property['id']
+        ]);
+
+        return $this->send($email, $subject, $template);
+    }
+
+    /**
+     * Send property verification status update to client
+     */
+    public function sendPropertyVerificationStatusUpdate(
+        string $email, 
+        array $property, 
+        string $status, 
+        string $notes = null, 
+        string $rejectionReason = null
+    ): bool {
+        $statusMessages = [
+            'pending' => 'Your property registration is pending review.',
+            'under_review' => 'Your property registration is currently under review.',
+            'approved' => 'Congratulations! Your property has been approved.',
+            'rejected' => 'Unfortunately, your property registration has been rejected.',
+            'requires_update' => 'Your property registration requires updates.'
+        ];
+
+        $subject = 'Property Verification Update - IndoWater';
+        $template = $this->getTemplate('property_verification_status', [
+            'property_name' => $property['name'],
+            'property_code' => $property['property_code'],
+            'status' => ucfirst(str_replace('_', ' ', $status)),
+            'status_message' => $statusMessages[$status] ?? 'Status updated.',
+            'notes' => $notes,
+            'rejection_reason' => $rejectionReason,
+            'property_url' => $this->config['app_url'] . '/properties/' . $property['id'],
+            'is_approved' => $status === 'approved',
+            'is_rejected' => $status === 'rejected',
+            'requires_action' => in_array($status, ['rejected', 'requires_update'])
+        ]);
+
+        return $this->send($email, $subject, $template);
+    }
+
+    /**
+     * Send document expiry notification
+     */
+    public function sendDocumentExpiryNotification(string $email, array $documents): bool
+    {
+        $subject = 'Document Expiry Notification - IndoWater';
+        $template = $this->getTemplate('document_expiry_notification', [
+            'documents' => $documents,
+            'portal_url' => $this->config['app_url'] . '/properties'
+        ]);
+
+        return $this->send($email, $subject, $template);
+    }
+
+    /**
+     * Send property meter association notification
+     */
+    public function sendMeterAssociationNotification(string $email, array $property, array $meter): bool
+    {
+        $subject = 'Meter Associated with Property - IndoWater';
+        $template = $this->getTemplate('meter_association_notification', [
+            'property_name' => $property['name'],
+            'property_code' => $property['property_code'],
+            'meter_id' => $meter['meter_id'],
+            'meter_type' => $meter['meter_type'],
+            'installation_location' => $meter['installation_location'] ?? 'Not specified',
+            'property_url' => $this->config['app_url'] . '/properties/' . $property['id']
+        ]);
+
+        return $this->send($email, $subject, $template);
+    }
 }

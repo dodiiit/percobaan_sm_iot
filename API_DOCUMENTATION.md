@@ -579,6 +579,427 @@ composer cs-fix
 composer analyze
 ```
 
+## Property Management API
+
+### Get Properties
+
+**GET** `/api/properties`
+
+Get all properties with filtering and pagination.
+
+**Query Parameters:**
+- `type` (optional): Filter by property type
+- `verification_status` (optional): Filter by verification status
+- `status` (optional): Filter by property status
+- `city` (optional): Filter by city
+- `province` (optional): Filter by province
+- `search` (optional): Search in name, code, or address
+- `page` (optional): Page number (default: 1)
+- `limit` (optional): Items per page (default: 20)
+
+**Response:**
+```json
+{
+  "properties": [
+    {
+      "id": "uuid",
+      "client_id": "uuid",
+      "property_code": "PAM-RES-0001",
+      "name": "Taman Anggrek Residence",
+      "description": "Modern residential complex...",
+      "type": "residential",
+      "address": "Jl. Taman Anggrek No. 789",
+      "city": "Jakarta Barat",
+      "province": "DKI Jakarta",
+      "postal_code": "12346",
+      "latitude": -6.1751,
+      "longitude": 106.7894,
+      "total_area": 5000.00,
+      "building_area": 3500.00,
+      "floors": 5,
+      "units": 50,
+      "year_built": 2020,
+      "owner_name": "PT. Anggrek Property",
+      "owner_phone": "+62-21-12345678",
+      "owner_email": "owner@anggrek-property.com",
+      "manager_name": "Budi Santoso",
+      "manager_phone": "+62-812-3456-7890",
+      "manager_email": "manager@anggrek-property.com",
+      "verification_status": "approved",
+      "verification_notes": "All documents verified...",
+      "verified_by": "uuid",
+      "verified_at": "2025-01-31T10:00:00Z",
+      "documents": {
+        "ownership_certificate": "cert_001.pdf",
+        "building_permit": "permit_001.pdf",
+        "tax_certificate": "tax_001.pdf"
+      },
+      "amenities": ["Swimming Pool", "Gym", "24/7 Security"],
+      "water_source": "municipal",
+      "water_pressure": "high",
+      "backup_water": true,
+      "emergency_contact_name": "Security Office",
+      "emergency_contact_phone": "+62-21-12345679",
+      "status": "active",
+      "client_name": "PAM Jakarta",
+      "verified_by_name": "Super Admin",
+      "meter_count": 3,
+      "created_at": "2025-01-31T10:00:00Z",
+      "updated_at": "2025-01-31T10:00:00Z"
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "per_page": 20,
+    "total": 100,
+    "total_pages": 5
+  }
+}
+```
+
+### Get Property Details
+
+**GET** `/api/properties/{id}`
+
+Get detailed information about a specific property.
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "client_id": "uuid",
+  "property_code": "PAM-RES-0001",
+  "name": "Taman Anggrek Residence",
+  "description": "Modern residential complex...",
+  "type": "residential",
+  "verification_status": "approved",
+  "status": "active",
+  "meters": [
+    {
+      "id": "uuid",
+      "meter_id": "METER-001",
+      "meter_type": "Smart Prepaid",
+      "meter_model": "IndoWater SP-100",
+      "status": "active",
+      "is_main_meter": true,
+      "meter_purpose": "main_supply",
+      "installation_location": "Front yard",
+      "customer_name": "Jane Smith",
+      "customer_number": "CUST-001"
+    }
+  ],
+  "verification_history": [
+    {
+      "id": "uuid",
+      "action": "approved",
+      "previous_status": "under_review",
+      "new_status": "approved",
+      "notes": "All documents verified",
+      "user_name": "Super Admin",
+      "created_at": "2025-01-31T10:00:00Z"
+    }
+  ],
+  "document_files": [
+    {
+      "id": "uuid",
+      "document_type": "ownership_certificate",
+      "document_name": "Ownership Certificate.pdf",
+      "file_path": "properties/uuid/documents/ownership_certificate/file.pdf",
+      "file_size": 1024000,
+      "file_size_formatted": "1.02 MB",
+      "mime_type": "application/pdf",
+      "is_required": true,
+      "is_verified": true,
+      "verified_by_name": "Super Admin",
+      "verified_at": "2025-01-31T10:00:00Z",
+      "expiry_date": "2030-01-31",
+      "uploaded_by_name": "Client User",
+      "created_at": "2025-01-31T10:00:00Z"
+    }
+  ]
+}
+```
+
+### Create Property
+
+**POST** `/api/properties`
+
+Register a new property for verification.
+
+**Request Body:**
+```json
+{
+  "name": "New Property",
+  "description": "Property description",
+  "type": "residential",
+  "address": "Property address",
+  "city": "City",
+  "province": "Province",
+  "postal_code": "12345",
+  "latitude": -6.1751,
+  "longitude": 106.7894,
+  "total_area": 1000.00,
+  "building_area": 800.00,
+  "floors": 2,
+  "units": 10,
+  "year_built": 2020,
+  "owner_name": "Property Owner",
+  "owner_phone": "+62-21-12345678",
+  "owner_email": "owner@example.com",
+  "manager_name": "Property Manager",
+  "manager_phone": "+62-812-3456-7890",
+  "manager_email": "manager@example.com",
+  "amenities": ["Parking", "Security"],
+  "water_source": "municipal",
+  "water_pressure": "medium",
+  "backup_water": false,
+  "emergency_contact_name": "Emergency Contact",
+  "emergency_contact_phone": "+62-21-87654321"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Property created successfully",
+  "property": {
+    "id": "uuid",
+    "property_code": "PAM-RES-0002",
+    "verification_status": "pending",
+    "status": "active"
+  }
+}
+```
+
+### Update Property
+
+**PUT** `/api/properties/{id}`
+
+Update property information.
+
+**Request Body:** Same as create property (all fields optional)
+
+**Response:**
+```json
+{
+  "message": "Property updated successfully",
+  "property": {
+    "id": "uuid",
+    "verification_status": "requires_update"
+  }
+}
+```
+
+### Update Verification Status
+
+**PUT** `/api/properties/{id}/verification-status`
+
+Update property verification status (superadmin only).
+
+**Request Body:**
+```json
+{
+  "status": "approved",
+  "notes": "All documents verified and property meets requirements",
+  "rejection_reason": null
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Verification status updated successfully",
+  "property": {
+    "id": "uuid",
+    "verification_status": "approved",
+    "verified_at": "2025-01-31T10:00:00Z"
+  }
+}
+```
+
+### Associate Meter with Property
+
+**POST** `/api/properties/{id}/meters`
+
+Associate a meter with a property.
+
+**Request Body:**
+```json
+{
+  "meter_id": "uuid",
+  "installation_location": "Front yard, near gate",
+  "is_main_meter": true,
+  "meter_purpose": "main_supply",
+  "notes": "Main water supply meter"
+}
+```
+
+**Response:**
+```json
+{
+  "message": "Meter associated successfully",
+  "association_id": "uuid",
+  "property": {
+    "id": "uuid",
+    "meters": [...]
+  }
+}
+```
+
+### Remove Meter Association
+
+**DELETE** `/api/properties/{id}/meters/{meter_id}`
+
+Remove meter association from property.
+
+**Response:**
+```json
+{
+  "message": "Meter association removed successfully",
+  "property": {
+    "id": "uuid",
+    "meters": [...]
+  }
+}
+```
+
+### Get Property Types
+
+**GET** `/api/properties/types`
+
+Get available property types.
+
+**Response:**
+```json
+{
+  "residential": "Residential",
+  "commercial": "Commercial",
+  "industrial": "Industrial",
+  "dormitory": "Dormitory",
+  "rental_home": "Rental Home",
+  "boarding_house": "Boarding House",
+  "apartment": "Apartment",
+  "office_building": "Office Building",
+  "shopping_center": "Shopping Center",
+  "warehouse": "Warehouse",
+  "factory": "Factory",
+  "hotel": "Hotel",
+  "restaurant": "Restaurant",
+  "hospital": "Hospital",
+  "school": "School",
+  "government": "Government",
+  "other": "Other"
+}
+```
+
+### Get Verification Statuses
+
+**GET** `/api/properties/verification-statuses`
+
+Get available verification statuses.
+
+**Response:**
+```json
+{
+  "pending": "Pending Review",
+  "under_review": "Under Review",
+  "approved": "Approved",
+  "rejected": "Rejected",
+  "requires_update": "Requires Update"
+}
+```
+
+### Get Properties Pending Verification
+
+**GET** `/api/properties/pending-verification`
+
+Get properties pending verification (superadmin only).
+
+**Query Parameters:**
+- `limit` (optional): Number of properties to return (default: 50)
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid",
+    "property_code": "PAM-BOR-0001",
+    "name": "Student Boarding House",
+    "type": "boarding_house",
+    "verification_status": "pending",
+    "client_name": "PAM Jakarta",
+    "created_at": "2025-01-31T10:00:00Z"
+  }
+]
+```
+
+### Get Property Statistics
+
+**GET** `/api/properties/statistics`
+
+Get property statistics for the current user/client.
+
+**Response:**
+```json
+{
+  "total_properties": 25,
+  "pending_verification": 3,
+  "approved": 20,
+  "rejected": 1,
+  "active": 22,
+  "inactive": 3
+}
+```
+
+### Delete Property
+
+**DELETE** `/api/properties/{id}`
+
+Soft delete a property (only if no active meters).
+
+**Response:**
+```json
+{
+  "message": "Property deleted successfully"
+}
+```
+
+## Property Management Features
+
+### Property Registration Process
+
+1. **Client Registration**: Client registers a new property with basic information
+2. **Document Upload**: Client uploads required documents based on property type
+3. **Verification Queue**: Property enters superadmin verification queue
+4. **Review Process**: Superadmin reviews property and documents
+5. **Approval/Rejection**: Property is approved, rejected, or requires updates
+6. **Meter Association**: Once approved, meters can be associated with the property
+
+### Property Types and Required Documents
+
+Each property type has specific document requirements:
+
+- **Residential**: Ownership Certificate, Tax Certificate
+- **Commercial**: Ownership Certificate, Business License, Tax Certificate, Fire Safety Certificate
+- **Industrial**: Ownership Certificate, Business License, Environmental Permit, Fire Safety Certificate
+- **Hotel/Restaurant**: Ownership Certificate, Business License, Fire Safety Certificate
+- **And more...**
+
+### Verification Workflow
+
+1. **Pending**: Initial status when property is registered
+2. **Under Review**: Superadmin is reviewing the property
+3. **Approved**: Property meets all requirements and is approved
+4. **Rejected**: Property doesn't meet requirements (with rejection reason)
+5. **Requires Update**: Property needs updates before approval
+
+### Real-time Notifications
+
+- Property registration notifications to superadmin
+- Verification status updates to clients
+- Document expiry alerts
+- Meter association notifications
+
 ## Support
 
 For API support and questions, please contact the development team or check the project documentation.

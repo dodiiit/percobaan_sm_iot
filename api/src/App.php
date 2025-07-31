@@ -13,6 +13,8 @@ use IndoWater\Api\Models\Client;
 use IndoWater\Api\Models\Customer;
 use IndoWater\Api\Models\Meter;
 use IndoWater\Api\Models\Payment;
+use IndoWater\Api\Models\Property;
+use IndoWater\Api\Models\PropertyDocument;
 use IndoWater\Api\Services\AuthService;
 use IndoWater\Api\Services\EmailService;
 use IndoWater\Api\Services\PaymentService;
@@ -21,6 +23,7 @@ use IndoWater\Api\Controllers\AuthController;
 use IndoWater\Api\Controllers\UserController;
 use IndoWater\Api\Controllers\MeterController;
 use IndoWater\Api\Controllers\PaymentController;
+use IndoWater\Api\Controllers\PropertyController;
 use IndoWater\Api\Controllers\RealtimeController;
 use IndoWater\Api\Middleware\AuthMiddleware;
 use IndoWater\Api\Middleware\CorsMiddleware;
@@ -73,6 +76,18 @@ class App
 
         $this->container->set(Meter::class, function ($container) {
             return new Meter($container->get('db'));
+        });
+
+        $this->container->set(Property::class, function ($container) {
+            return new Property($container->get('db'));
+        });
+
+        $this->container->set(PropertyDocument::class, function ($container) {
+            return new PropertyDocument($container->get('db'));
+        });
+
+        $this->container->set(Payment::class, function ($container) {
+            return new Payment($container->get('db'));
         });
 
         // Services
@@ -151,6 +166,15 @@ class App
             return new PaymentController(
                 $container->get(Payment::class),
                 $container->get(PaymentService::class)
+            );
+        });
+
+        $this->container->set(PropertyController::class, function ($container) {
+            return new PropertyController(
+                $container->get(Property::class),
+                $container->get(PropertyDocument::class),
+                $container->get(EmailService::class),
+                $container->get(RealtimeService::class)
             );
         });
 
@@ -245,6 +269,22 @@ class App
                 $group->get('/{id}/status', [MeterController::class, 'status']);
                 $group->post('/{id}/ota', [MeterController::class, 'ota']);
                 $group->post('/{id}/control', [MeterController::class, 'control']);
+            });
+
+            // Property routes
+            $group->group('/properties', function ($group) {
+                $group->get('', [PropertyController::class, 'index']);
+                $group->get('/types', [PropertyController::class, 'getTypes']);
+                $group->get('/verification-statuses', [PropertyController::class, 'getVerificationStatuses']);
+                $group->get('/pending-verification', [PropertyController::class, 'pendingVerification']);
+                $group->get('/statistics', [PropertyController::class, 'statistics']);
+                $group->get('/{id}', [PropertyController::class, 'show']);
+                $group->post('', [PropertyController::class, 'create']);
+                $group->put('/{id}', [PropertyController::class, 'update']);
+                $group->delete('/{id}', [PropertyController::class, 'delete']);
+                $group->put('/{id}/verification-status', [PropertyController::class, 'updateVerificationStatus']);
+                $group->post('/{id}/meters', [PropertyController::class, 'associateMeter']);
+                $group->delete('/{id}/meters/{meter_id}', [PropertyController::class, 'dissociateMeter']);
             });
 
             // Payment routes

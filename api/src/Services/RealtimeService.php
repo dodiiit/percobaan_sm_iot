@@ -249,4 +249,175 @@ class RealtimeService
 
         return $alerts;
     }
+
+    /**
+     * Broadcast property update to relevant users
+     */
+    public function broadcastPropertyUpdate(string $propertyId, string $action, array $propertyData): void
+    {
+        $update = [
+            'type' => 'property_update',
+            'property_id' => $propertyId,
+            'action' => $action, // created, updated, deleted, verification_updated, meter_associated, meter_dissociated
+            'data' => $propertyData,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+
+        // Store update for polling clients
+        $this->storeUpdate($update);
+
+        // Send to SSE clients (if implemented)
+        $this->broadcastToSSE($update);
+    }
+
+    /**
+     * Get property updates for polling
+     */
+    public function getPropertyUpdates(string $clientId = null, int $limit = 50): array
+    {
+        $updates = $this->getStoredUpdates('property_update', $limit);
+        
+        // Filter by client if specified
+        if ($clientId) {
+            $updates = array_filter($updates, function($update) use ($clientId) {
+                return isset($update['data']['client_id']) && $update['data']['client_id'] === $clientId;
+            });
+        }
+
+        return array_values($updates);
+    }
+
+    /**
+     * Send property verification notification
+     */
+    public function sendPropertyVerificationNotification(array $property, string $status): void
+    {
+        $notification = [
+            'type' => 'property_verification',
+            'property_id' => $property['id'],
+            'property_name' => $property['name'],
+            'status' => $status,
+            'message' => $this->getVerificationMessage($status),
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+
+        // Send to client users
+        $this->sendNotificationToClient($property['client_id'], $notification);
+    }
+
+    /**
+     * Send document expiry alerts
+     */
+    public function sendDocumentExpiryAlerts(array $documents): void
+    {
+        foreach ($documents as $document) {
+            $notification = [
+                'type' => 'document_expiry',
+                'property_id' => $document['property_id'],
+                'property_name' => $document['property_name'],
+                'document_type' => $document['document_type'],
+                'expiry_date' => $document['expiry_date'],
+                'days_until_expiry' => $document['days_until_expiry'],
+                'message' => "Document '{$document['document_name']}' expires in {$document['days_until_expiry']} days",
+                'timestamp' => date('Y-m-d H:i:s')
+            ];
+
+            // Send to property owner/client
+            $this->sendNotificationToClient($document['client_id'], $notification);
+        }
+    }
+
+    /**
+     * Get verification status message
+     */
+    private function getVerificationMessage(string $status): string
+    {
+        return match($status) {
+            'pending' => 'Property registration submitted for review',
+            'under_review' => 'Property registration is under review',
+            'approved' => 'Property registration approved! You can now add meters.',
+            'rejected' => 'Property registration rejected. Please review and resubmit.',
+            'requires_update' => 'Property registration requires updates. Please review and update.',
+            default => 'Property verification status updated'
+        };
+    }
+
+    /**
+     * Send notification to all users of a client
+     */
+    private function sendNotificationToClient(string $clientId, array $notification): void
+    {
+        // This would query users belonging to the client and send notifications
+        // For now, we'll store it as a general update
+        $update = [
+            'type' => 'notification',
+            'client_id' => $clientId,
+            'data' => $notification,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+
+        $this->storeUpdate($update);
+        $this->broadcastToSSE($update);
+    }
+
+    /**
+     * Store update for polling clients
+     */
+    private function storeUpdate(array $update): void
+    {
+        // In a real implementation, this would store in Redis or database
+        // For now, we'll use a simple file-based storage
+        $updatesFile = sys_get_temp_dir() . '/indowater_updates.json';
+        
+        $updates = [];
+        if (file_exists($updatesFile)) {
+            $updates = json_decode(file_get_contents($updatesFile), true) ?: [];
+        }
+
+        $updates[] = $update;
+        
+        // Keep only last 1000 updates
+        if (count($updates) > 1000) {
+            $updates = array_slice($updates, -1000);
+        }
+
+        file_put_contents($updatesFile, json_encode($updates));
+    }
+
+    /**
+     * Get stored updates
+     */
+    private function getStoredUpdates(string $type = null, int $limit = 50): array
+    {
+        $updatesFile = sys_get_temp_dir() . '/indowater_updates.json';
+        
+        if (!file_exists($updatesFile)) {
+            return [];
+        }
+
+        $updates = json_decode(file_get_contents($updatesFile), true) ?: [];
+        
+        // Filter by type if specified
+        if ($type) {
+            $updates = array_filter($updates, function($update) use ($type) {
+                return $update['type'] === $type;
+            });
+        }
+
+        // Sort by timestamp (newest first)
+        usort($updates, function($a, $b) {
+            return strtotime($b['timestamp']) - strtotime($a['timestamp']);
+        });
+
+        return array_slice($updates, 0, $limit);
+    }
+
+    /**
+     * Broadcast to SSE clients (placeholder)
+     */
+    private function broadcastToSSE(array $update): void
+    {
+        // This would broadcast to Server-Sent Events clients
+        // Implementation depends on your SSE setup
+    }
 }
