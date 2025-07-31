@@ -97,4 +97,174 @@ class Meter extends BaseModel
         $stmt->execute([$meterId, $startDate, $endDate]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
+
+    public function updateCredit(string $id, float $newBalance): bool
+    {
+        $sql = "UPDATE {$this->table} SET last_credit = ?, last_credit_at = ?, updated_at = ? WHERE id = ?";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$newBalance, date('Y-m-d H:i:s'), date('Y-m-d H:i:s'), $id]);
+    }
+
+    public function getBalance(string $id): ?float
+    {
+        $sql = "SELECT last_credit FROM {$this->table} WHERE id = ? AND deleted_at IS NULL";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$id]);
+        $result = $stmt->fetchColumn();
+        
+        return $result !== false ? (float) $result : null;
+    }
+
+    public function getBalanceByMeterId(string $meterId): ?float
+    {
+        $sql = "SELECT last_credit FROM {$this->table} WHERE meter_id = ? AND deleted_at IS NULL";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$meterId]);
+        $result = $stmt->fetchColumn();
+        
+        return $result !== false ? (float) $result : null;
+    }
+
+    public function addCredit(string $id, float $amount, string $description = 'Credit top-up'): array
+    {
+        $this->beginTransaction();
+        
+        try {
+            // Get current meter data
+            $meter = $this->find($id);
+            if (!$meter) {
+                throw new \Exception('Meter not found');
+            }
+
+            $previousBalance = (float) $meter['last_credit'];
+            $newBalance = $previousBalance + $amount;
+
+            // Update meter balance
+            $this->updateCredit($id, $newBalance);
+
+            // Create credit record
+            $creditId = \Ramsey\Uuid\Uuid::uuid4()->toString();
+            $creditData = [
+                'id' => $creditId,
+                'meter_id' => $id,
+                'customer_id' => $meter['customer_id'],
+                'amount' => $amount,
+                'previous_balance' => $previousBalance,
+                'new_balance' => $newBalance,
+                'description' => $description,
+                'status' => 'success',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            $sql = "INSERT INTO credits (id, meter_id, customer_id, amount, previous_balance, new_balance, description, status, created_at, updated_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                $creditData['id'],
+                $creditData['meter_id'],
+                $creditData['customer_id'],
+                $creditData['amount'],
+                $creditData['previous_balance'],
+                $creditData['new_balance'],
+                $creditData['description'],
+                $creditData['status'],
+                $creditData['created_at'],
+                $creditData['updated_at']
+            ]);
+
+            $this->commit();
+
+            return [
+                'credit_id' => $creditId,
+                'meter_id' => $meter['meter_id'],
+                'amount' => $amount,
+                'previous_balance' => $previousBalance,
+                'new_balance' => $newBalance,
+                'description' => $description
+            ];
+
+        } catch (\Exception $e) {
+            $this->rollback();
+            throw $e;
+        }
+    }
+
+    public function deductCredit(string $id, float $amount, string $description = 'Water consumption'): array
+    {
+        $this->beginTransaction();
+        
+        try {
+            // Get current meter data
+            $meter = $this->find($id);
+            if (!$meter) {
+                throw new \Exception('Meter not found');
+            }
+
+            $previousBalance = (float) $meter['last_credit'];
+            
+            if ($previousBalance < $amount) {
+                throw new \Exception('Insufficient credit balance');
+            }
+
+            $newBalance = $previousBalance - $amount;
+
+            // Update meter balance
+            $this->updateCredit($id, $newBalance);
+
+            // Create credit record
+            $creditId = \Ramsey\Uuid\Uuid::uuid4()->toString();
+            $creditData = [
+                'id' => $creditId,
+                'meter_id' => $id,
+                'customer_id' => $meter['customer_id'],
+                'amount' => -$amount, // Negative for deduction
+                'previous_balance' => $previousBalance,
+                'new_balance' => $newBalance,
+                'description' => $description,
+                'status' => 'success',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            $sql = "INSERT INTO credits (id, meter_id, customer_id, amount, previous_balance, new_balance, description, status, created_at, updated_at) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute([
+                $creditData['id'],
+                $creditData['meter_id'],
+                $creditData['customer_id'],
+                $creditData['amount'],
+                $creditData['previous_balance'],
+                $creditData['new_balance'],
+                $creditData['description'],
+                $creditData['status'],
+                $creditData['created_at'],
+                $creditData['updated_at']
+            ]);
+
+            $this->commit();
+
+            return [
+                'credit_id' => $creditId,
+                'meter_id' => $meter['meter_id'],
+                'amount' => -$amount,
+                'previous_balance' => $previousBalance,
+                'new_balance' => $newBalance,
+                'description' => $description
+            ];
+
+        } catch (\Exception $e) {
+            $this->rollback();
+            throw $e;
+        }
+    }
+
+    public function getCreditHistory(string $id, int $limit = 50): array
+    {
+        $sql = "SELECT * FROM credits WHERE meter_id = ? ORDER BY created_at DESC LIMIT ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$id, $limit]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
 }

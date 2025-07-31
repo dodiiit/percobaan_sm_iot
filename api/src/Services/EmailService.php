@@ -168,16 +168,48 @@ class EmailService
             ',
             'payment_confirmation' => '
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                    <h2>Payment Confirmation</h2>
+                    <h2 style="color: #28a745;">Payment Confirmation</h2>
                     <p>Hello {{name}},</p>
-                    <p>Your payment has been processed successfully:</p>
-                    <ul>
-                        <li>Payment ID: {{payment_id}}</li>
-                        <li>Amount: Rp {{amount}}</li>
-                        <li>Method: {{method}}</li>
-                        <li>Date: {{date}}</li>
-                    </ul>
+                    <p>Your payment has been processed successfully and credit has been added to your meter:</p>
+                    <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                        <ul style="list-style: none; padding: 0;">
+                            <li style="margin: 8px 0;"><strong>Payment ID:</strong> {{payment_id}}</li>
+                            <li style="margin: 8px 0;"><strong>Amount:</strong> {{amount}}</li>
+                            <li style="margin: 8px 0;"><strong>Method:</strong> {{payment_method}}</li>
+                            <li style="margin: 8px 0;"><strong>Date:</strong> {{paid_at}}</li>
+                        </ul>
+                    </div>
+                    <p>Your meter credit has been automatically updated. You can check your current balance in your dashboard.</p>
                     <p>Thank you for your payment!</p>
+                    <p>Best regards,<br>IndoWater Team</p>
+                </div>
+            ',
+            'low_balance_alert' => '
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #ffc107;">Low Balance Alert</h2>
+                    <p>Hello {{name}},</p>
+                    <p>Your water meter <strong>{{meter_id}}</strong> has a low credit balance:</p>
+                    <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+                        <p style="margin: 0;"><strong>Current Balance:</strong> {{current_balance}}</p>
+                        <p style="margin: 8px 0 0 0;"><strong>Alert Threshold:</strong> {{threshold}}</p>
+                    </div>
+                    <p>Please top up your credit to avoid service interruption.</p>
+                    <p style="text-align: center;">
+                        <a href="#" style="background-color: #ffc107; color: black; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">Top Up Credit</a>
+                    </p>
+                    <p>Best regards,<br>IndoWater Team</p>
+                </div>
+            ',
+            'meter_status_alert' => '
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <h2 style="color: #dc3545;">Meter Status Alert</h2>
+                    <p>Hello {{name}},</p>
+                    <p>There is an important status update for your water meter <strong>{{meter_id}}</strong>:</p>
+                    <div style="background-color: #f8d7da; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #dc3545;">
+                        <p style="margin: 0;"><strong>Status:</strong> {{status}}</p>
+                        <p style="margin: 8px 0 0 0;">{{message}}</p>
+                    </div>
+                    <p>If you need assistance, please contact our support team.</p>
                     <p>Best regards,<br>IndoWater Team</p>
                 </div>
             '
@@ -190,5 +222,45 @@ class EmailService
         }
 
         return $template;
+    }
+
+    public function sendPaymentConfirmation(array $data): bool
+    {
+        $subject = 'Payment Confirmation - IndoWater';
+        $template = $this->getTemplate('payment_confirmation', [
+            'name' => $data['name'],
+            'amount' => 'Rp ' . number_format($data['amount'], 0, ',', '.'),
+            'payment_id' => $data['payment_id'],
+            'payment_method' => ucfirst($data['payment_method']),
+            'paid_at' => date('d M Y H:i', strtotime($data['paid_at']))
+        ]);
+
+        return $this->send($data['to'], $subject, $template);
+    }
+
+    public function sendLowBalanceAlert(array $data): bool
+    {
+        $subject = 'Low Balance Alert - IndoWater';
+        $template = $this->getTemplate('low_balance_alert', [
+            'name' => $data['name'],
+            'meter_id' => $data['meter_id'],
+            'current_balance' => 'Rp ' . number_format($data['current_balance'], 0, ',', '.'),
+            'threshold' => 'Rp ' . number_format($data['threshold'], 0, ',', '.')
+        ]);
+
+        return $this->send($data['to'], $subject, $template);
+    }
+
+    public function sendMeterStatusAlert(array $data): bool
+    {
+        $subject = 'Meter Status Alert - IndoWater';
+        $template = $this->getTemplate('meter_status_alert', [
+            'name' => $data['name'],
+            'meter_id' => $data['meter_id'],
+            'status' => ucfirst($data['status']),
+            'message' => $data['message'] ?? 'Please check your meter status.'
+        ]);
+
+        return $this->send($data['to'], $subject, $template);
     }
 }

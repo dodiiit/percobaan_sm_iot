@@ -12,6 +12,7 @@ use IndoWater\Api\Models\User;
 use IndoWater\Api\Models\Client;
 use IndoWater\Api\Models\Customer;
 use IndoWater\Api\Models\Meter;
+use IndoWater\Api\Models\Payment;
 use IndoWater\Api\Services\AuthService;
 use IndoWater\Api\Services\EmailService;
 use IndoWater\Api\Services\PaymentService;
@@ -19,6 +20,7 @@ use IndoWater\Api\Services\RealtimeService;
 use IndoWater\Api\Controllers\AuthController;
 use IndoWater\Api\Controllers\UserController;
 use IndoWater\Api\Controllers\MeterController;
+use IndoWater\Api\Controllers\PaymentController;
 use IndoWater\Api\Controllers\RealtimeController;
 use IndoWater\Api\Middleware\AuthMiddleware;
 use IndoWater\Api\Middleware\CorsMiddleware;
@@ -96,6 +98,25 @@ class App
             ]);
         });
 
+        $this->container->set(PaymentService::class, function ($container) {
+            return new PaymentService(
+                $container->get(Payment::class),
+                [
+                    'server_key' => $this->config['midtrans_server_key'],
+                    'client_key' => $this->config['midtrans_client_key'],
+                    'environment' => $this->config['midtrans_environment']
+                ],
+                [
+                    'client_id' => $this->config['doku_client_id'],
+                    'shared_key' => $this->config['doku_shared_key'],
+                    'environment' => $this->config['doku_environment']
+                ],
+                $container->get(Meter::class),
+                $container->get(EmailService::class),
+                $container->get(RealtimeService::class)
+            );
+        });
+
         $this->container->set(RealtimeService::class, function ($container) {
             return new RealtimeService(
                 $container->get(Meter::class),
@@ -124,6 +145,13 @@ class App
 
         $this->container->set(RealtimeController::class, function ($container) {
             return new RealtimeController($container->get(RealtimeService::class));
+        });
+
+        $this->container->set(PaymentController::class, function ($container) {
+            return new PaymentController(
+                $container->get(Payment::class),
+                $container->get(PaymentService::class)
+            );
         });
 
         // Middleware
@@ -210,12 +238,23 @@ class App
                 $group->post('', [MeterController::class, 'store']);
                 $group->put('/{id}', [MeterController::class, 'update']);
                 $group->delete('/{id}', [MeterController::class, 'delete']);
+                $group->get('/{id}/balance', [MeterController::class, 'balance']);
                 $group->get('/{id}/consumption', [MeterController::class, 'consumption']);
                 $group->get('/{id}/credits', [MeterController::class, 'credits']);
                 $group->post('/{id}/topup', [MeterController::class, 'topup']);
                 $group->get('/{id}/status', [MeterController::class, 'status']);
                 $group->post('/{id}/ota', [MeterController::class, 'ota']);
                 $group->post('/{id}/control', [MeterController::class, 'control']);
+            });
+
+            // Payment routes
+            $group->group('/payments', function ($group) {
+                $group->get('', [PaymentController::class, 'index']);
+                $group->get('/{id}', [PaymentController::class, 'show']);
+                $group->post('', [PaymentController::class, 'store']);
+                $group->put('/{id}', [PaymentController::class, 'update']);
+                $group->delete('/{id}', [PaymentController::class, 'delete']);
+                $group->post('/{id}/process', [PaymentController::class, 'process']);
             });
 
             // Real-time routes
@@ -227,6 +266,12 @@ class App
             });
 
         })->add($authMiddleware);
+
+        // Public webhook routes (no auth required)
+        $this->app->group('/webhooks', function ($group) {
+            $group->post('/midtrans', [PaymentController::class, 'midtransWebhook']);
+            $group->post('/doku', [PaymentController::class, 'dokuWebhook']);
+        });
 
         // Webhook routes (no auth required)
         $this->app->post('/webhook/realtime', [RealtimeController::class, 'webhook']);

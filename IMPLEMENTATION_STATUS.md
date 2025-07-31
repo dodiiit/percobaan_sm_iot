@@ -25,14 +25,14 @@
 #### Controllers Implemented
 - ✅ **AuthController**: Login, register, password reset, email verification
 - ✅ **UserController**: User CRUD, profile management, password updates
-- ✅ **MeterController**: Meter CRUD, consumption tracking, credit management
+- ✅ **MeterController**: Meter CRUD, consumption tracking, balance management, credit top-up
 - ✅ **PaymentController**: Payment creation, status checking, history
 - ✅ **RealtimeController**: SSE streaming, polling, webhooks
 
 #### Services Implemented
 - ✅ **AuthService**: JWT token management, user authentication
 - ✅ **EmailService**: Email templates, SMTP integration
-- ✅ **PaymentService**: Midtrans/DOKU integration, webhook handling
+- ✅ **PaymentService**: Midtrans/DOKU integration, webhook handling, automatic credit addition
 - ✅ **RealtimeService**: SSE streaming, real-time data processing
 
 #### Middleware Implemented
@@ -50,7 +50,7 @@
 #### API Endpoints (50+ endpoints)
 - ✅ **Authentication**: 8 endpoints (login, register, refresh, etc.)
 - ✅ **User Management**: 8 endpoints (CRUD, profile, password)
-- ✅ **Meter Management**: 10 endpoints (CRUD, consumption, control)
+- ✅ **Meter Management**: 11 endpoints (CRUD, balance, consumption, control)
 - ✅ **Real-time Data**: 4 endpoints (SSE, polling, status)
 - ✅ **Payment Processing**: 6 endpoints (create, status, history)
 - ✅ **Webhooks**: 2 endpoints (IoT data, payment notifications)

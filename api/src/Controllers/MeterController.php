@@ -226,6 +226,39 @@ class MeterController
         }
     }
 
+    public function balance(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $id = $args['id'];
+
+            $meter = $this->meterModel->find($id);
+            if (!$meter) {
+                return $this->jsonResponse($response, [
+                    'status' => 'error',
+                    'message' => 'Meter not found'
+                ], 404);
+            }
+
+            $balance = $this->meterModel->getBalance($id);
+
+            return $this->jsonResponse($response, [
+                'status' => 'success',
+                'data' => [
+                    'meter_id' => $meter['meter_id'],
+                    'current_balance' => $balance,
+                    'last_updated' => $meter['last_credit_at'],
+                    'status' => $meter['status']
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->jsonResponse($response, [
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function credits(Request $request, Response $response, array $args): Response
     {
         try {
@@ -239,11 +272,8 @@ class MeterController
                 ], 404);
             }
 
-            // Get credit history
-            $sql = "SELECT * FROM credits WHERE meter_id = ? ORDER BY created_at DESC LIMIT 50";
-            $stmt = $this->meterModel->db->prepare($sql);
-            $stmt->execute([$id]);
-            $credits = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            // Get credit history using the new method
+            $credits = $this->meterModel->getCreditHistory($id);
 
             return $this->jsonResponse($response, [
                 'status' => 'success',
@@ -270,12 +300,13 @@ class MeterController
             $data = $request->getParsedBody();
 
             // Validate input
-            $validator = v::key('amount', v::numericVal()->positive());
+            $validator = v::key('amount', v::numericVal()->positive())
+                        ->key('description', v::stringType()->notEmpty()->optional());
 
             if (!$validator->validate($data)) {
                 return $this->jsonResponse($response, [
                     'status' => 'error',
-                    'message' => 'Invalid amount'
+                    'message' => 'Invalid input data'
                 ], 400);
             }
 
@@ -287,59 +318,27 @@ class MeterController
                 ], 404);
             }
 
-            // Start transaction
-            $this->meterModel->beginTransaction();
+            $amount = (float) $data['amount'];
+            $description = $data['description'] ?? 'Manual credit top-up';
 
-            try {
-                $amount = (float) $data['amount'];
-                $previousBalance = $meter['last_credit'];
-                $newBalance = $previousBalance + $amount;
+            // Use the new addCredit method
+            $result = $this->meterModel->addCredit($id, $amount, $description);
 
-                // Update meter credit
-                $this->meterModel->updateCredit($id, $newBalance);
-
-                // Create credit record
-                $creditData = [
-                    'meter_id' => $id,
-                    'customer_id' => $meter['customer_id'],
+            // Send real-time notification
+            if ($this->realtimeService) {
+                $this->realtimeService->broadcastMeterUpdate($meter['meter_id'], [
+                    'type' => 'credit_topup',
                     'amount' => $amount,
-                    'previous_balance' => $previousBalance,
-                    'new_balance' => $newBalance,
-                    'status' => 'success'
-                ];
-
-                $sql = "INSERT INTO credits (id, meter_id, customer_id, amount, previous_balance, new_balance, status, created_at, updated_at) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                $stmt = $this->meterModel->db->prepare($sql);
-                $stmt->execute([
-                    \Ramsey\Uuid\Uuid::uuid4()->toString(),
-                    $creditData['meter_id'],
-                    $creditData['customer_id'],
-                    $creditData['amount'],
-                    $creditData['previous_balance'],
-                    $creditData['new_balance'],
-                    $creditData['status'],
-                    date('Y-m-d H:i:s'),
-                    date('Y-m-d H:i:s')
+                    'new_balance' => $result['new_balance'],
+                    'timestamp' => time()
                 ]);
-
-                $this->meterModel->commit();
-
-                return $this->jsonResponse($response, [
-                    'status' => 'success',
-                    'message' => 'Credit topped up successfully',
-                    'data' => [
-                        'meter_id' => $meter['meter_id'],
-                        'amount' => $amount,
-                        'previous_balance' => $previousBalance,
-                        'new_balance' => $newBalance
-                    ]
-                ]);
-
-            } catch (\Exception $e) {
-                $this->meterModel->rollback();
-                throw $e;
             }
+
+            return $this->jsonResponse($response, [
+                'status' => 'success',
+                'message' => 'Credit topped up successfully',
+                'data' => $result
+            ], 201);
 
         } catch (\Exception $e) {
             return $this->jsonResponse($response, [

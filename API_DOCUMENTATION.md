@@ -227,6 +227,22 @@ Update meter details.
 #### DELETE /api/meters/{id}
 Delete meter.
 
+#### GET /api/meters/{id}/balance
+Get meter current balance.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "meter_id": "MTR000001",
+    "current_balance": 50000.00,
+    "last_updated": "2024-01-15 10:30:00",
+    "status": "active"
+  }
+}
+```
+
 #### GET /api/meters/{id}/consumption
 Get meter consumption data.
 
@@ -261,12 +277,29 @@ Get meter consumption data.
 Get meter credit history.
 
 #### POST /api/meters/{id}/topup
-Top up meter credit.
+Top up meter credit manually.
 
 **Request Body:**
 ```json
 {
-  "amount": 100000
+  "amount": 100000,
+  "description": "Manual credit top-up"
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "message": "Credit topped up successfully",
+  "data": {
+    "credit_id": "credit-uuid",
+    "meter_id": "MTR000001",
+    "amount": 100000,
+    "previous_balance": 25000,
+    "new_balance": 125000,
+    "description": "Manual credit top-up"
+  }
 }
 ```
 
@@ -417,6 +450,18 @@ Check payment status.
 
 #### GET /api/payments/summary
 Get payment summary for current user.
+
+#### POST /webhooks/midtrans
+Midtrans payment webhook (automatic credit addition).
+
+**Note:** When a payment is successfully processed through Midtrans or DOKU, the system automatically:
+1. Updates the payment status to 'success'
+2. Adds the payment amount as credit to the customer's meter
+3. Sends a payment confirmation email
+4. Broadcasts real-time notification to the customer
+
+#### POST /webhooks/doku
+DOKU payment webhook (automatic credit addition).
 
 ---
 

@@ -14,12 +14,24 @@ class PaymentService
     private Payment $paymentModel;
     private array $midtransConfig;
     private array $dokuConfig;
+    private $meterModel;
+    private $emailService;
+    private $realtimeService;
 
-    public function __construct(Payment $paymentModel, array $midtransConfig, array $dokuConfig)
-    {
+    public function __construct(
+        Payment $paymentModel, 
+        array $midtransConfig, 
+        array $dokuConfig,
+        $meterModel = null,
+        $emailService = null,
+        $realtimeService = null
+    ) {
         $this->paymentModel = $paymentModel;
         $this->midtransConfig = $midtransConfig;
         $this->dokuConfig = $dokuConfig;
+        $this->meterModel = $meterModel;
+        $this->emailService = $emailService;
+        $this->realtimeService = $realtimeService;
 
         // Configure Midtrans
         Config::$serverKey = $midtransConfig['server_key'];
@@ -250,9 +262,120 @@ class PaymentService
 
     private function processSuccessfulPayment(array $payment): void
     {
-        // Add credit to customer's meter
-        // Send confirmation email
-        // Create notification
-        // This would integrate with other services
+        try {
+            // Add credit to customer's meter if meter model is available
+            if ($this->meterModel && isset($payment['meter_id'])) {
+                $this->addCreditToMeter($payment);
+            }
+
+            // Send confirmation email if email service is available
+            if ($this->emailService && isset($payment['customer_email'])) {
+                $this->sendPaymentConfirmationEmail($payment);
+            }
+
+            // Send real-time notification if realtime service is available
+            if ($this->realtimeService) {
+                $this->sendPaymentNotification($payment);
+            }
+
+        } catch (\Exception $e) {
+            // Log error but don't throw to avoid breaking the payment flow
+            error_log('Error processing successful payment: ' . $e->getMessage());
+        }
+    }
+
+    private function addCreditToMeter(array $payment): void
+    {
+        if (!$this->meterModel) {
+            return;
+        }
+
+        try {
+            // Find meter by customer ID or meter ID
+            $meter = null;
+            
+            if (isset($payment['meter_id'])) {
+                $meter = $this->meterModel->find($payment['meter_id']);
+            } elseif (isset($payment['customer_id'])) {
+                // Find customer's primary meter
+                $sql = "SELECT * FROM meters WHERE customer_id = ? AND deleted_at IS NULL ORDER BY created_at ASC LIMIT 1";
+                $stmt = $this->meterModel->db->prepare($sql);
+                $stmt->execute([$payment['customer_id']]);
+                $meter = $stmt->fetch(\PDO::FETCH_ASSOC);
+            }
+
+            if (!$meter) {
+                throw new \Exception('No meter found for payment');
+            }
+
+            // Add credit to meter
+            $description = 'Payment credit top-up - Payment ID: ' . $payment['external_id'];
+            $result = $this->meterModel->addCredit($meter['id'], $payment['amount'], $description);
+
+            // Update payment record with meter information
+            $this->paymentModel->update($payment['id'], [
+                'meter_id' => $meter['id'],
+                'gateway_response' => json_encode(array_merge(
+                    json_decode($payment['gateway_response'] ?? '{}', true),
+                    ['credit_added' => $result]
+                ))
+            ]);
+
+            // Send real-time meter update
+            if ($this->realtimeService) {
+                $this->realtimeService->broadcastMeterUpdate($meter['meter_id'], [
+                    'type' => 'payment_credit_added',
+                    'amount' => $payment['amount'],
+                    'new_balance' => $result['new_balance'],
+                    'payment_id' => $payment['external_id'],
+                    'timestamp' => time()
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            error_log('Error adding credit to meter: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    private function sendPaymentConfirmationEmail(array $payment): void
+    {
+        if (!$this->emailService) {
+            return;
+        }
+
+        try {
+            $this->emailService->sendPaymentConfirmation([
+                'to' => $payment['customer_email'],
+                'name' => $payment['customer_name'] ?? 'Customer',
+                'amount' => $payment['amount'],
+                'payment_id' => $payment['external_id'],
+                'payment_method' => $payment['method'],
+                'paid_at' => $payment['paid_at'] ?? date('Y-m-d H:i:s')
+            ]);
+        } catch (\Exception $e) {
+            error_log('Error sending payment confirmation email: ' . $e->getMessage());
+        }
+    }
+
+    private function sendPaymentNotification(array $payment): void
+    {
+        if (!$this->realtimeService) {
+            return;
+        }
+
+        try {
+            $this->realtimeService->broadcastNotification([
+                'type' => 'payment_success',
+                'title' => 'Payment Successful',
+                'message' => 'Your payment of Rp ' . number_format($payment['amount'], 0, ',', '.') . ' has been processed successfully.',
+                'customer_id' => $payment['customer_id'],
+                'payment_id' => $payment['external_id'],
+                'amount' => $payment['amount'],
+                'timestamp' => time()
+            ]);
+        } catch (\Exception $e) {
+            error_log('Error sending payment notification: ' . $e->getMessage());
+        }
     }
 }
