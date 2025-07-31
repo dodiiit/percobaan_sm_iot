@@ -5,12 +5,14 @@ import {
   BuildingOfficeIcon,
   CpuChipIcon,
   CreditCardIcon,
-
   ExclamationTriangleIcon,
   CheckCircleIcon,
-  ClockIcon
+  ClockIcon,
+  PlusIcon
 } from '@heroicons/react/24/outline';
 import api from '../../../services/api';
+import PageHeader from '../../../components/common/PageHeader';
+import Button from '../../../components/ui/Button';
 
 // Dashboard Overview Component
 const SuperadminOverview: React.FC = () => {
@@ -127,13 +129,21 @@ const SuperadminOverview: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="border-b border-gray-200 dark:border-gray-700 pb-4">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Superadmin Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          Overview of the entire IndoWater system
-        </p>
-      </div>
+      <PageHeader
+        title="Superadmin Dashboard"
+        description="Overview of the entire IndoWater system"
+        actions={
+          <div className="flex space-x-3">
+            <Button variant="outline" size="sm">
+              Export Report
+            </Button>
+            <Button size="sm">
+              <PlusIcon className="h-4 w-4 mr-2" />
+              Add Client
+            </Button>
+          </div>
+        }
+      />
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">

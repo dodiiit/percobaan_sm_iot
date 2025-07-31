@@ -5,7 +5,10 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import PublicRoute from './components/common/PublicRoute';
-import SimpleDashboardLayout from './components/layouts/SimpleDashboardLayout';
+import DashboardLayout from './components/layouts/DashboardLayout';
+
+// Public Pages
+import LandingPage from './pages/LandingPage';
 
 // Auth Pages
 import LoginPage from './pages/auth/LoginPage';
@@ -36,7 +39,14 @@ function App() {
           <div className="App min-h-screen bg-gray-50 dark:bg-gray-900">
             <Routes>
               {/* Public Routes */}
-              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route 
+                path="/" 
+                element={
+                  <PublicRoute>
+                    <LandingPage />
+                  </PublicRoute>
+                } 
+              />
               <Route
                 path="/login"
                 element={
@@ -83,7 +93,7 @@ function App() {
                 path="/dashboard/*"
                 element={
                   <ProtectedRoute allowedRoles={['superadmin', 'client', 'customer']}>
-                    <SimpleDashboardLayout />
+                    <DashboardLayout />
                   </ProtectedRoute>
                 }
               >
