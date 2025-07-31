@@ -25,6 +25,7 @@ use IndoWater\Api\Controllers\MeterController;
 use IndoWater\Api\Controllers\PaymentController;
 use IndoWater\Api\Controllers\PropertyController;
 use IndoWater\Api\Controllers\RealtimeController;
+use IndoWater\Api\Controllers\TariffController;
 use IndoWater\Api\Middleware\AuthMiddleware;
 use IndoWater\Api\Middleware\CorsMiddleware;
 use IndoWater\Api\Middleware\RateLimitMiddleware;
@@ -303,6 +304,51 @@ class App
                 $group->get('/stream/notifications', [RealtimeController::class, 'streamNotifications']);
                 $group->get('/poll/updates', [RealtimeController::class, 'pollUpdates']);
                 $group->get('/meter/{meter_id}/status', [RealtimeController::class, 'meterStatus']);
+            });
+            
+            // Tariff and Rate Management routes
+            $group->group('/tariffs', function ($group) {
+                // Tariff routes
+                $group->get('/client/{clientId}', [TariffController::class, 'getAllTariffs']);
+                $group->get('/{id}', [TariffController::class, 'getTariff']);
+                $group->get('/{id}/complete', [TariffController::class, 'getCompleteTariff']);
+                $group->post('', [TariffController::class, 'createTariff']);
+                $group->put('/{id}', [TariffController::class, 'updateTariff']);
+                $group->delete('/{id}', [TariffController::class, 'deleteTariff']);
+                $group->post('/{id}/calculate-price', [TariffController::class, 'calculatePrice']);
+                
+                // Seasonal rates routes
+                $group->get('/{tariffId}/seasonal-rates', [TariffController::class, 'getSeasonalRates']);
+                $group->post('/{tariffId}/seasonal-rates', [TariffController::class, 'createSeasonalRate']);
+                $group->put('/seasonal-rates/{id}', [TariffController::class, 'updateSeasonalRate']);
+                $group->delete('/seasonal-rates/{id}', [TariffController::class, 'deleteSeasonalRate']);
+                
+                // Bulk discount tiers routes
+                $group->get('/{tariffId}/bulk-discounts', [TariffController::class, 'getBulkDiscountTiers']);
+                $group->post('/{tariffId}/bulk-discounts', [TariffController::class, 'createBulkDiscountTier']);
+                $group->put('/bulk-discounts/{id}', [TariffController::class, 'updateBulkDiscountTier']);
+                $group->delete('/bulk-discounts/{id}', [TariffController::class, 'deleteBulkDiscountTier']);
+                
+                // Dynamic discount rules routes
+                $group->get('/{tariffId}/dynamic-discounts', [TariffController::class, 'getDynamicDiscountRules']);
+                $group->post('/{tariffId}/dynamic-discounts', [TariffController::class, 'createDynamicDiscountRule']);
+                $group->put('/dynamic-discounts/{id}', [TariffController::class, 'updateDynamicDiscountRule']);
+                $group->delete('/dynamic-discounts/{id}', [TariffController::class, 'deleteDynamicDiscountRule']);
+            });
+            
+            // Property tariff assignment routes
+            $group->group('/property-tariffs', function ($group) {
+                $group->get('/property/{propertyId}', [TariffController::class, 'getPropertyTariffs']);
+                $group->get('/property/{propertyId}/current', [TariffController::class, 'getCurrentPropertyTariff']);
+                $group->post('/property/{propertyId}', [TariffController::class, 'assignTariffToProperty']);
+                $group->put('/{id}', [TariffController::class, 'updatePropertyTariff']);
+                $group->delete('/{id}', [TariffController::class, 'deletePropertyTariff']);
+            });
+            
+            // Applied discounts routes
+            $group->group('/discounts', function ($group) {
+                $group->get('/customer/{customerId}', [TariffController::class, 'getCustomerDiscounts']);
+                $group->get('/customer/{customerId}/stats', [TariffController::class, 'getCustomerDiscountStats']);
             });
 
         })->add($authMiddleware);
