@@ -145,7 +145,6 @@ const enTranslations = {
     might: 'might',
     must: 'must',
     shall: 'shall',
-    should: 'should',
   },
   auth: {
     login: {
@@ -441,7 +440,6 @@ const idTranslations = {
     might: 'mungkin',
     must: 'harus',
     shall: 'akan',
-    should: 'seharusnya',
   },
   auth: {
     login: {

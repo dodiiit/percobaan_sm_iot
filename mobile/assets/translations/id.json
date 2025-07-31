@@ -1,0 +1,15 @@
+{
+  "app_name": "IndoWater",
+  "welcome": "Selamat datang di IndoWater",
+  "login": "Masuk",
+  "register": "Daftar",
+  "email": "Email",
+  "password": "Kata Sandi",
+  "forgot_password": "Lupa Kata Sandi?",
+  "dashboard": "Dasbor",
+  "meters": "Meteran",
+  "consumption": "Konsumsi",
+  "payments": "Pembayaran",
+  "topup": "Isi Ulang",
+  "profile": "Profil"
+}

@@ -1,0 +1,15 @@
+{
+  "app_name": "IndoWater",
+  "welcome": "Welcome to IndoWater",
+  "login": "Login",
+  "register": "Register",
+  "email": "Email",
+  "password": "Password",
+  "forgot_password": "Forgot Password?",
+  "dashboard": "Dashboard",
+  "meters": "Meters",
+  "consumption": "Consumption",
+  "payments": "Payments",
+  "topup": "Top Up",
+  "profile": "Profile"
+}
