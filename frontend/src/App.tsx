@@ -28,6 +28,7 @@ import MetersManagement from './pages/dashboard/superadmin/MetersManagement';
 import PaymentsManagement from './pages/dashboard/superadmin/PaymentsManagement';
 import ReportsManagement from './pages/dashboard/superadmin/ReportsManagement';
 import ServiceFeesManagement from './pages/dashboard/superadmin/ServiceFeesManagement';
+import TariffsManagement from './pages/dashboard/superadmin/TariffsManagement';
 import SystemSettings from './pages/dashboard/superadmin/SystemSettings';
 
 // Client Pages
@@ -37,6 +38,7 @@ import ClientMeters from './pages/dashboard/client/Meters';
 import ClientPayments from './pages/dashboard/client/Payments';
 import ClientReports from './pages/dashboard/client/Reports';
 import ClientSettings from './pages/dashboard/client/Settings';
+import ClientTariffs from './pages/dashboard/client/Tariffs';
 
 // Customer Pages
 import CustomerMeters from './pages/dashboard/customer/Meters';
@@ -147,6 +149,11 @@ function App() {
               <ServiceFeesManagement />
             </ProtectedRoute>
           } />
+          <Route path="tariffs" element={
+            <ProtectedRoute allowedRoles={['superadmin']}>
+              <TariffsManagement />
+            </ProtectedRoute>
+          } />
           <Route path="settings" element={
             <ProtectedRoute allowedRoles={['superadmin']}>
               <SystemSettings />
@@ -182,6 +189,11 @@ function App() {
           <Route path="client/reports" element={
             <ProtectedRoute allowedRoles={['client']}>
               <ClientReports />
+            </ProtectedRoute>
+          } />
+          <Route path="client/tariffs" element={
+            <ProtectedRoute allowedRoles={['client']}>
+              <ClientTariffs />
             </ProtectedRoute>
           } />
           <Route path="client/settings" element={
