@@ -15,16 +15,23 @@ use IndoWater\Api\Models\Meter;
 use IndoWater\Api\Models\Payment;
 use IndoWater\Api\Models\Property;
 use IndoWater\Api\Models\PropertyDocument;
+use IndoWater\Api\Models\ServiceFeePlan;
+use IndoWater\Api\Models\ServiceFeeComponent;
+use IndoWater\Api\Models\ServiceFeeTransaction;
+use IndoWater\Api\Models\ServiceFeeInvoice;
 use IndoWater\Api\Services\AuthService;
 use IndoWater\Api\Services\EmailService;
 use IndoWater\Api\Services\PaymentService;
 use IndoWater\Api\Services\RealtimeService;
+use IndoWater\Api\Services\ServiceFeeService;
 use IndoWater\Api\Controllers\AuthController;
 use IndoWater\Api\Controllers\UserController;
 use IndoWater\Api\Controllers\MeterController;
 use IndoWater\Api\Controllers\PaymentController;
 use IndoWater\Api\Controllers\PropertyController;
 use IndoWater\Api\Controllers\RealtimeController;
+use IndoWater\Api\Controllers\TariffController;
+use IndoWater\Api\Controllers\ServiceFeeController;
 use IndoWater\Api\Middleware\AuthMiddleware;
 use IndoWater\Api\Middleware\CorsMiddleware;
 use IndoWater\Api\Middleware\RateLimitMiddleware;
@@ -89,6 +96,22 @@ class App
         $this->container->set(Payment::class, function ($container) {
             return new Payment($container->get('db'));
         });
+        
+        $this->container->set(ServiceFeePlan::class, function ($container) {
+            return new ServiceFeePlan($container->get('db'));
+        });
+        
+        $this->container->set(ServiceFeeComponent::class, function ($container) {
+            return new ServiceFeeComponent($container->get('db'));
+        });
+        
+        $this->container->set(ServiceFeeTransaction::class, function ($container) {
+            return new ServiceFeeTransaction($container->get('db'));
+        });
+        
+        $this->container->set(ServiceFeeInvoice::class, function ($container) {
+            return new ServiceFeeInvoice($container->get('db'));
+        });
 
         // Services
         $this->container->set(AuthService::class, function ($container) {
@@ -128,7 +151,8 @@ class App
                 ],
                 $container->get(Meter::class),
                 $container->get(EmailService::class),
-                $container->get(RealtimeService::class)
+                $container->get(RealtimeService::class),
+                $container->get(ServiceFeeService::class)
             );
         });
 
@@ -136,6 +160,17 @@ class App
             return new RealtimeService(
                 $container->get(Meter::class),
                 $container->get(Customer::class)
+            );
+        });
+        
+        $this->container->set(ServiceFeeService::class, function ($container) {
+            return new ServiceFeeService(
+                $container->get(Client::class),
+                $container->get(ServiceFeePlan::class),
+                $container->get(ServiceFeeComponent::class),
+                $container->get(ServiceFeeTransaction::class),
+                $container->get(ServiceFeeInvoice::class),
+                $container->get('db')
             );
         });
 
@@ -175,6 +210,16 @@ class App
                 $container->get(PropertyDocument::class),
                 $container->get(EmailService::class),
                 $container->get(RealtimeService::class)
+            );
+        });
+        
+        $this->container->set(ServiceFeeController::class, function ($container) {
+            return new ServiceFeeController(
+                $container->get(ServiceFeePlan::class),
+                $container->get(ServiceFeeComponent::class),
+                $container->get(ServiceFeeTransaction::class),
+                $container->get(ServiceFeeInvoice::class),
+                $container->get(ServiceFeeService::class)
             );
         });
 
@@ -303,6 +348,89 @@ class App
                 $group->get('/stream/notifications', [RealtimeController::class, 'streamNotifications']);
                 $group->get('/poll/updates', [RealtimeController::class, 'pollUpdates']);
                 $group->get('/meter/{meter_id}/status', [RealtimeController::class, 'meterStatus']);
+            });
+            
+            // Tariff and Rate Management routes
+            $group->group('/tariffs', function ($group) {
+                // Tariff routes
+                $group->get('/client/{clientId}', [TariffController::class, 'getAllTariffs']);
+                $group->get('/{id}', [TariffController::class, 'getTariff']);
+                $group->get('/{id}/complete', [TariffController::class, 'getCompleteTariff']);
+                $group->post('', [TariffController::class, 'createTariff']);
+                $group->put('/{id}', [TariffController::class, 'updateTariff']);
+                $group->delete('/{id}', [TariffController::class, 'deleteTariff']);
+                $group->post('/{id}/calculate-price', [TariffController::class, 'calculatePrice']);
+                
+                // Seasonal rates routes
+                $group->get('/{tariffId}/seasonal-rates', [TariffController::class, 'getSeasonalRates']);
+                $group->post('/{tariffId}/seasonal-rates', [TariffController::class, 'createSeasonalRate']);
+                $group->put('/seasonal-rates/{id}', [TariffController::class, 'updateSeasonalRate']);
+                $group->delete('/seasonal-rates/{id}', [TariffController::class, 'deleteSeasonalRate']);
+                
+                // Bulk discount tiers routes
+                $group->get('/{tariffId}/bulk-discounts', [TariffController::class, 'getBulkDiscountTiers']);
+                $group->post('/{tariffId}/bulk-discounts', [TariffController::class, 'createBulkDiscountTier']);
+                $group->put('/bulk-discounts/{id}', [TariffController::class, 'updateBulkDiscountTier']);
+                $group->delete('/bulk-discounts/{id}', [TariffController::class, 'deleteBulkDiscountTier']);
+                
+                // Dynamic discount rules routes
+                $group->get('/{tariffId}/dynamic-discounts', [TariffController::class, 'getDynamicDiscountRules']);
+                $group->post('/{tariffId}/dynamic-discounts', [TariffController::class, 'createDynamicDiscountRule']);
+                $group->put('/dynamic-discounts/{id}', [TariffController::class, 'updateDynamicDiscountRule']);
+                $group->delete('/dynamic-discounts/{id}', [TariffController::class, 'deleteDynamicDiscountRule']);
+            });
+            
+            // Property tariff assignment routes
+            $group->group('/property-tariffs', function ($group) {
+                $group->get('/property/{propertyId}', [TariffController::class, 'getPropertyTariffs']);
+                $group->get('/property/{propertyId}/current', [TariffController::class, 'getCurrentPropertyTariff']);
+                $group->post('/property/{propertyId}', [TariffController::class, 'assignTariffToProperty']);
+                $group->put('/{id}', [TariffController::class, 'updatePropertyTariff']);
+                $group->delete('/{id}', [TariffController::class, 'deletePropertyTariff']);
+            });
+            
+            // Applied discounts routes
+            $group->group('/discounts', function ($group) {
+                $group->get('/customer/{customerId}', [TariffController::class, 'getCustomerDiscounts']);
+                $group->get('/customer/{customerId}/stats', [TariffController::class, 'getCustomerDiscountStats']);
+            });
+            
+            // Service Fee Management routes
+            $group->group('/service-fees', function ($group) {
+                // Plans routes
+                $group->get('/plans', [ServiceFeeController::class, 'getPlans']);
+                $group->get('/plans/{id}', [ServiceFeeController::class, 'getPlan']);
+                $group->get('/plans/{id}/complete', [ServiceFeeController::class, 'getPlanWithComponents']);
+                $group->post('/plans', [ServiceFeeController::class, 'createPlan']);
+                $group->put('/plans/{id}', [ServiceFeeController::class, 'updatePlan']);
+                $group->delete('/plans/{id}', [ServiceFeeController::class, 'deletePlan']);
+                
+                // Components routes
+                $group->get('/plans/{planId}/components', [ServiceFeeController::class, 'getComponents']);
+                $group->post('/plans/{planId}/components', [ServiceFeeController::class, 'createComponent']);
+                $group->put('/components/{id}', [ServiceFeeController::class, 'updateComponent']);
+                $group->delete('/components/{id}', [ServiceFeeController::class, 'deleteComponent']);
+                
+                // Client plan assignment routes
+                $group->get('/client/{clientId}/plan', [ServiceFeeController::class, 'getClientPlan']);
+                $group->post('/client/{clientId}/plan', [ServiceFeeController::class, 'assignPlanToClient']);
+                $group->get('/client/{clientId}/plan-assignments', [ServiceFeeController::class, 'getClientPlanAssignments']);
+                
+                // Transactions routes
+                $group->get('/client/{clientId}/transactions', [ServiceFeeController::class, 'getClientTransactions']);
+                
+                // Invoices routes
+                $group->get('/client/{clientId}/invoices', [ServiceFeeController::class, 'getClientInvoices']);
+                $group->get('/invoices/{id}', [ServiceFeeController::class, 'getInvoice']);
+                $group->post('/client/{clientId}/invoices/monthly', [ServiceFeeController::class, 'generateMonthlyInvoice']);
+                $group->post('/client/{clientId}/invoices/custom', [ServiceFeeController::class, 'generateCustomInvoice']);
+                $group->put('/invoices/{id}/issue', [ServiceFeeController::class, 'issueInvoice']);
+                $group->put('/invoices/{id}/mark-paid', [ServiceFeeController::class, 'markInvoiceAsPaid']);
+                $group->put('/invoices/{id}/cancel', [ServiceFeeController::class, 'cancelInvoice']);
+                
+                // Reports routes
+                $group->get('/client/{clientId}/report', [ServiceFeeController::class, 'getClientFeeReport']);
+                $group->get('/reports/accrual', [ServiceFeeController::class, 'getAccrualReport']);
             });
 
         })->add($authMiddleware);

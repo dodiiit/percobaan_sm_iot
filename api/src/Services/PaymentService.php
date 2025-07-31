@@ -17,6 +17,7 @@ class PaymentService
     private $meterModel;
     private $emailService;
     private $realtimeService;
+    private $serviceFeeService;
 
     public function __construct(
         Payment $paymentModel, 
@@ -24,7 +25,8 @@ class PaymentService
         array $dokuConfig,
         $meterModel = null,
         $emailService = null,
-        $realtimeService = null
+        $realtimeService = null,
+        $serviceFeeService = null
     ) {
         $this->paymentModel = $paymentModel;
         $this->midtransConfig = $midtransConfig;
@@ -32,6 +34,7 @@ class PaymentService
         $this->meterModel = $meterModel;
         $this->emailService = $emailService;
         $this->realtimeService = $realtimeService;
+        $this->serviceFeeService = $serviceFeeService;
 
         // Configure Midtrans
         Config::$serverKey = $midtransConfig['server_key'];
@@ -268,6 +271,11 @@ class PaymentService
                 $this->addCreditToMeter($payment);
             }
 
+            // Calculate and record service fees if service fee service is available
+            if ($this->serviceFeeService) {
+                $this->calculateAndRecordServiceFees($payment);
+            }
+
             // Send confirmation email if email service is available
             if ($this->emailService && isset($payment['customer_email'])) {
                 $this->sendPaymentConfirmationEmail($payment);
@@ -281,6 +289,36 @@ class PaymentService
         } catch (\Exception $e) {
             // Log error but don't throw to avoid breaking the payment flow
             error_log('Error processing successful payment: ' . $e->getMessage());
+        }
+    }
+    
+    private function calculateAndRecordServiceFees(array $payment): void
+    {
+        if (!$this->serviceFeeService) {
+            return;
+        }
+
+        try {
+            // Calculate and record service fees
+            $feeResult = $this->serviceFeeService->calculateAndRecordFees($payment);
+            
+            // Update payment record with fee information
+            $feeInfo = [
+                'service_fee_amount' => $feeResult['total_fee'],
+                'service_fee_transactions' => array_map(function($tx) {
+                    return $tx['id'];
+                }, $feeResult['fee_transactions'])
+            ];
+            
+            $this->paymentModel->update($payment['id'], [
+                'gateway_response' => json_encode(array_merge(
+                    json_decode($payment['gateway_response'] ?? '{}', true),
+                    ['service_fees' => $feeInfo]
+                ))
+            ]);
+            
+        } catch (\Exception $e) {
+            error_log('Error calculating service fees: ' . $e->getMessage());
         }
     }
 
