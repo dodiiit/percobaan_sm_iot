@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { mockApi, shouldUseMockApi } from '../services/mockApi';
 
 interface User {
   id: string;
@@ -55,7 +56,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
         // Get user data
-        const response = await api.get('/users/me');
+        let response;
+        
+        if (shouldUseMockApi()) {
+          // Use mock API for demo
+          const mockResponse = await mockApi.getProfile(token);
+          response = { data: mockResponse };
+        } else {
+          // Use real API
+          response = await api.get('/users/me');
+        }
         
         setUser(response.data.data);
         setIsAuthenticated(true);
@@ -77,7 +87,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       setError(null);
       
-      const response = await api.post('/auth/login', { email, password });
+      let response;
+      
+      if (shouldUseMockApi()) {
+        // Use mock API for demo
+        const mockResponse = await mockApi.login(email, password);
+        response = { data: mockResponse };
+      } else {
+        // Use real API
+        response = await api.post('/auth/login', { email, password });
+      }
       
       const { token, user } = response.data.data;
       
@@ -104,7 +123,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       console.error('Login error:', error);
-      setError(error.response?.data?.message || 'An error occurred during login');
+      setError(error.message || error.response?.data?.message || 'An error occurred during login');
       setIsAuthenticated(false);
       setUser(null);
     } finally {
@@ -117,7 +136,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(true);
       
       // Call logout API
-      await api.post('/auth/logout');
+      if (shouldUseMockApi()) {
+        await mockApi.logout();
+      } else {
+        await api.post('/auth/logout');
+      }
       
       // Remove token from localStorage
       localStorage.removeItem('token');
