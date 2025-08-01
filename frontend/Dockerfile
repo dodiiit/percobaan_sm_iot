@@ -13,12 +13,17 @@ RUN npm ci
 COPY . .
 
 # Set environment variables for production build
-ENV REACT_APP_API_URL=https://api.lingindustri.com/api
+ENV REACT_APP_API_URL=https://api.indowater.com/api/v1
 ENV REACT_APP_USE_MOCK_API=false
 ENV NODE_ENV=production
+ENV GENERATE_SOURCEMAP=false
+ENV REACT_APP_ENV=production
 
-# Build the app
-RUN npm run build
+# Run optimizations and build
+RUN npm run lint:fix && \
+    npm run format && \
+    npm run optimize:images && \
+    npm run build
 
 # Production stage
 FROM nginx:alpine

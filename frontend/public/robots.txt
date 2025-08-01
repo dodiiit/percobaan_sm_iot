@@ -1,0 +1,16 @@
+# Allow all web crawlers
+User-agent: *
+Allow: /
+
+# Disallow crawling of authentication pages
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /verify-email
+
+# Disallow crawling of dashboard pages (protected content)
+Disallow: /dashboard/
+
+# Sitemap location
+Sitemap: https://indowater.com/sitemap.xml

@@ -1,31 +1,32 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import PublicRoute from './components/common/PublicRoute';
 import DashboardLayout from './components/layouts/DashboardLayout';
+import lazyLoad from './utils/lazyLoad';
 
-// Public Pages
-import LandingPage from './pages/LandingPage';
+// Public Pages - Lazy loaded
+const LandingPage = lazyLoad(() => import('./pages/LandingPage'));
 
-// Auth Pages
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
-import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-import VerifyEmailPage from './pages/auth/VerifyEmailPage';
+// Auth Pages - Lazy loaded
+const LoginPage = lazyLoad(() => import('./pages/auth/LoginPage'));
+const RegisterPage = lazyLoad(() => import('./pages/auth/RegisterPage'));
+const ForgotPasswordPage = lazyLoad(() => import('./pages/auth/ForgotPasswordPage'));
+const ResetPasswordPage = lazyLoad(() => import('./pages/auth/ResetPasswordPage'));
+const VerifyEmailPage = lazyLoad(() => import('./pages/auth/VerifyEmailPage'));
 
-// Dashboard Pages
-import SuperadminDashboard from './pages/dashboard/superadmin/SuperadminDashboard';
-import ClientDashboard from './pages/dashboard/client/ClientDashboard';
-import CustomerDashboard from './pages/dashboard/customer/CustomerDashboard';
+// Dashboard Pages - Lazy loaded
+const SuperadminDashboard = lazyLoad(() => import('./pages/dashboard/superadmin/SuperadminDashboard'));
+const ClientDashboard = lazyLoad(() => import('./pages/dashboard/client/ClientDashboard'));
+const CustomerDashboard = lazyLoad(() => import('./pages/dashboard/customer/CustomerDashboard'));
 
-// Error Pages
-import NotFoundPage from './pages/errors/NotFoundPage';
-import UnauthorizedPage from './pages/errors/UnauthorizedPage';
-import ServerErrorPage from './pages/errors/ServerErrorPage';
+// Error Pages - Lazy loaded
+const NotFoundPage = lazyLoad(() => import('./pages/errors/NotFoundPage'));
+const UnauthorizedPage = lazyLoad(() => import('./pages/errors/UnauthorizedPage'));
+const ServerErrorPage = lazyLoad(() => import('./pages/errors/ServerErrorPage'));
 
 // Styles
 import 'react-toastify/dist/ReactToastify.css';

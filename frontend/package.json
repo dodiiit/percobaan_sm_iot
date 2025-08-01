@@ -39,6 +39,7 @@
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
+    "build:production": "NODE_ENV=production react-scripts build",
     "test": "react-scripts test",
     "test:coverage": "react-scripts test --coverage --watchAll=false",
     "test:ci": "CI=true react-scripts test --coverage",
@@ -46,7 +47,14 @@
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
-    "analyze": "source-map-explorer 'build/static/js/*.js'"
+    "analyze": "source-map-explorer 'build/static/js/*.js'",
+    "analyze:bundle": "node scripts/analyze-bundle.js",
+    "analyze:deps": "node scripts/check-unused-deps.js",
+    "optimize:images": "node scripts/optimize-images.js",
+    "preoptimize": "npm run lint:fix && npm run format",
+    "optimize": "npm run optimize:images && npm run build:production",
+    "serve:production": "npx serve -s build -l 12000",
+    "deploy": "npm run optimize && npm run serve:production"
   },
   "eslintConfig": {
     "extends": [

@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const API_URL = process.env.REACT_APP_API_URL || 'https://api.indowater.com/api/v1';
+
 const api = axios.create({
-  baseURL: 'https://api.lingindustri.com/api',
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
