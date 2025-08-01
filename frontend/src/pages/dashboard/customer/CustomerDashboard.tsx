@@ -6,11 +6,140 @@ import {
   ChartBarIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
-
   BanknotesIcon,
   BeakerIcon
 } from '@heroicons/react/24/outline';
 import api from '../../../services/api';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+} from 'chart.js';
+
+// Import other customer pages
+import Topup from './Topup';
+import Meters from './Meters';
+import Consumption from './Consumption';
+import Payments from './Payments';
+import Profile from './Profile';
+
+// Register ChartJS components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
+
+// Water Usage Chart Component
+const WaterUsageChart: React.FC = () => {
+  const [chartData, setChartData] = useState<any>({
+    labels: [],
+    datasets: []
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchChartData = async () => {
+      try {
+        setLoading(true);
+        
+        // In a real app, this would fetch from the API
+        // For now, we'll use mock data
+        const mockData = {
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          values: [120, 145, 132, 158, 142, 190, 210]
+        };
+        
+        setChartData({
+          labels: mockData.labels,
+          datasets: [
+            {
+              label: 'Water Usage (Liters)',
+              data: mockData.values,
+              borderColor: 'rgb(59, 130, 246)',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              tension: 0.4,
+              fill: true,
+              pointBackgroundColor: 'rgb(59, 130, 246)',
+              pointBorderColor: '#fff',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }
+          ]
+        });
+      } catch (error) {
+        console.error('Error fetching chart data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchChartData();
+  }, []);
+
+  const options = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        position: 'top' as const,
+        labels: {
+          color: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#374151'
+        }
+      },
+      tooltip: {
+        mode: 'index' as const,
+        intersect: false,
+        backgroundColor: document.documentElement.classList.contains('dark') ? '#1f2937' : '#ffffff',
+        titleColor: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#111827',
+        bodyColor: document.documentElement.classList.contains('dark') ? '#d1d5db' : '#374151',
+        borderColor: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb',
+        borderWidth: 1
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          color: document.documentElement.classList.contains('dark') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+        },
+        ticks: {
+          color: document.documentElement.classList.contains('dark') ? '#d1d5db' : '#6b7280'
+        }
+      },
+      y: {
+        grid: {
+          color: document.documentElement.classList.contains('dark') ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+        },
+        ticks: {
+          color: document.documentElement.classList.contains('dark') ? '#d1d5db' : '#6b7280'
+        }
+      }
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return <Line data={chartData} options={options} />;
+};
 
 // Dashboard Overview Component
 const CustomerOverview: React.FC = () => {
@@ -196,9 +325,8 @@ const CustomerOverview: React.FC = () => {
             <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
               Daily Water Usage
             </h3>
-            <div className="mt-5 h-64 flex items-center justify-center text-gray-500 dark:text-gray-400">
-              <ChartBarIcon className="h-16 w-16" />
-              <span className="ml-2">Usage chart will be implemented</span>
+            <div className="mt-5 h-64">
+              <WaterUsageChart />
             </div>
           </div>
         </div>
@@ -364,6 +492,11 @@ const CustomerDashboard: React.FC = () => {
     <Routes>
       <Route path="/" element={<CustomerOverview />} />
       <Route index element={<CustomerOverview />} />
+      <Route path="topup" element={<Topup />} />
+      <Route path="meters" element={<Meters />} />
+      <Route path="consumption" element={<Consumption />} />
+      <Route path="payments" element={<Payments />} />
+      <Route path="profile" element={<Profile />} />
     </Routes>
   );
 };

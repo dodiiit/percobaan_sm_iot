@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
+import NotificationCenter from '../notifications/NotificationCenter';
 import {
   BeakerIcon,
   Bars3Icon,
@@ -10,8 +11,7 @@ import {
   MoonIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon,
-  Cog6ToothIcon,
-  BellIcon
+  Cog6ToothIcon
 } from '@heroicons/react/24/outline';
 
 interface NavbarProps {
@@ -97,10 +97,7 @@ const Navbar: React.FC<NavbarProps> = ({ showUserMenu = false }) => {
             {showUserMenu && user ? (
               <>
                 {/* Notifications */}
-                <button className="p-2 rounded-md text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200 relative">
-                  <BellIcon className="h-5 w-5" />
-                  <span className="absolute top-1 right-1 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white dark:ring-gray-800"></span>
-                </button>
+                <NotificationCenter />
 
                 {/* User Menu */}
                 <div className="relative">

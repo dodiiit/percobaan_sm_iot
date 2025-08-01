@@ -32,7 +32,14 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     // Save theme to localStorage
     localStorage.setItem('theme', theme);
     
-    // Apply theme to body
+    // Apply theme to document for Tailwind dark mode
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+    
+    // Also apply to body for any custom styling
     document.body.className = theme;
   }, [theme]);
   
