@@ -19,6 +19,9 @@ import api from '../../../services/api';
 import { mockApi, shouldUseMockApi } from '../../../services/mockApi';
 import { toast } from 'react-toastify';
 import PageHeader from '../../../components/common/PageHeader';
+import ResponsiveTable from '../../../components/ui/ResponsiveTable';
+import MobileDataList from '../../../components/ui/MobileDataList';
+import { useResponsive } from '../../../hooks/useResponsive';
 
 interface Client {
   id: string;
@@ -435,7 +438,7 @@ const ClientsManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Clients Table */}
+      {/* Clients Table/List */}
       <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
         <div className="overflow-x-auto">
           {loading ? (
@@ -463,150 +466,14 @@ const ClientsManagement: React.FC = () => {
               )}
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead className="bg-gray-50 dark:bg-gray-700">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Client
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Contact
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Customers
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Meters
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                    Revenue
-                  </th>
-                  <th scope="col" className="relative px-6 py-3">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                {filteredClients.map((client) => (
-                  <tr key={client.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                          {client.logo_url ? (
-                            <img src={client.logo_url} alt={client.name} className="h-10 w-10 rounded-full" />
-                          ) : (
-                            <BuildingOfficeIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                          )}
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900 dark:text-white">
-                            {client.name}
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            ID: {client.id}
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">
-                            Since: {formatDate(client.created_at)}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 dark:text-white">{client.contact_person}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{client.email}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{client.phone}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{client.city}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <ClientStatusBadge status={client.status} />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <UserGroupIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-900 dark:text-white">{client.customers_count}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <CpuChipIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-900 dark:text-white">{client.meters_count}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <BanknotesIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-900 dark:text-white">{formatCurrency(client.total_revenue)}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Menu as="div" className="relative inline-block text-left">
-                        <div>
-                          <Menu.Button className="inline-flex w-full justify-center rounded-md bg-white dark:bg-gray-800 px-2 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-                            <EllipsisVerticalIcon className="h-5 w-5" aria-hidden="true" />
-                          </Menu.Button>
-                        </div>
-                        <Transition
-                          as={Fragment}
-                          enter="transition ease-out duration-100"
-                          enterFrom="transform opacity-0 scale-95"
-                          enterTo="transform opacity-100 scale-100"
-                          leave="transition ease-in duration-75"
-                          leaveFrom="transform opacity-100 scale-100"
-                          leaveTo="transform opacity-0 scale-95"
-                        >
-                          <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                            <div className="py-1">
-                              <Menu.Item>
-                                {({ active }) => (
-                                  <button
-                                    onClick={() => openViewModal(client)}
-                                    className={`${
-                                      active ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
-                                    } flex w-full items-center px-4 py-2 text-sm`}
-                                  >
-                                    <BuildingOfficeIcon className="mr-3 h-5 w-5" aria-hidden="true" />
-                                    View Details
-                                  </button>
-                                )}
-                              </Menu.Item>
-                              <Menu.Item>
-                                {({ active }) => (
-                                  <button
-                                    onClick={() => openEditModal(client)}
-                                    className={`${
-                                      active ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
-                                    } flex w-full items-center px-4 py-2 text-sm`}
-                                  >
-                                    <PencilIcon className="mr-3 h-5 w-5" aria-hidden="true" />
-                                    Edit
-                                  </button>
-                                )}
-                              </Menu.Item>
-                              <Menu.Item>
-                                {({ active }) => (
-                                  <button
-                                    onClick={() => openDeleteModal(client)}
-                                    className={`${
-                                      active ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
-                                    } flex w-full items-center px-4 py-2 text-sm`}
-                                  >
-                                    <TrashIcon className="mr-3 h-5 w-5 text-red-500" aria-hidden="true" />
-                                    Delete
-                                  </button>
-                                )}
-                              </Menu.Item>
-                            </div>
-                          </Menu.Items>
-                        </Transition>
-                      </Menu>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <ResponsiveView 
+              clients={filteredClients} 
+              openViewModal={openViewModal}
+              openEditModal={openEditModal}
+              openDeleteModal={openDeleteModal}
+              formatDate={formatDate}
+              formatCurrency={formatCurrency}
+            />
           )}
         </div>
       </div>
@@ -1159,6 +1026,257 @@ const ClientsManagement: React.FC = () => {
         </Dialog>
       </Transition.Root>
     </div>
+  );
+};
+
+// Responsive view component that switches between table and card list based on screen size
+interface ResponsiveViewProps {
+  clients: Client[];
+  openViewModal: (client: Client) => void;
+  openEditModal: (client: Client) => void;
+  openDeleteModal: (client: Client) => void;
+  formatDate: (date: string) => string;
+  formatCurrency: (amount: number) => string;
+}
+
+const ResponsiveView: React.FC<ResponsiveViewProps> = ({
+  clients,
+  openViewModal,
+  openEditModal,
+  openDeleteModal,
+  formatDate,
+  formatCurrency
+}) => {
+  const { isMobile } = useResponsive();
+
+  // For mobile view, use MobileDataList
+  if (isMobile) {
+    return (
+      <MobileDataList
+        data={clients}
+        keyExtractor={(client) => client.id}
+        title={(client) => client.name}
+        subtitle={(client) => `${client.city} • ${formatDate(client.created_at)}`}
+        icon={(client) => (
+          <div className="h-10 w-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+            {client.logo_url ? (
+              <img src={client.logo_url} alt={client.name} className="h-10 w-10 rounded-full" />
+            ) : (
+              <BuildingOfficeIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+            )}
+          </div>
+        )}
+        items={[
+          {
+            label: 'Status',
+            value: (client) => <ClientStatusBadge status={client.status} />
+          },
+          {
+            label: 'Contact Person',
+            value: 'contact_person',
+            icon: <UserGroupIcon className="h-4 w-4 text-gray-500" />
+          },
+          {
+            label: 'Email',
+            value: 'email'
+          },
+          {
+            label: 'Phone',
+            value: 'phone'
+          },
+          {
+            label: 'Customers',
+            value: 'customers_count',
+            icon: <UserGroupIcon className="h-4 w-4 text-gray-500" />
+          },
+          {
+            label: 'Meters',
+            value: 'meters_count',
+            icon: <CpuChipIcon className="h-4 w-4 text-gray-500" />
+          },
+          {
+            label: 'Revenue',
+            value: (client) => formatCurrency(client.total_revenue),
+            icon: <BanknotesIcon className="h-4 w-4 text-gray-500" />
+          }
+        ]}
+        onItemClick={openViewModal}
+        renderFooter={(client) => (
+          <div className="flex justify-end space-x-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openEditModal(client);
+              }}
+              className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600"
+            >
+              <PencilIcon className="h-4 w-4 mr-1" />
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                openDeleteModal(client);
+              }}
+              className="inline-flex items-center px-3 py-1.5 border border-red-300 rounded-md text-sm font-medium text-red-700 bg-white hover:bg-red-50 dark:bg-gray-700 dark:border-red-600 dark:text-red-400 dark:hover:bg-red-900/20"
+            >
+              <TrashIcon className="h-4 w-4 mr-1" />
+              Delete
+            </button>
+          </div>
+        )}
+      />
+    );
+  }
+
+  // For desktop view, use ResponsiveTable
+  return (
+    <ResponsiveTable
+      data={clients}
+      keyExtractor={(client) => client.id}
+      columns={[
+        {
+          header: 'Client',
+          accessor: (client) => (
+            <div className="flex items-center">
+              <div className="flex-shrink-0 h-10 w-10 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
+                {client.logo_url ? (
+                  <img src={client.logo_url} alt={client.name} className="h-10 w-10 rounded-full" />
+                ) : (
+                  <BuildingOfficeIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                )}
+              </div>
+              <div className="ml-4">
+                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                  {client.name}
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  ID: {client.id}
+                </div>
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Since: {formatDate(client.created_at)}
+                </div>
+              </div>
+            </div>
+          )
+        },
+        {
+          header: 'Contact',
+          accessor: (client) => (
+            <div>
+              <div className="text-sm text-gray-900 dark:text-white">{client.contact_person}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">{client.email}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">{client.phone}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">{client.city}</div>
+            </div>
+          ),
+          mobileRender: false
+        },
+        {
+          header: 'Status',
+          accessor: (client) => <ClientStatusBadge status={client.status} />
+        },
+        {
+          header: 'Customers',
+          accessor: (client) => (
+            <div className="flex items-center">
+              <UserGroupIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
+              <span className="text-sm text-gray-900 dark:text-white">{client.customers_count}</span>
+            </div>
+          ),
+          tabletRender: false
+        },
+        {
+          header: 'Meters',
+          accessor: (client) => (
+            <div className="flex items-center">
+              <CpuChipIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
+              <span className="text-sm text-gray-900 dark:text-white">{client.meters_count}</span>
+            </div>
+          ),
+          tabletRender: false
+        },
+        {
+          header: 'Revenue',
+          accessor: (client) => (
+            <div className="flex items-center">
+              <BanknotesIcon className="h-5 w-5 text-gray-500 dark:text-gray-400 mr-2" />
+              <span className="text-sm text-gray-900 dark:text-white">{formatCurrency(client.total_revenue)}</span>
+            </div>
+          )
+        },
+        {
+          header: 'Actions',
+          accessor: (client) => (
+            <div className="text-right">
+              <Menu as="div" className="relative inline-block text-left">
+                <div>
+                  <Menu.Button className="inline-flex w-full justify-center rounded-md bg-white dark:bg-gray-800 px-2 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <EllipsisVerticalIcon className="h-5 w-5" aria-hidden="true" />
+                  </Menu.Button>
+                </div>
+                <Transition
+                  as={Fragment}
+                  enter="transition ease-out duration-100"
+                  enterFrom="transform opacity-0 scale-95"
+                  enterTo="transform opacity-100 scale-100"
+                  leave="transition ease-in duration-75"
+                  leaveFrom="transform opacity-100 scale-100"
+                  leaveTo="transform opacity-0 scale-95"
+                >
+                  <Menu.Items className="absolute right-0 z-10 mt-2 w-56 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div className="py-1">
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={() => openViewModal(client)}
+                            className={`${
+                              active ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                            } flex w-full items-center px-4 py-2 text-sm`}
+                          >
+                            <BuildingOfficeIcon className="mr-3 h-5 w-5" aria-hidden="true" />
+                            View Details
+                          </button>
+                        )}
+                      </Menu.Item>
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={() => openEditModal(client)}
+                            className={`${
+                              active ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                            } flex w-full items-center px-4 py-2 text-sm`}
+                          >
+                            <PencilIcon className="mr-3 h-5 w-5" aria-hidden="true" />
+                            Edit
+                          </button>
+                        )}
+                      </Menu.Item>
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            onClick={() => openDeleteModal(client)}
+                            className={`${
+                              active ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-700 dark:text-gray-300'
+                            } flex w-full items-center px-4 py-2 text-sm`}
+                          >
+                            <TrashIcon className="mr-3 h-5 w-5 text-red-500" aria-hidden="true" />
+                            Delete
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </div>
+                  </Menu.Items>
+                </Transition>
+              </Menu>
+            </div>
+          )
+        }
+      ]}
+      onRowClick={openViewModal}
+    />
   );
 };
 

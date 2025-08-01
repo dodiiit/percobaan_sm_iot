@@ -1,0 +1,139 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  frontend-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+    
+    - name: Install dependencies
+      working-directory: ./frontend
+      run: npm ci
+    
+    - name: Run tests
+      working-directory: ./frontend
+      run: npm run test:ci
+    
+    - name: Run linting
+      working-directory: ./frontend
+      run: npm run lint
+  
+  api-test:
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: indowater_test
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.1'
+        extensions: mbstring, intl, pdo_mysql, zip, exif, pcntl, bcmath, gd
+        coverage: xdebug
+    
+    - name: Copy .env
+      working-directory: ./api
+      run: php -r "file_exists('.env') || copy('.env.example', '.env');"
+    
+    - name: Install Composer dependencies
+      working-directory: ./api
+      run: composer install --prefer-dist --no-progress
+    
+    - name: Generate key
+      working-directory: ./api
+      run: php artisan key:generate
+    
+    - name: Run migrations
+      working-directory: ./api
+      run: php artisan migrate --force
+      env:
+        DB_CONNECTION: mysql
+        DB_HOST: 127.0.0.1
+        DB_PORT: 3306
+        DB_DATABASE: indowater_test
+        DB_USERNAME: root
+        DB_PASSWORD: root
+    
+    - name: Run tests
+      working-directory: ./api
+      run: vendor/bin/phpunit
+      env:
+        DB_CONNECTION: mysql
+        DB_HOST: 127.0.0.1
+        DB_PORT: 3306
+        DB_DATABASE: indowater_test
+        DB_USERNAME: root
+        DB_PASSWORD: root
+  
+  build-and-push:
+    needs: [frontend-test, api-test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Login to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_TOKEN }}
+    
+    - name: Build and push frontend
+      uses: docker/build-push-action@v4
+      with:
+        context: ./frontend
+        push: true
+        tags: lingindustri/indowater-frontend:latest
+    
+    - name: Build and push API
+      uses: docker/build-push-action@v4
+      with:
+        context: ./api
+        push: true
+        tags: lingindustri/indowater-api:latest
+  
+  deploy:
+    needs: build-and-push
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Deploy to production server
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.DEPLOY_HOST }}
+        username: ${{ secrets.DEPLOY_USER }}
+        key: ${{ secrets.DEPLOY_KEY }}
+        script: |
+          cd /var/www/indowater
+          git pull
+          docker-compose -f docker-compose.prod.yml pull
+          ./deploy.sh

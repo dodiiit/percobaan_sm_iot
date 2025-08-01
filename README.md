@@ -84,8 +84,9 @@ The IndoWater System is a modern and scalable solution designed to digitize wate
 ### Prerequisites
 - Docker and Docker Compose
 - Git
+- Node.js 18+ (for local development)
 
-### Installation
+### Development Setup
 
 1. Clone the repository:
 ```bash
@@ -95,11 +96,10 @@ cd indowater
 
 2. Copy environment files:
 ```bash
-cp api/.env.example api/.env
-cp frontend/.env.example frontend/.env
+cp .env.example .env
 ```
 
-3. Start the Docker containers:
+3. Start the Docker containers for development:
 ```bash
 docker-compose up -d
 ```
@@ -109,6 +109,62 @@ docker-compose up -d
    - Frontend: http://localhost:3000
    - PHPMyAdmin: http://localhost:8080
    - MailHog: http://localhost:8025
+
+### Production Deployment
+
+1. Clone the repository on your production server:
+```bash
+git clone https://github.com/yourusername/indowater.git
+cd indowater
+```
+
+2. Create and configure the environment file:
+```bash
+cp .env.example .env
+# Edit .env with your production settings
+nano .env
+```
+
+3. Set up SSL certificates:
+```bash
+mkdir -p nginx/ssl
+# Copy your SSL certificates to nginx/ssl/indowater.crt and nginx/ssl/indowater.key
+```
+
+4. Run the deployment script:
+```bash
+./deploy.sh
+```
+
+5. Access your production site at your configured domain.
+
+### Manual Deployment Steps
+
+If you prefer to deploy manually instead of using the deployment script:
+
+1. Build and start the production containers:
+```bash
+docker-compose -f docker-compose.prod.yml build
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+2. Run database migrations:
+```bash
+docker-compose -f docker-compose.prod.yml exec api php artisan migrate --force
+```
+
+3. Clear cache:
+```bash
+docker-compose -f docker-compose.prod.yml exec api php artisan cache:clear
+docker-compose -f docker-compose.prod.yml exec api php artisan config:clear
+docker-compose -f docker-compose.prod.yml exec api php artisan route:clear
+docker-compose -f docker-compose.prod.yml exec api php artisan view:clear
+```
+
+4. Set proper permissions:
+```bash
+docker-compose -f docker-compose.prod.yml exec api chown -R www-data:www-data /var/www/html/storage
+```
 
 ### Default Credentials
 
@@ -124,6 +180,39 @@ docker-compose up -d
 - Email: customer@indowater.example.com
 - Password: password
 
+## Testing
+
+### Frontend Tests
+
+The frontend application includes comprehensive tests for components, hooks, and services. To run the tests:
+
+```bash
+# Navigate to the frontend directory
+cd frontend
+
+# Run all tests
+npm test
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run tests in CI mode (non-interactive)
+npm run test:ci
+```
+
+### API Tests
+
+The API includes unit and integration tests. To run the tests:
+
+```bash
+# Using Docker
+docker-compose exec api composer test
+
+# Or directly from the api directory
+cd api
+composer test
+```
+
 ## Project Structure
 
 ```
@@ -135,10 +224,13 @@ indowater/
 │   └── tests/            # API tests
 ├── frontend/             # React Frontend
 │   ├── public/           # Public files
-│   └── src/              # Source code
+│   ├── src/              # Source code
+│   └── __tests__/        # Frontend tests
 ├── mobile/               # Flutter Mobile App
 │   └── lib/              # Source code
-└── docker-compose.yml    # Docker configuration
+├── nginx/                # Nginx configuration for production
+├── docker-compose.yml    # Development Docker configuration
+└── docker-compose.prod.yml # Production Docker configuration
 ```
 
 ## API Documentation
