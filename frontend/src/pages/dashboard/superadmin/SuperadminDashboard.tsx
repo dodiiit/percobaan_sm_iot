@@ -285,11 +285,29 @@ const SuperadminOverview: React.FC = () => {
   );
 };
 
+// Import superadmin dashboard components
+import ClientsManagement from './ClientsManagement';
+import CustomersManagement from './CustomersManagement';
+import MetersManagement from './MetersManagement';
+import PaymentsManagement from './PaymentsManagement';
+import PropertiesManagement from './PropertiesManagement';
+import ReportsManagement from './ReportsManagement';
+import SystemSettings from './SystemSettings';
+import TariffsManagement from './TariffsManagement';
+
 const SuperadminDashboard: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<SuperadminOverview />} />
       <Route index element={<SuperadminOverview />} />
+      <Route path="clients" element={<ClientsManagement />} />
+      <Route path="customers" element={<CustomersManagement />} />
+      <Route path="meters" element={<MetersManagement />} />
+      <Route path="payments" element={<PaymentsManagement />} />
+      <Route path="properties" element={<PropertiesManagement />} />
+      <Route path="reports" element={<ReportsManagement />} />
+      <Route path="settings" element={<SystemSettings />} />
+      <Route path="tariffs" element={<TariffsManagement />} />
     </Routes>
   );
 };

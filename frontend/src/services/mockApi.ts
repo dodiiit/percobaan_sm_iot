@@ -222,10 +222,9 @@ export const mockApi = {
 export const shouldUseMockApi = (): boolean => {
   // Use mock API if:
   // 1. REACT_APP_USE_MOCK_API is set to 'true'
-  // 2. No API URL is configured
-  // 3. We're in development mode and can't reach the real API
+  // 2. We're in development mode and explicitly want to use mock API
   
-  return process.env.REACT_APP_USE_MOCK_API === 'true' || 
-         !process.env.REACT_APP_API_URL ||
-         process.env.NODE_ENV === 'development';
+  // Since we're now connecting to a real API, we'll only use mock API
+  // if it's explicitly enabled
+  return process.env.REACT_APP_USE_MOCK_API === 'true';
 };
