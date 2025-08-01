@@ -18,6 +18,8 @@ use Firebase\JWT\JWT;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\ORMSetup;
+use Predis\Client as RedisClient;
+use IndoWater\Api\Services\CacheService;
 
 return function (ContainerBuilder $containerBuilder) {
     $containerBuilder->addDefinitions([
@@ -145,6 +147,37 @@ return function (ContainerBuilder $containerBuilder) {
         // JWT
         JWT::class => function (ContainerInterface $c) {
             return new JWT();
+        },
+
+        // Redis Client
+        RedisClient::class => function (ContainerInterface $c) {
+            $settings = $c->get('settings');
+            $redisSettings = $settings['redis'] ?? [
+                'scheme' => 'tcp',
+                'host' => '127.0.0.1',
+                'port' => 6379,
+                'database' => 0,
+            ];
+
+            return new RedisClient([
+                'scheme' => $redisSettings['scheme'],
+                'host' => $redisSettings['host'],
+                'port' => $redisSettings['port'],
+                'database' => $redisSettings['database'],
+                'password' => $redisSettings['password'] ?? null,
+            ]);
+        },
+
+        // Cache Service
+        CacheService::class => function (ContainerInterface $c) {
+            $redis = $c->get(RedisClient::class);
+            $logger = $c->get(LoggerInterface::class);
+            $settings = $c->get('settings');
+            
+            $prefix = $settings['cache']['prefix'] ?? 'indowater:';
+            $defaultTtl = $settings['cache']['default_ttl'] ?? 3600;
+            
+            return new CacheService($redis, $logger, $prefix, $defaultTtl);
         },
     ]);
 };

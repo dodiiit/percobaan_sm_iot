@@ -69,9 +69,18 @@ return function (ContainerBuilder $containerBuilder) {
                 'rate_limit_requests' => (int) ($_ENV['RATE_LIMIT_REQUESTS'] ?? 60),
                 'rate_limit_per_minute' => (int) ($_ENV['RATE_LIMIT_PER_MINUTE'] ?? 1),
             ],
+            'redis' => [
+                'scheme' => $_ENV['REDIS_SCHEME'] ?? 'tcp',
+                'host' => $_ENV['REDIS_HOST'] ?? '127.0.0.1',
+                'port' => (int) ($_ENV['REDIS_PORT'] ?? 6379),
+                'database' => (int) ($_ENV['REDIS_DATABASE'] ?? 0),
+                'password' => $_ENV['REDIS_PASSWORD'] ?? null,
+            ],
             'cache' => [
-                'driver' => $_ENV['CACHE_DRIVER'] ?? 'file',
-                'prefix' => $_ENV['CACHE_PREFIX'] ?? 'indowater_',
+                'driver' => $_ENV['CACHE_DRIVER'] ?? 'redis',
+                'prefix' => $_ENV['CACHE_PREFIX'] ?? 'indowater:',
+                'default_ttl' => (int) ($_ENV['CACHE_DEFAULT_TTL'] ?? 3600),
+                'enabled' => $_ENV['CACHE_ENABLED'] !== 'false',
             ],
             'session' => [
                 'driver' => $_ENV['SESSION_DRIVER'] ?? 'file',

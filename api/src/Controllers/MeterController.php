@@ -6,17 +6,25 @@ namespace IndoWater\Api\Controllers;
 
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use IndoWater\Api\Controllers\BaseController;
 use IndoWater\Api\Models\Meter;
 use IndoWater\Api\Services\RealtimeService;
+use IndoWater\Api\Services\CacheService;
+use Psr\Log\LoggerInterface;
 use Respect\Validation\Validator as v;
 
-class MeterController
+class MeterController extends BaseController
 {
     private Meter $meterModel;
     private RealtimeService $realtimeService;
 
-    public function __construct(Meter $meterModel, RealtimeService $realtimeService)
-    {
+    public function __construct(
+        Meter $meterModel, 
+        RealtimeService $realtimeService,
+        CacheService $cache,
+        LoggerInterface $logger
+    ) {
+        parent::__construct($cache, $logger);
         $this->meterModel = $meterModel;
         $this->realtimeService = $realtimeService;
     }
@@ -34,27 +42,29 @@ class MeterController
                 $conditions['status'] = $status;
             }
 
-            $meters = $this->meterModel->findAll($conditions, $limit, $offset);
-            $total = $this->meterModel->count($conditions);
+            // Generate cache key for this request
+            $cacheKey = $this->getPaginatedCacheKey('meters', $conditions, $limit, $offset);
 
-            return $this->jsonResponse($response, [
-                'status' => 'success',
-                'data' => [
-                    'meters' => $meters,
-                    'pagination' => [
-                        'total' => $total,
-                        'limit' => $limit,
-                        'offset' => $offset,
-                        'has_more' => ($offset + $limit) < $total
+            return $this->cachedJsonResponse($response, $cacheKey, function() use ($conditions, $limit, $offset) {
+                $meters = $this->meterModel->findAll($conditions, $limit, $offset);
+                $total = $this->meterModel->count($conditions);
+
+                return [
+                    'status' => 'success',
+                    'data' => [
+                        'meters' => $meters,
+                        'pagination' => [
+                            'total' => $total,
+                            'limit' => $limit,
+                            'offset' => $offset,
+                            'has_more' => ($offset + $limit) < $total
+                        ]
                     ]
-                ]
-            ]);
+                ];
+            }, 300); // Cache for 5 minutes
 
         } catch (\Exception $e) {
-            return $this->jsonResponse($response, [
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
+            return $this->errorResponse($response, $e->getMessage());
         }
     }
 
@@ -62,32 +72,41 @@ class MeterController
     {
         try {
             $id = $args['id'];
-            $meter = $this->meterModel->find($id);
+            $cacheKey = $this->cache->generateApiKey('meter', ['id' => $id]);
 
-            if (!$meter) {
-                return $this->jsonResponse($response, [
-                    'status' => 'error',
-                    'message' => 'Meter not found'
-                ], 404);
-            }
+            return $this->cachedJsonResponse($response, $cacheKey, function() use ($id) {
+                $meter = $this->meterModel->find($id);
 
-            return $this->jsonResponse($response, [
-                'status' => 'success',
-                'data' => $meter
-            ]);
+                if (!$meter) {
+                    throw new \Exception('Meter not found');
+                }
+
+                return [
+                    'status' => 'success',
+                    'data' => $meter
+                ];
+            }, 300); // Cache for 5 minutes
 
         } catch (\Exception $e) {
-            return $this->jsonResponse($response, [
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
+            if ($e->getMessage() === 'Meter not found') {
+                return $this->errorResponse($response, $e->getMessage(), 404);
+            }
+            return $this->errorResponse($response, $e->getMessage());
         }
     }
 
     public function store(Request $request, Response $response): Response
     {
         try {
-            $data = $request->getParsedBody();
+            $data = $this->sanitizeInput($request->getParsedBody());
+
+            // Validate required fields
+            $required = ['meter_id', 'customer_id', 'property_id', 'installation_date', 'meter_type', 'meter_model', 'meter_serial'];
+            $missing = $this->validateRequired($data, $required);
+            
+            if (!empty($missing)) {
+                return $this->errorResponse($response, 'Missing required fields: ' . implode(', ', $missing), 400);
+            }
 
             // Validate input
             $validator = v::key('meter_id', v::stringType()->notEmpty())
@@ -99,33 +118,23 @@ class MeterController
                         ->key('meter_serial', v::stringType()->notEmpty());
 
             if (!$validator->validate($data)) {
-                return $this->jsonResponse($response, [
-                    'status' => 'error',
-                    'message' => 'Invalid input data'
-                ], 400);
+                return $this->errorResponse($response, 'Invalid input data', 400);
             }
 
             // Check if meter_id already exists
             if ($this->meterModel->findByMeterId($data['meter_id'])) {
-                return $this->jsonResponse($response, [
-                    'status' => 'error',
-                    'message' => 'Meter ID already exists'
-                ], 409);
+                return $this->errorResponse($response, 'Meter ID already exists', 409);
             }
 
             $meter = $this->meterModel->create($data);
 
-            return $this->jsonResponse($response, [
-                'status' => 'success',
-                'message' => 'Meter created successfully',
-                'data' => $meter
-            ], 201);
+            // Invalidate related cache
+            $this->invalidateCache(['meters*', 'properties*']);
+
+            return $this->successResponse($response, $meter, 'Meter created successfully', 201);
 
         } catch (\Exception $e) {
-            return $this->jsonResponse($response, [
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
+            return $this->errorResponse($response, $e->getMessage());
         }
     }
 
@@ -230,32 +239,32 @@ class MeterController
     {
         try {
             $id = $args['id'];
+            $cacheKey = $this->cache->generateApiKey('meter_balance', ['id' => $id]);
 
-            $meter = $this->meterModel->find($id);
-            if (!$meter) {
-                return $this->jsonResponse($response, [
-                    'status' => 'error',
-                    'message' => 'Meter not found'
-                ], 404);
-            }
+            return $this->cachedJsonResponse($response, $cacheKey, function() use ($id) {
+                $meter = $this->meterModel->find($id);
+                if (!$meter) {
+                    throw new \Exception('Meter not found');
+                }
 
-            $balance = $this->meterModel->getBalance($id);
+                $balance = $this->meterModel->getBalance($id);
 
-            return $this->jsonResponse($response, [
-                'status' => 'success',
-                'data' => [
-                    'meter_id' => $meter['meter_id'],
-                    'current_balance' => $balance,
-                    'last_updated' => $meter['last_credit_at'],
-                    'status' => $meter['status']
-                ]
-            ]);
+                return [
+                    'status' => 'success',
+                    'data' => [
+                        'meter_id' => $meter['meter_id'],
+                        'current_balance' => $balance,
+                        'last_updated' => $meter['last_credit_at'],
+                        'status' => $meter['status']
+                    ]
+                ];
+            }, 60); // Cache for 1 minute (real-time data)
 
         } catch (\Exception $e) {
-            return $this->jsonResponse($response, [
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
+            if ($e->getMessage() === 'Meter not found') {
+                return $this->errorResponse($response, $e->getMessage(), 404);
+            }
+            return $this->errorResponse($response, $e->getMessage());
         }
     }
 
@@ -324,6 +333,13 @@ class MeterController
             // Use the new addCredit method
             $result = $this->meterModel->addCredit($id, $amount, $description);
 
+            // Invalidate balance and credit cache
+            $this->invalidateCache([
+                'meter_balance:*:' . $id,
+                'meter_credits:*:' . $id,
+                'meter:*:' . $id
+            ]);
+
             // Send real-time notification
             if ($this->realtimeService) {
                 $this->realtimeService->broadcastMeterUpdate($meter['meter_id'], [
@@ -334,11 +350,7 @@ class MeterController
                 ]);
             }
 
-            return $this->jsonResponse($response, [
-                'status' => 'success',
-                'message' => 'Credit topped up successfully',
-                'data' => $result
-            ], 201);
+            return $this->successResponse($response, $result, 'Credit topped up successfully', 201);
 
         } catch (\Exception $e) {
             return $this->jsonResponse($response, [
@@ -448,18 +460,7 @@ class MeterController
             ]);
 
         } catch (\Exception $e) {
-            return $this->jsonResponse($response, [
-                'status' => 'error',
-                'message' => $e->getMessage()
-            ], 500);
+            return $this->errorResponse($response, $e->getMessage());
         }
-    }
-
-    private function jsonResponse(Response $response, array $data, int $status = 200): Response
-    {
-        $response->getBody()->write(json_encode($data));
-        return $response
-            ->withHeader('Content-Type', 'application/json')
-            ->withStatus($status);
     }
 }

@@ -58,4 +58,6 @@ api.interceptors.response.use(
   }
 );
 
+// Export both cached and non-cached API instances
+export { default as cachedApi, cacheManager } from './cachedApi';
 export default api;

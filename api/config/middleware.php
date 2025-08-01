@@ -15,6 +15,7 @@ use IndoWater\Api\Middleware\SessionMiddleware;
 use IndoWater\Api\Middleware\RateLimitMiddleware;
 use IndoWater\Api\Middleware\LoggerMiddleware;
 use IndoWater\Api\Middleware\SecurityHeadersMiddleware;
+use IndoWater\Api\Middleware\CacheMiddleware;
 
 return function (App $app) {
     $container = $app->getContainer();
@@ -31,6 +32,11 @@ return function (App $app) {
 
     // Add JSON body parser middleware
     $app->add(JsonBodyParserMiddleware::class);
+
+    // Add cache middleware (before authentication)
+    if ($settings['cache']['enabled']) {
+        $app->add(CacheMiddleware::class);
+    }
 
     // Add session middleware
     $app->add(SessionMiddleware::class);

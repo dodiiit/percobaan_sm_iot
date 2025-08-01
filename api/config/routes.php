@@ -18,6 +18,7 @@ use IndoWater\Api\Controllers\DashboardController;
 use IndoWater\Api\Controllers\SettingController;
 use IndoWater\Api\Controllers\WebhookController;
 use IndoWater\Api\Controllers\HealthController;
+use IndoWater\Api\Controllers\CacheController;
 
 return function (App $app) {
     // Health Check
@@ -171,6 +172,17 @@ return function (App $app) {
             $group->put('/service-fees', [SettingController::class, 'updateServiceFees']);
             $group->get('/notifications', [SettingController::class, 'notifications']);
             $group->put('/notifications', [SettingController::class, 'updateNotifications']);
+        });
+
+        // Cache Management Routes (Admin only)
+        $group->group('/cache', function (RouteCollectorProxy $group) {
+            $group->get('/stats', [CacheController::class, 'stats']);
+            $group->get('/health', [CacheController::class, 'health']);
+            $group->post('/clear', [CacheController::class, 'clear']);
+            $group->post('/clear-pattern', [CacheController::class, 'clearPattern']);
+            $group->post('/warmup', [CacheController::class, 'warmup']);
+            $group->post('/invalidate', [CacheController::class, 'invalidate']);
+            $group->get('/key/{key}', [CacheController::class, 'keyInfo']);
         });
     });
 
