@@ -18,10 +18,14 @@ use IndoWater\Api\Controllers\DashboardController;
 use IndoWater\Api\Controllers\SettingController;
 use IndoWater\Api\Controllers\WebhookController;
 use IndoWater\Api\Controllers\HealthController;
+use IndoWater\Api\Controllers\SecurityReportController;
 
 return function (App $app) {
     // Health Check
     $app->get('/health', [HealthController::class, 'check']);
+    
+    // Security Reports
+    $app->post('/api/security/reports/csp', [SecurityReportController::class, 'handleCspReport']);
 
     // API Routes
     $app->group('/api', function (RouteCollectorProxy $group) {

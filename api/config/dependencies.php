@@ -18,6 +18,7 @@ use Firebase\JWT\JWT;
 use Doctrine\DBAL\DriverManager;
 use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\ORMSetup;
+use IndoWater\Api\Controllers\SecurityReportController;
 
 return function (ContainerBuilder $containerBuilder) {
     $containerBuilder->addDefinitions([
@@ -145,6 +146,11 @@ return function (ContainerBuilder $containerBuilder) {
         // JWT
         JWT::class => function (ContainerInterface $c) {
             return new JWT();
+        },
+        
+        // Security Report Controller
+        SecurityReportController::class => function (ContainerInterface $c) {
+            return new SecurityReportController($c->get(LoggerInterface::class));
         },
     ]);
 };
