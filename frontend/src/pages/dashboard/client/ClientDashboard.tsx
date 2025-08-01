@@ -366,11 +366,23 @@ const ClientOverview: React.FC = () => {
   );
 };
 
+// Import client dashboard components
+import Customers from './Customers';
+import Meters from './Meters';
+import Billing from './Billing';
+import Reports from './Reports';
+import Settings from './Settings';
+
 const ClientDashboard: React.FC = () => {
   return (
     <Routes>
       <Route path="/" element={<ClientOverview />} />
       <Route index element={<ClientOverview />} />
+      <Route path="customers" element={<Customers />} />
+      <Route path="meters" element={<Meters />} />
+      <Route path="billing" element={<Billing />} />
+      <Route path="reports" element={<Reports />} />
+      <Route path="settings" element={<Settings />} />
     </Routes>
   );
 };
