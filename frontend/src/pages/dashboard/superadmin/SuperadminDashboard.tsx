@@ -13,6 +13,14 @@ import {
 import api from '../../../services/api';
 import PageHeader from '../../../components/common/PageHeader';
 import Button from '../../../components/ui/Button';
+import ClientsManagement from './ClientsManagement';
+import CustomersManagement from './CustomersManagement';
+import MetersManagement from './MetersManagement';
+import PaymentsManagement from './PaymentsManagement';
+import PropertiesManagement from './PropertiesManagement';
+import ReportsManagement from './ReportsManagement';
+import SystemSettings from './SystemSettings';
+import TariffsManagement from './TariffsManagement';
 
 // Dashboard Overview Component
 const SuperadminOverview: React.FC = () => {
@@ -285,15 +293,7 @@ const SuperadminOverview: React.FC = () => {
   );
 };
 
-// Import superadmin dashboard components
-import ClientsManagement from './ClientsManagement';
-import CustomersManagement from './CustomersManagement';
-import MetersManagement from './MetersManagement';
-import PaymentsManagement from './PaymentsManagement';
-import PropertiesManagement from './PropertiesManagement';
-import ReportsManagement from './ReportsManagement';
-import SystemSettings from './SystemSettings';
-import TariffsManagement from './TariffsManagement';
+
 
 const SuperadminDashboard: React.FC = () => {
   return (
