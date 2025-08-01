@@ -26,7 +26,9 @@
     "require-dev": {
         "phpunit/phpunit": "^9.5",
         "phpstan/phpstan": "^1.8",
-        "squizlabs/php_codesniffer": "^3.7"
+        "squizlabs/php_codesniffer": "^3.7",
+        "mockery/mockery": "^1.6",
+        "fakerphp/faker": "^1.23"
     },
     "autoload": {
         "psr-4": {
@@ -40,6 +42,9 @@
     },
     "scripts": {
         "test": "phpunit",
+        "test:unit": "phpunit --testsuite=unit",
+        "test:integration": "phpunit --testsuite=integration",
+        "test:coverage": "phpunit --coverage-html coverage",
         "phpstan": "phpstan analyse src --level=5",
         "phpcs": "phpcs src --standard=PSR12",
         "phpcbf": "phpcbf src --standard=PSR12"
