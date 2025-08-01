@@ -294,6 +294,7 @@ import PropertiesManagement from './PropertiesManagement';
 import ReportsManagement from './ReportsManagement';
 import SystemSettings from './SystemSettings';
 import TariffsManagement from './TariffsManagement';
+import UserManagement from './UserManagement';
 
 const SuperadminDashboard: React.FC = () => {
   return (
@@ -308,6 +309,7 @@ const SuperadminDashboard: React.FC = () => {
       <Route path="reports" element={<ReportsManagement />} />
       <Route path="settings" element={<SystemSettings />} />
       <Route path="tariffs" element={<TariffsManagement />} />
+      <Route path="users" element={<UserManagement />} />
     </Routes>
   );
 };
