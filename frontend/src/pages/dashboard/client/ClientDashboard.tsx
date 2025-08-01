@@ -9,9 +9,17 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon,
   ClockIcon,
-  BanknotesIcon
+  BanknotesIcon,
+  BeakerIcon
 } from '@heroicons/react/24/outline';
 import api from '../../../services/api';
+import Customers from './Customers';
+import Meters from './Meters';
+import Payments from './Payments';
+import Properties from './Properties';
+import Reports from './Reports';
+import Settings from './Settings';
+import ConsumptionAnalytics from './ConsumptionAnalytics';
 
 // Dashboard Overview Component
 const ClientOverview: React.FC = () => {
@@ -366,12 +374,7 @@ const ClientOverview: React.FC = () => {
   );
 };
 
-// Import client dashboard components
-import Customers from './Customers';
-import Meters from './Meters';
-import Billing from './Billing';
-import Reports from './Reports';
-import Settings from './Settings';
+
 
 const ClientDashboard: React.FC = () => {
   return (
@@ -380,9 +383,11 @@ const ClientDashboard: React.FC = () => {
       <Route index element={<ClientOverview />} />
       <Route path="customers" element={<Customers />} />
       <Route path="meters" element={<Meters />} />
-      <Route path="billing" element={<Billing />} />
+      <Route path="payments" element={<Payments />} />
+      <Route path="properties" element={<Properties />} />
       <Route path="reports" element={<Reports />} />
       <Route path="settings" element={<Settings />} />
+      <Route path="analytics" element={<ConsumptionAnalytics />} />
     </Routes>
   );
 };
