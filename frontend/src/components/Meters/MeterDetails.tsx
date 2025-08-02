@@ -192,11 +192,11 @@ const MeterDetails: React.FC = () => {
       // Prepare chart data
       if (consumptionData && consumptionData.length > 0) {
         const chartData: ChartData<'line'> = {
-          labels: consumptionData.map((item) => format(new Date(item.date), 'dd MMM')),
+          labels: consumptionData.map((item: { date: string }) => format(new Date(item.date), 'dd MMM')),
           datasets: [
             {
               label: t('meters.consumption'),
-              data: consumptionData.map((item) => item.consumption),
+              data: consumptionData.map((item: { consumption: number }) => item.consumption),
               borderColor: theme.palette.primary.main,
               backgroundColor: theme.palette.primary.main + '33',
               fill: true,

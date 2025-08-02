@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Chip from '../ui/Chip';
 import {
   Box,
   Grid,
@@ -234,10 +235,10 @@ const Profile: React.FC = () => {
                 {profile?.email}
               </Typography>
               <Chip
-                label={profile?.role}
+                label={profile?.role || 'customer'}
                 color="primary"
                 variant="outlined"
-                sx={{ mt: 1 }}
+                sx={{ marginTop: '0.25rem' }}
               />
             </CardContent>
           </Card>

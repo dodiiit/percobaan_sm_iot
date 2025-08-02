@@ -22,7 +22,7 @@ const Navbar: React.FC<NavbarProps> = ({ showUserMenu = false }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { mode, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -87,7 +87,7 @@ const Navbar: React.FC<NavbarProps> = ({ showUserMenu = false }) => {
               className="p-2 rounded-md text-gray-500 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
               aria-label="Toggle theme"
             >
-              {theme === 'dark' ? (
+              {mode === 'dark' ? (
                 <SunIcon className="h-5 w-5" />
               ) : (
                 <MoonIcon className="h-5 w-5" />

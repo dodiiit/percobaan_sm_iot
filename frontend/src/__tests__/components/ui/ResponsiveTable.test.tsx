@@ -20,9 +20,9 @@ describe('ResponsiveTable', () => {
   ];
   
   const columns = [
-    { header: 'ID', accessor: 'id' },
-    { header: 'Name', accessor: 'name' },
-    { header: 'Value', accessor: 'value' }
+    { header: 'ID', accessor: 'id' as const },
+    { header: 'Name', accessor: 'name' as const },
+    { header: 'Value', accessor: 'value' as const }
   ];
   
   const mockOnRowClick = jest.fn();
@@ -100,7 +100,7 @@ describe('ResponsiveTable', () => {
       <ResponsiveTable
         data={[]}
         columns={columns}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item: typeof testData[0]) => item.id}
         emptyMessage="No items found"
       />
     );
@@ -110,8 +110,8 @@ describe('ResponsiveTable', () => {
   
   test('renders custom accessor functions correctly', () => {
     const customColumns = [
-      { header: 'ID', accessor: 'id' },
-      { header: 'Name', accessor: 'name' },
+      { header: 'ID', accessor: 'id' as const },
+      { header: 'Name', accessor: 'name' as const },
       { 
         header: 'Custom Value', 
         accessor: (item: typeof testData[0]) => (

@@ -107,7 +107,7 @@ const MainLayout: React.FC = () => {
     { text: t('meters.title'), icon: <WaterDropIcon />, path: '/meters' },
     { text: t('consumption.title'), icon: <BarChartIcon />, path: '/consumption' },
     { text: t('payments.title'), icon: <PaymentIcon />, path: '/payments' },
-    { text: t('topup.title'), icon: <MonetizationOn />, path: '/topup' },
+    { text: t('topup.title'), icon: <TariffsIcon />, path: '/topup' },
   ];
 
   // Client (Water Utility Company) menu items

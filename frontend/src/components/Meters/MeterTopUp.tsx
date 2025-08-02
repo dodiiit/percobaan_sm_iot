@@ -94,8 +94,7 @@ const MeterTopUp: React.FC = () => {
       customAmount: Yup.string()
         .when('amount', {
           is: 0,
-          then: Yup.string()
-            .required(t('validation.required'))
+          then: (schema) => schema.required(t('validation.required'))
             .test(
               'is-number',
               t('validation.invalidAmount'),

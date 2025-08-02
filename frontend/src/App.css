@@ -1,0 +1,89 @@
+/* App-specific styles */
+.app-logo {
+  height: 40px;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .app-logo {
+    animation: app-logo-spin infinite 20s linear;
+  }
+}
+
+@keyframes app-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Layout styles */
+.page-container {
+  padding: 1rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-title {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+/* Form styles */
+.form-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.form-section {
+  margin-bottom: 1.5rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+/* Card styles */
+.card {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.card-title {
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.card-content {
+  margin-bottom: 0.75rem;
+}
+
+.card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .card {
+    background-color: #333;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+}

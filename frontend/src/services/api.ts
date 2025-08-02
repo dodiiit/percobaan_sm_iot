@@ -62,7 +62,7 @@ api.interceptors.response.use(
 
 // Auth API
 export const authAPI = {
-  login: (credentials: { email: string; password: string }) => 
+  login: (credentials: { email: string; password: string; remember?: boolean }) => 
     api.post('/auth/login', credentials),
   register: (userData: any) => 
     api.post('/auth/register', userData),
@@ -74,6 +74,8 @@ export const authAPI = {
     api.post('/auth/reset-password', { token, password, password_confirmation }),
   refreshToken: (refreshToken: string) => 
     api.post('/auth/refresh', { refresh_token: refreshToken }),
+  verifyEmail: (token: string) =>
+    api.post('/auth/verify-email', { token }),
 };
 
 // User API

@@ -1,6 +1,8 @@
 // Mock API service for demo purposes
 // This service provides mock responses for the IndoWater application
 
+import { useMockApi } from '../utils/environment';
+
 interface MockUser {
   id: string;
   name: string;
@@ -226,5 +228,5 @@ export const shouldUseMockApi = (): boolean => {
   
   // Since we're now connecting to a real API, we'll only use mock API
   // if it's explicitly enabled
-  return process.env.REACT_APP_USE_MOCK_API === 'true';
+  return useMockApi();
 };

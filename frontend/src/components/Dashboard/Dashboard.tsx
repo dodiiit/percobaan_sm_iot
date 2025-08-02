@@ -96,7 +96,7 @@ const Dashboard: React.FC = () => {
 
       // Calculate monthly consumption (mock data for now)
       const monthlyConsumption = meters.reduce(
-        (sum, meter) => sum + (meter.monthly_consumption || 0),
+        (sum: number, meter: { monthly_consumption?: number }) => sum + (meter.monthly_consumption || 0),
         0
       );
 

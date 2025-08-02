@@ -13,6 +13,7 @@ import {
   WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline';
 import { Dialog, Transition, Menu } from '@headlessui/react';
+import DialogOverlay from "../../../components/ui/DialogOverlay";
 import { ChevronDownIcon, EllipsisVerticalIcon } from '@heroicons/react/20/solid';
 import api from '../../../services/api';
 import { mockApi, shouldUseMockApi } from '../../../services/mockApi';
@@ -797,7 +798,7 @@ const Meters: React.FC = () => {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+              <DialogOverlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
             </Transition.Child>
 
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
@@ -982,7 +983,7 @@ const Meters: React.FC = () => {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+              <DialogOverlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
             </Transition.Child>
 
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
@@ -1154,7 +1155,7 @@ const Meters: React.FC = () => {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+              <DialogOverlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
             </Transition.Child>
 
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
@@ -1220,7 +1221,7 @@ const Meters: React.FC = () => {
               leaveFrom="opacity-100"
               leaveTo="opacity-0"
             >
-              <Dialog.Overlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
+              <DialogOverlay className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" />
             </Transition.Child>
 
             <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">

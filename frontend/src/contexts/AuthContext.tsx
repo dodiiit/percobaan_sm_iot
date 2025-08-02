@@ -22,11 +22,13 @@ interface AuthContextType {
   isCustomer: boolean;
   isClient: boolean;
   isSuperAdmin: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  error: string | null;
+  login: (email: string, password: string, remember?: boolean) => Promise<void>;
   logout: () => Promise<void>;
   register: (userData: any) => Promise<void>;
   forgotPassword: (email: string) => Promise<void>;
   resetPassword: (token: string, password: string, passwordConfirmation: string) => Promise<void>;
+  verifyEmail: (token: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -47,6 +49,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -81,10 +84,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initAuth();
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, remember: boolean = false) => {
     setIsLoading(true);
+    setError(null);
     try {
-      const response = await authAPI.login({ email, password });
+      const response = await authAPI.login({ email, password, remember });
       const { user, access_token, refresh_token } = response.data.data;
       
       // Ensure the role is one of the defined UserRole values
@@ -98,11 +102,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUserRole(UserRole.CUSTOMER);
       }
       
-      localStorage.setItem('access_token', access_token);
-      localStorage.setItem('refresh_token', refresh_token);
+      // Store tokens in localStorage or sessionStorage based on remember flag
+      const storage = remember ? localStorage : sessionStorage;
+      storage.setItem('access_token', access_token);
+      storage.setItem('refresh_token', refresh_token);
       setUser(user);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Login failed:', error);
+      setError(error?.response?.data?.message || 'Login failed. Please try again.');
       throw error;
     } finally {
       setIsLoading(false);
@@ -150,10 +157,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const resetPassword = async (token: string, password: string, passwordConfirmation: string) => {
     setIsLoading(true);
+    setError(null);
     try {
       await authAPI.resetPassword(token, password, passwordConfirmation);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Password reset failed:', error);
+      setError(error?.response?.data?.message || 'Password reset failed. Please try again.');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyEmail = async (token: string) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      await authAPI.verifyEmail(token);
+    } catch (error: any) {
+      console.error('Email verification failed:', error);
+      setError(error?.response?.data?.message || 'Email verification failed. Please try again.');
       throw error;
     } finally {
       setIsLoading(false);
@@ -173,11 +196,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isCustomer,
     isClient,
     isSuperAdmin,
+    error,
     login,
     logout,
     register,
     forgotPassword,
     resetPassword,
+    verifyEmail,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
