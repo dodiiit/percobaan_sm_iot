@@ -64,20 +64,78 @@ export default defineConfig({
       compress: {
         drop_console: true,
         drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug'],
+        passes: 2,
+      },
+      mangle: {
+        safari10: true,
+      },
+      format: {
+        comments: false,
       },
     },
     rollupOptions: {
       output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'mui-vendor': ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
-          'chart-vendor': ['chart.js', 'react-chartjs-2'],
-          'form-vendor': ['formik', 'yup'],
-          'i18n-vendor': ['i18next', 'react-i18next', 'i18next-browser-languagedetector', 'i18next-http-backend'],
+        manualChunks: (id) => {
+          // Core React libraries
+          if (id.includes('node_modules/react') || 
+              id.includes('node_modules/react-dom') || 
+              id.includes('node_modules/react-router-dom')) {
+            return 'react-vendor';
+          }
+          
+          // MUI libraries
+          if (id.includes('node_modules/@mui') || 
+              id.includes('node_modules/@emotion')) {
+            return 'mui-vendor';
+          }
+          
+          // Chart libraries
+          if (id.includes('node_modules/chart.js') || 
+              id.includes('node_modules/react-chartjs-2')) {
+            return 'chart-vendor';
+          }
+          
+          // Form libraries
+          if (id.includes('node_modules/formik') || 
+              id.includes('node_modules/yup')) {
+            return 'form-vendor';
+          }
+          
+          // i18n libraries
+          if (id.includes('node_modules/i18next') || 
+              id.includes('node_modules/react-i18next')) {
+            return 'i18n-vendor';
+          }
+          
+          // Headless UI and Heroicons
+          if (id.includes('node_modules/@headlessui') || 
+              id.includes('node_modules/@heroicons')) {
+            return 'ui-vendor';
+          }
+          
+          // Other utilities
+          if (id.includes('node_modules/')) {
+            return 'vendor';
+          }
         },
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
-        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
+        assetFileNames: ({name}) => {
+          if (/\.(gif|jpe?g|png|svg|webp)$/.test(name ?? '')) {
+            return 'assets/images/[name]-[hash][extname]';
+          }
+          
+          if (/\.(woff|woff2|eot|ttf|otf)$/.test(name ?? '')) {
+            return 'assets/fonts/[name]-[hash][extname]';
+          }
+          
+          if (/\.css$/.test(name ?? '')) {
+            return 'assets/css/[name]-[hash][extname]';
+          }
+          
+          return 'assets/[ext]/[name]-[hash][extname]';
+        },
       },
     },
   }

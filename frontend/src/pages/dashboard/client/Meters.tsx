@@ -18,6 +18,7 @@ import { ChevronDownIcon, EllipsisVerticalIcon } from '@heroicons/react/20/solid
 import api from '../../../services/api';
 import { mockApi, shouldUseMockApi } from '../../../services/mockApi';
 import { toast } from 'react-toastify';
+import { useTranslation } from 'react-i18next';
 
 interface Meter {
   id: string;
@@ -84,6 +85,7 @@ const MeterStatusBadge: React.FC<{ status: string }> = ({ status }) => {
 };
 
 const Meters: React.FC = () => {
+  const { t } = useTranslation();
   const [meters, setMeters] = useState<Meter[]>([]);
   const [filteredMeters, setFilteredMeters] = useState<Meter[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -589,7 +591,7 @@ const Meters: React.FC = () => {
                 <input
                   type="text"
                   className="focus:ring-blue-500 focus:border-blue-500 block w-full pl-10 sm:text-sm border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  placeholder="Search meters..."
+                  placeholder={t('meters.search')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -602,7 +604,7 @@ const Meters: React.FC = () => {
                 className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600"
               >
                 <ArrowPathIcon className="-ml-1 mr-2 h-5 w-5 text-gray-500 dark:text-gray-400" />
-                Refresh
+                {t('common.refresh')}
               </button>
             </div>
           </div>
@@ -619,7 +621,7 @@ const Meters: React.FC = () => {
           ) : filteredMeters.length === 0 ? (
             <div className="px-4 py-5 sm:p-6 text-center">
               <CpuChipIcon className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No meters found</h3>
+              <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">{t('meters.noMeters')}</h3>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                 {searchQuery ? 'Try a different search term.' : 'Get started by adding a new meter.'}
               </p>
@@ -820,7 +822,7 @@ const Meters: React.FC = () => {
                   </div>
                   <div className="mt-3 text-center sm:mt-5">
                     <Dialog.Title as="h3" className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
-                      Add New Meter
+                      {t('meters.addMeter')}
                     </Dialog.Title>
                     <div className="mt-2">
                       <p className="text-sm text-gray-500 dark:text-gray-400">

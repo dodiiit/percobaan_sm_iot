@@ -32,7 +32,6 @@ import {
   Logout as LogoutIcon,
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
-  Translate as TranslateIcon,
   People as PeopleIcon,
   Home as HomeIcon,
   Assessment as AssessmentIcon,
@@ -47,6 +46,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { UserRole } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useLanguage } from '../../contexts/LanguageContext';
+import LanguageSelector from '../common/LanguageSelector';
 
 const drawerWidth = 240;
 
@@ -62,7 +62,6 @@ const MainLayout: React.FC = () => {
   
   const [mobileOpen, setMobileOpen] = useState(false);
   const [anchorElUser, setAnchorElUser] = useState<null | HTMLElement>(null);
-  const [anchorElLang, setAnchorElLang] = useState<null | HTMLElement>(null);
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
@@ -76,23 +75,10 @@ const MainLayout: React.FC = () => {
     setAnchorElUser(null);
   };
 
-  const handleOpenLangMenu = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorElLang(event.currentTarget);
-  };
-
-  const handleCloseLangMenu = () => {
-    setAnchorElLang(null);
-  };
-
   const handleLogout = async () => {
     handleCloseUserMenu();
     await logout();
     navigate('/login');
-  };
-
-  const handleLanguageChange = (lng: string) => {
-    changeLanguage(lng);
-    handleCloseLangMenu();
   };
 
   // Common menu items for all users
@@ -217,41 +203,8 @@ const MainLayout: React.FC = () => {
             </IconButton>
           </Tooltip>
 
-          {/* Language Menu */}
-          <Tooltip title={t('settings.language')}>
-            <IconButton onClick={handleOpenLangMenu} color="inherit">
-              <TranslateIcon />
-            </IconButton>
-          </Tooltip>
-          <Menu
-            sx={{ mt: '45px' }}
-            id="language-menu"
-            anchorEl={anchorElLang}
-            anchorOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-            keepMounted
-            transformOrigin={{
-              vertical: 'top',
-              horizontal: 'right',
-            }}
-            open={Boolean(anchorElLang)}
-            onClose={handleCloseLangMenu}
-          >
-            <MenuItem
-              onClick={() => handleLanguageChange('id')}
-              selected={language === 'id'}
-            >
-              <Typography textAlign="center">Bahasa Indonesia</Typography>
-            </MenuItem>
-            <MenuItem
-              onClick={() => handleLanguageChange('en')}
-              selected={language === 'en'}
-            >
-              <Typography textAlign="center">English</Typography>
-            </MenuItem>
-          </Menu>
+          {/* Language Selector */}
+          <LanguageSelector variant="icon" />
 
           {/* Notifications */}
           <Tooltip title={t('notifications.title')}>

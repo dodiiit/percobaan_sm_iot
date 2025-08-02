@@ -14,7 +14,9 @@
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
     "optimize": "node scripts/optimize-images.js",
-    "optimize:images": "node scripts/optimize-images.js"
+    "optimize:images": "node scripts/optimize-images.js",
+    "check-translations": "node scripts/check-translations.js",
+    "i18n:extract": "i18next-scanner --config i18next-scanner.config.js"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",

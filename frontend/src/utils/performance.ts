@@ -1,24 +1,114 @@
-import { ReportHandler } from 'web-vitals';
+import { ReportHandler, getCLS, getFID, getFCP, getLCP, getTTFB } from 'web-vitals';
+
+// Configuration
+const config = {
+  // Whether to enable performance monitoring
+  enabled: true,
+  
+  // Whether to log metrics to console
+  logToConsole: process.env.NODE_ENV !== 'production',
+  
+  // Endpoint to send metrics to
+  endpoint: '/api/metrics',
+  
+  // Sample rate (0-1) - what percentage of users to collect data from
+  sampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+  
+  // User ID for tracking (if available)
+  userId: typeof localStorage !== 'undefined' ? localStorage.getItem('user_id') : undefined,
+};
+
+// Types
+interface PerformanceMetric {
+  name: string;
+  value: number;
+  rating?: 'good' | 'needs-improvement' | 'poor';
+  delta?: number;
+  id?: string;
+  navigationType?: string;
+}
+
+/**
+ * Send a performance metric to the server and/or console
+ */
+function sendMetric(metric: PerformanceMetric): void {
+  // Add additional context
+  const metricWithContext = {
+    ...metric,
+    timestamp: Date.now(),
+    url: window.location.href,
+    userAgent: navigator.userAgent,
+    userId: config.userId,
+  };
+  
+  // Log to console if enabled
+  if (config.logToConsole) {
+    console.log('[Performance]', metricWithContext);
+  }
+  
+  // Send to analytics
+  if (window.gtag) {
+    window.gtag('event', metric.name, {
+      event_category: 'Performance',
+      event_label: metric.id || metric.name,
+      value: Math.round(metric.value),
+      non_interaction: true,
+    });
+  }
+  
+  // Send to server
+  if (navigator.sendBeacon) {
+    navigator.sendBeacon(
+      config.endpoint,
+      JSON.stringify(metricWithContext)
+    );
+  } else {
+    // Fallback to fetch API
+    fetch(config.endpoint, {
+      method: 'POST',
+      body: JSON.stringify(metricWithContext),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // Use keepalive to ensure the request completes even if the page is unloading
+      keepalive: true,
+    }).catch((error) => {
+      if (config.logToConsole) {
+        console.error('Failed to send performance metric:', error);
+      }
+    });
+  }
+}
 
 // Initialize performance observer
 export const initPerformanceMonitoring = (): void => {
+  if (!config.enabled || typeof window === 'undefined') return;
+  
+  // Only collect metrics from a sample of users
+  if (Math.random() > config.sampleRate) return;
+  
+  // Collect Core Web Vitals
+  getCLS((metric) => sendMetric({ name: 'CLS', ...metric }));
+  getFCP((metric) => sendMetric({ name: 'FCP', ...metric }));
+  getFID((metric) => sendMetric({ name: 'FID', ...metric }));
+  getLCP((metric) => sendMetric({ name: 'LCP', ...metric }));
+  getTTFB((metric) => sendMetric({ name: 'TTFB', ...metric }));
+  
   if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
     // Create and observe long task
     try {
       const longTaskObserver = new PerformanceObserver((list) => {
         list.getEntries().forEach((entry) => {
           // Log long tasks that block the main thread
-          console.warn(`Long task detected: ${entry.duration}ms`, entry);
-          
-          // You can send this data to your analytics service
-          if (window.gtag) {
-            window.gtag('event', 'long_task', {
-              event_category: 'Performance',
-              event_label: 'Long Task',
-              value: Math.round(entry.duration),
-              non_interaction: true,
-            });
+          if (config.logToConsole) {
+            console.warn(`Long task detected: ${entry.duration}ms`, entry);
           }
+          
+          sendMetric({
+            name: 'long_task',
+            value: entry.duration,
+            rating: entry.duration > 100 ? 'poor' : 'needs-improvement',
+          });
         });
       });
       
