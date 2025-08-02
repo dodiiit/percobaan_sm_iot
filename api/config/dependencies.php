@@ -316,5 +316,22 @@ return function (ContainerBuilder $containerBuilder) {
                 $logger
             );
         },
+
+        // Device Controller (for IoT device communication)
+        \IndoWater\Api\Controllers\DeviceController::class => function (ContainerInterface $c) {
+            $meterModel = $c->get(\IndoWater\Api\Models\Meter::class);
+            $realtimeService = $c->get(RealtimeService::class);
+            $valveService = $c->get(ValveControlService::class);
+            $cache = $c->get(CacheService::class);
+            $logger = $c->get(LoggerInterface::class);
+            
+            return new \IndoWater\Api\Controllers\DeviceController(
+                $meterModel,
+                $realtimeService,
+                $valveService,
+                $cache,
+                $logger
+            );
+        },
     ]);
 };

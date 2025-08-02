@@ -186,4 +186,17 @@ class ValveCommand extends BaseModel
         
         return $stmt->rowCount();
     }
+
+    public function getPendingCommandsByValve(string $valveId): array
+    {
+        $sql = "SELECT * FROM {$this->table} 
+                WHERE valve_id = ? 
+                AND status IN ('pending', 'sent') 
+                AND (expires_at IS NULL OR expires_at > NOW())
+                ORDER BY priority DESC, created_at ASC";
+        
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$valveId]);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
 }

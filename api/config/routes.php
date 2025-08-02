@@ -20,6 +20,7 @@ use IndoWater\Api\Controllers\DashboardController;
 use IndoWater\Api\Controllers\SettingController;
 use IndoWater\Api\Controllers\HealthController;
 use IndoWater\Api\Controllers\CacheController;
+use IndoWater\Api\Controllers\DeviceController;
 use IndoWater\Api\Middleware\WebhookMiddleware;
 
 return function (App $app) {
@@ -236,6 +237,34 @@ return function (App $app) {
         // Legacy webhook route for backward compatibility
         $group->post('/{method}', [PaymentController::class, 'webhook']);
     })->add(WebhookMiddleware::class);
+
+    // Device API Routes (Legacy endpoints for Arduino/NodeMCU firmware)
+    $app->group('/device', function (RouteCollectorProxy $group) {
+        // Device registration (provisioning)
+        $group->post('/register_device.php', [DeviceController::class, 'registerDevice']);
+        
+        // Get device credit/balance
+        $group->get('/credit.php', [DeviceController::class, 'getCredit']);
+        
+        // Submit meter reading
+        $group->post('/MeterReading.php', [DeviceController::class, 'submitReading']);
+        
+        // Get pending commands
+        $group->get('/get_commands.php', [DeviceController::class, 'getCommands']);
+        
+        // Acknowledge command execution
+        $group->post('/ack_command.php', [DeviceController::class, 'acknowledgeCommand']);
+    });
+
+    // OTA Update endpoint
+    $app->get('/ota/firmware.bin', function (Request $request, Response $response) {
+        // Serve firmware binary for OTA updates
+        // This should be implemented based on your OTA update strategy
+        return $response->withJson([
+            'status' => 'error',
+            'message' => 'OTA endpoint not implemented yet'
+        ], 501);
+    });
 
     // Fallback for undefined routes
     $app->map(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/{routes:.+}', function ($request, $response) {

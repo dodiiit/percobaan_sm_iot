@@ -41,7 +41,7 @@ class ValveControlService
      */
     public function openValve(string $valveId, string $userId, string $reason = 'Manual open command', string $priority = 'normal'): array
     {
-        return $this->sendValveCommand($valveId, 'open', null, $userId, $reason, $priority);
+        return $this->sendValveCommand($valveId, 'valve_open', null, $userId, $reason, $priority);
     }
 
     /**
@@ -49,7 +49,7 @@ class ValveControlService
      */
     public function closeValve(string $valveId, string $userId, string $reason = 'Manual close command', string $priority = 'normal'): array
     {
-        return $this->sendValveCommand($valveId, 'close', null, $userId, $reason, $priority);
+        return $this->sendValveCommand($valveId, 'valve_close', null, $userId, $reason, $priority);
     }
 
     /**
@@ -239,7 +239,7 @@ class ValveControlService
                 try {
                     $result = $this->sendValveCommand(
                         $valve['id'],
-                        'close',
+                        'valve_close',
                         null,
                         'system', // System user
                         'Auto-close due to insufficient credit',
@@ -286,7 +286,7 @@ class ValveControlService
                 try {
                     $result = $this->sendValveCommand(
                         $valve['id'],
-                        'open',
+                        'valve_open',
                         null,
                         'system', // System user
                         'Auto-open due to credit restoration',
@@ -680,5 +680,70 @@ class ValveControlService
         }
 
         return $result;
+    }
+
+    /**
+     * Get pending commands for a specific meter
+     */
+    public function getPendingCommands(string $meterId): array
+    {
+        // Find valves for this meter
+        $valves = $this->valveModel->findByMeterId($meterId);
+        if (empty($valves)) {
+            return [];
+        }
+
+        $commands = [];
+        foreach ($valves as $valve) {
+            $valveCommands = $this->commandModel->getPendingCommandsByValve($valve['id']);
+            foreach ($valveCommands as $command) {
+                $commands[] = [
+                    'command_id' => $command['id'],
+                    'command_type' => $command['command_type'],
+                    'command_value' => json_decode($command['command_value'], true),
+                    'current_valve_status' => $valve['current_state'],
+                    'priority' => $command['priority'],
+                    'created_at' => $command['created_at'],
+                    'config_data' => $command['config_data'] ?? null
+                ];
+            }
+        }
+
+        return $commands;
+    }
+
+    /**
+     * Acknowledge command execution from device
+     */
+    public function acknowledgeCommand(array $ackData): bool
+    {
+        $commandId = $ackData['command_id'];
+        $status = $ackData['status'] === 'acknowledged' ? 'completed' : 'failed';
+        $notes = $ackData['notes'] ?? '';
+        $valveStatus = $ackData['valve_status'];
+
+        // Update command status
+        $this->commandModel->updateCommandStatus($commandId, $status, [
+            'valve_status' => $valveStatus,
+            'notes' => $notes,
+            'acknowledged_at' => $ackData['acknowledged_at']
+        ], $status === 'failed' ? $notes : null);
+
+        // Update valve state if command was successful
+        if ($status === 'completed') {
+            $command = $this->commandModel->find($commandId);
+            if ($command) {
+                $this->valveModel->updateState($command['valve_id'], $valveStatus, $commandId);
+            }
+        }
+
+        $this->logger->info('Command acknowledged by device', [
+            'command_id' => $commandId,
+            'status' => $status,
+            'valve_status' => $valveStatus,
+            'notes' => $notes
+        ]);
+
+        return true;
     }
 }

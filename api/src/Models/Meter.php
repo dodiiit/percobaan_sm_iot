@@ -12,14 +12,19 @@ class Meter extends BaseModel
         'meter_id', 'customer_id', 'property_id', 'installation_date',
         'meter_type', 'meter_model', 'meter_serial', 'firmware_version',
         'hardware_version', 'location_description', 'latitude', 'longitude',
-        'status', 'last_reading', 'last_reading_at', 'last_credit', 'last_credit_at'
+        'status', 'last_reading', 'last_reading_at', 'last_credit', 'last_credit_at',
+        'device_id', 'current_voltage', 'valve_status', 'is_unlocked', 'last_command_ack_at',
+        'low_credit_threshold'
     ];
 
     protected array $casts = [
         'last_reading' => 'float',
         'last_credit' => 'float',
         'latitude' => 'float',
-        'longitude' => 'float'
+        'longitude' => 'float',
+        'current_voltage' => 'float',
+        'is_unlocked' => 'bool',
+        'low_credit_threshold' => 'float'
     ];
 
     public function findByMeterId(string $meterId): ?array
@@ -98,13 +103,6 @@ class Meter extends BaseModel
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
 
-    public function updateCredit(string $id, float $newBalance): bool
-    {
-        $sql = "UPDATE {$this->table} SET last_credit = ?, last_credit_at = ?, updated_at = ? WHERE id = ?";
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute([$newBalance, date('Y-m-d H:i:s'), date('Y-m-d H:i:s'), $id]);
-    }
-
     public function getBalance(string $id): ?float
     {
         $sql = "SELECT last_credit FROM {$this->table} WHERE id = ? AND deleted_at IS NULL";
@@ -113,6 +111,44 @@ class Meter extends BaseModel
         $result = $stmt->fetchColumn();
         
         return $result !== false ? (float) $result : null;
+    }
+
+    public function updateDeviceStatus(string $id, array $deviceData): bool
+    {
+        $updateFields = [];
+        $params = [];
+        
+        if (isset($deviceData['voltage'])) {
+            $updateFields[] = 'current_voltage = ?';
+            $params[] = $deviceData['voltage'];
+        }
+        
+        if (isset($deviceData['valve_status'])) {
+            $updateFields[] = 'valve_status = ?';
+            $params[] = $deviceData['valve_status'];
+        }
+        
+        if (isset($deviceData['is_unlocked'])) {
+            $updateFields[] = 'is_unlocked = ?';
+            $params[] = $deviceData['is_unlocked'];
+        }
+        
+        if (empty($updateFields)) {
+            return true; // Nothing to update
+        }
+        
+        $updateFields[] = 'updated_at = ?';
+        $params[] = date('Y-m-d H:i:s');
+        $params[] = $id;
+        
+        $sql = "UPDATE {$this->table} SET " . implode(', ', $updateFields) . " WHERE id = ?";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute($params);
+    }
+
+    public function updateBalance(string $id, float $newBalance): bool
+    {
+        return $this->updateCredit($id, $newBalance);
     }
 
     public function getBalanceByMeterId(string $meterId): ?float
@@ -266,5 +302,45 @@ class Meter extends BaseModel
         $stmt = $this->db->prepare($sql);
         $stmt->execute([$id, $limit]);
         return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    public function findByDeviceId(string $deviceId): ?array
+    {
+        $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE device_id = ? AND deleted_at IS NULL");
+        $stmt->execute([$deviceId]);
+        $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+        
+        return $result ? $this->castAttributes($result) : null;
+    }
+
+    public function getCurrentTariff(string $id): float
+    {
+        // Get the current tariff for the meter
+        // This could be from a tariff table or meter-specific configuration
+        $sql = "SELECT tariff_rate FROM meter_tariffs WHERE meter_id = ? AND status = 'active' ORDER BY created_at DESC LIMIT 1";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$id]);
+        $result = $stmt->fetchColumn();
+        
+        if ($result !== false) {
+            return (float) $result;
+        }
+
+        // Fallback to default tariff if no specific tariff found
+        return 5000.0; // Default tariff per m3 in Rupiah
+    }
+
+    public function saveReading(array $readingData): bool
+    {
+        $readingData['id'] = \Ramsey\Uuid\Uuid::uuid4()->toString();
+        $readingData['created_at'] = $readingData['reading_time'] ?? date('Y-m-d H:i:s');
+        $readingData['updated_at'] = date('Y-m-d H:i:s');
+
+        $columns = implode(', ', array_keys($readingData));
+        $placeholders = ':' . implode(', :', array_keys($readingData));
+
+        $sql = "INSERT INTO meter_readings ({$columns}) VALUES ({$placeholders})";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute($readingData);
     }
 }
