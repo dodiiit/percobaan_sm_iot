@@ -17,6 +17,12 @@ export default defineConfig({
     headers: {
       'Access-Control-Allow-Origin': '*',
     },
+    hmr: {
+      overlay: true,
+    },
+    watch: {
+      usePolling: true,
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:8000',
