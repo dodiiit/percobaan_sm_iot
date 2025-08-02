@@ -24,7 +24,10 @@ use IndoWater\Api\Services\PaymentService;
 use IndoWater\Api\Services\EmailService;
 use IndoWater\Api\Services\RealtimeService;
 use IndoWater\Api\Services\ServiceFeeService;
+use IndoWater\Api\Services\ValveControlService;
 use IndoWater\Api\Models\Payment;
+use IndoWater\Api\Models\Valve;
+use IndoWater\Api\Models\ValveCommand;
 
 return function (ContainerBuilder $containerBuilder) {
     $containerBuilder->addDefinitions([
@@ -247,6 +250,71 @@ return function (ContainerBuilder $containerBuilder) {
             $logger = $c->get(LoggerInterface::class);
             
             return new \IndoWater\Api\Middleware\WebhookMiddleware($logger);
+        },
+
+        // Valve Model
+        Valve::class => function (ContainerInterface $c) {
+            $db = $c->get(PDO::class);
+            return new Valve($db);
+        },
+
+        // Valve Command Model
+        ValveCommand::class => function (ContainerInterface $c) {
+            $db = $c->get(PDO::class);
+            return new ValveCommand($db);
+        },
+
+        // Valve Control Service
+        ValveControlService::class => function (ContainerInterface $c) {
+            $valveModel = $c->get(Valve::class);
+            $commandModel = $c->get(ValveCommand::class);
+            $meterModel = $c->get(\IndoWater\Api\Models\Meter::class);
+            $realtimeService = $c->get(RealtimeService::class);
+            $cache = $c->get(CacheService::class);
+            $logger = $c->get(LoggerInterface::class);
+            
+            return new ValveControlService(
+                $valveModel,
+                $commandModel,
+                $meterModel,
+                $realtimeService,
+                $cache,
+                $logger
+            );
+        },
+
+        // Valve Controller
+        \IndoWater\Api\Controllers\ValveController::class => function (ContainerInterface $c) {
+            $valveModel = $c->get(Valve::class);
+            $commandModel = $c->get(ValveCommand::class);
+            $valveService = $c->get(ValveControlService::class);
+            $cache = $c->get(CacheService::class);
+            $logger = $c->get(LoggerInterface::class);
+            
+            return new \IndoWater\Api\Controllers\ValveController(
+                $valveModel,
+                $commandModel,
+                $valveService,
+                $cache,
+                $logger
+            );
+        },
+
+        // Meter Controller (enhanced with valve control)
+        \IndoWater\Api\Controllers\MeterController::class => function (ContainerInterface $c) {
+            $meterModel = $c->get(\IndoWater\Api\Models\Meter::class);
+            $realtimeService = $c->get(RealtimeService::class);
+            $valveService = $c->get(ValveControlService::class);
+            $cache = $c->get(CacheService::class);
+            $logger = $c->get(LoggerInterface::class);
+            
+            return new \IndoWater\Api\Controllers\MeterController(
+                $meterModel,
+                $realtimeService,
+                $valveService,
+                $cache,
+                $logger
+            );
         },
     ]);
 };

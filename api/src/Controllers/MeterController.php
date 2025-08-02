@@ -9,6 +9,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use IndoWater\Api\Controllers\BaseController;
 use IndoWater\Api\Models\Meter;
 use IndoWater\Api\Services\RealtimeService;
+use IndoWater\Api\Services\ValveControlService;
 use IndoWater\Api\Services\CacheService;
 use Psr\Log\LoggerInterface;
 use Respect\Validation\Validator as v;
@@ -17,16 +18,19 @@ class MeterController extends BaseController
 {
     private Meter $meterModel;
     private RealtimeService $realtimeService;
+    private ValveControlService $valveService;
 
     public function __construct(
         Meter $meterModel, 
         RealtimeService $realtimeService,
+        ValveControlService $valveService,
         CacheService $cache,
         LoggerInterface $logger
     ) {
         parent::__construct($cache, $logger);
         $this->meterModel = $meterModel;
         $this->realtimeService = $realtimeService;
+        $this->valveService = $valveService;
     }
 
     public function index(Request $request, Response $response): Response
@@ -333,11 +337,30 @@ class MeterController extends BaseController
             // Use the new addCredit method
             $result = $this->meterModel->addCredit($id, $amount, $description);
 
+            // Check if valve should be opened due to credit restoration
+            $previousBalance = $result['previous_balance'];
+            $newBalance = $result['new_balance'];
+            $lowCreditThreshold = $meter['low_credit_threshold'] ?? 10.00;
+
+            if ($previousBalance <= $lowCreditThreshold && $newBalance > $lowCreditThreshold) {
+                try {
+                    // Auto-open valves if credit is restored above threshold
+                    $valveResults = $this->valveService->autoOpenValveForCreditRestore($id);
+                    $result['valve_actions'] = $valveResults;
+                } catch (\Exception $e) {
+                    $this->logger->warning('Failed to auto-open valves after credit top-up', [
+                        'meter_id' => $meter['meter_id'],
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
             // Invalidate balance and credit cache
             $this->invalidateCache([
                 'meter_balance:*:' . $id,
                 'meter_credits:*:' . $id,
-                'meter:*:' . $id
+                'meter:*:' . $id,
+                'valve_*'
             ]);
 
             // Send real-time notification
@@ -346,6 +369,7 @@ class MeterController extends BaseController
                     'type' => 'credit_topup',
                     'amount' => $amount,
                     'new_balance' => $result['new_balance'],
+                    'valve_actions' => $result['valve_actions'] ?? [],
                     'timestamp' => time()
                 ]);
             }

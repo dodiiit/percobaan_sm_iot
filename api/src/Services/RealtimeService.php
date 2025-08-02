@@ -413,6 +413,143 @@ class RealtimeService
     }
 
     /**
+     * Broadcast valve command to relevant users
+     */
+    public function broadcastValveCommand(string $valveId, array $commandData): void
+    {
+        $update = [
+            'type' => 'valve_command',
+            'valve_id' => $valveId,
+            'data' => $commandData,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+
+        $this->storeUpdate($update);
+        $this->broadcastToSSE($update);
+    }
+
+    /**
+     * Broadcast valve status update
+     */
+    public function broadcastValveUpdate(string $valveId, array $statusData): void
+    {
+        $update = [
+            'type' => 'valve_update',
+            'valve_id' => $valveId,
+            'data' => $statusData,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+
+        $this->storeUpdate($update);
+        $this->broadcastToSSE($update);
+    }
+
+    /**
+     * Broadcast valve alert
+     */
+    public function broadcastValveAlert(string $valveId, array $alertData): void
+    {
+        $update = [
+            'type' => 'valve_alert',
+            'valve_id' => $valveId,
+            'data' => $alertData,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+
+        $this->storeUpdate($update);
+        $this->broadcastToSSE($update);
+    }
+
+    /**
+     * Broadcast meter update (enhanced with valve info)
+     */
+    public function broadcastMeterUpdate(string $meterId, array $updateData): void
+    {
+        $update = [
+            'type' => 'meter_update',
+            'meter_id' => $meterId,
+            'data' => $updateData,
+            'timestamp' => date('Y-m-d H:i:s')
+        ];
+
+        $this->storeUpdate($update);
+        $this->broadcastToSSE($update);
+    }
+
+    /**
+     * Get valve updates for polling
+     */
+    public function getValveUpdates(string $userId = null, int $limit = 50): array
+    {
+        $updates = $this->getStoredUpdates('valve_update', $limit);
+        $commands = $this->getStoredUpdates('valve_command', $limit);
+        $alerts = $this->getStoredUpdates('valve_alert', $limit);
+
+        // Merge and sort all valve-related updates
+        $allUpdates = array_merge($updates, $commands, $alerts);
+        
+        usort($allUpdates, function($a, $b) {
+            return strtotime($b['timestamp']) - strtotime($a['timestamp']);
+        });
+
+        return array_slice($allUpdates, 0, $limit);
+    }
+
+    /**
+     * Stream valve data for real-time monitoring
+     */
+    public function streamValveData(string $userId, string $role): void
+    {
+        header('Content-Type: text/event-stream');
+        header('Cache-Control: no-cache');
+        header('Connection: keep-alive');
+        header('Access-Control-Allow-Origin: *');
+        header('Access-Control-Allow-Headers: Cache-Control');
+
+        if (ob_get_level()) {
+            ob_end_clean();
+        }
+
+        $lastEventId = $_SERVER['HTTP_LAST_EVENT_ID'] ?? 0;
+        $eventId = $lastEventId + 1;
+
+        while (true) {
+            // Get valve data based on user role
+            $valveData = $this->getValveDataForUser($userId, $role);
+            
+            // Send data as SSE event
+            echo "id: {$eventId}\n";
+            echo "event: valve-update\n";
+            echo "data: " . json_encode([
+                'timestamp' => time(),
+                'valves' => $valveData
+            ]) . "\n\n";
+
+            if (ob_get_level()) {
+                ob_flush();
+            }
+            flush();
+
+            if (connection_aborted()) {
+                break;
+            }
+
+            $eventId++;
+            sleep(5); // Update every 5 seconds
+        }
+    }
+
+    /**
+     * Get valve data based on user role
+     */
+    private function getValveDataForUser(string $userId, string $role): array
+    {
+        // This would be implemented based on your authorization system
+        // For now, return empty array as placeholder
+        return [];
+    }
+
+    /**
      * Broadcast to SSE clients (placeholder)
      */
     private function broadcastToSSE(array $update): void

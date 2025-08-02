@@ -7,7 +7,7 @@ The IndoWater IoT API provides comprehensive endpoints for managing smart water 
 ## Base URL
 
 ```
-http://localhost:8000
+https://lingindustri.com
 ```
 
 ## Authentication

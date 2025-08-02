@@ -64,7 +64,7 @@ int miringPin = 20;     // Pin untuk sensor kemiringan
 int buzzerPin = 17;     // Pin untuk buzzer
 
 // Default Value (sebagian besar akan diganti oleh data server)
-float jarakToleransi = 15.0;    // Toleransi jarak untuk sensor ultrasonik (cm) - Akan dimuat dari EEPROM/diupdate via OTA
+float jarakToleransi = 10.0;    // Toleransi jarak untuk sensor ultrasonik (cm) - Akan dimuat dari EEPROM/diupdate via OTA
 float teganganVolt;             // Nilai tegangan yang dibaca
 float pemakaianSesi = 0;        // Total pemakaian air dalam sesi saat ini (Liter)
 int distance = 0;               // Jarak dari sensor ultrasonik

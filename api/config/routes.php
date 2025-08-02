@@ -10,6 +10,7 @@ use IndoWater\Api\Controllers\ClientController;
 use IndoWater\Api\Controllers\CustomerController;
 use IndoWater\Api\Controllers\PropertyController;
 use IndoWater\Api\Controllers\MeterController;
+use IndoWater\Api\Controllers\ValveController;
 use IndoWater\Api\Controllers\PaymentController;
 use IndoWater\Api\Controllers\WebhookController;
 use IndoWater\Api\Controllers\CreditController;
@@ -108,6 +109,46 @@ return function (App $app) {
             $group->post('/{id}/ota', [MeterController::class, 'ota']);
             $group->post('/{id}/control', [MeterController::class, 'control']);
             $group->get('/{id}/status', [MeterController::class, 'status']);
+            $group->get('/{id}/balance', [MeterController::class, 'balance']);
+        });
+
+        // Valve Control Routes
+        $group->group('/valves', function (RouteCollectorProxy $group) {
+            // Valve management
+            $group->get('', [ValveController::class, 'index']);
+            $group->get('/overview', [ValveController::class, 'overview']);
+            $group->get('/statistics', [ValveController::class, 'statistics']);
+            $group->get('/failed-commands', [ValveController::class, 'failedCommands']);
+            $group->get('/{id}', [ValveController::class, 'show']);
+            $group->post('', [ValveController::class, 'store']);
+            $group->put('/{id}', [ValveController::class, 'update']);
+            $group->delete('/{id}', [ValveController::class, 'delete']);
+            
+            // Valve control operations
+            $group->post('/{id}/open', [ValveController::class, 'open']);
+            $group->post('/{id}/close', [ValveController::class, 'close']);
+            $group->post('/{id}/partial-open', [ValveController::class, 'partialOpen']);
+            $group->post('/{id}/emergency-close', [ValveController::class, 'emergencyClose']);
+            $group->post('/{id}/status-check', [ValveController::class, 'status']);
+            
+            // Valve monitoring
+            $group->get('/{id}/commands', [ValveController::class, 'commands']);
+            $group->get('/{id}/history', [ValveController::class, 'history']);
+            $group->get('/{id}/alerts', [ValveController::class, 'alerts']);
+            
+            // Manual override
+            $group->post('/{id}/enable-override', [ValveController::class, 'enableOverride']);
+            $group->post('/{id}/disable-override', [ValveController::class, 'disableOverride']);
+            
+            // Alert management
+            $group->post('/alerts/{alert_id}/acknowledge', [ValveController::class, 'acknowledgeAlert']);
+            $group->post('/alerts/{alert_id}/resolve', [ValveController::class, 'resolveAlert']);
+            
+            // Bulk operations
+            $group->post('/bulk-operation', [ValveController::class, 'bulkOperation']);
+            
+            // Device response webhook (for IoT devices)
+            $group->post('/device-response', [ValveController::class, 'deviceResponse']);
         });
 
         // Payment Routes

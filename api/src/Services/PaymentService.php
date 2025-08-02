@@ -9,7 +9,7 @@ use Midtrans\Config;
 use Midtrans\Snap;
 use Midtrans\Transaction;
 use Doku\Snap\Snap as DokuSnap;
-use Doku\Snap\Models\VA\Request\CreateVaRequestDto;
+use Doku\Snap\Models\VA\Request\CreateVaRequestDtoV1;
 use Doku\Snap\Models\TotalAmount\TotalAmount;
 use Doku\Snap\Models\VA\AdditionalInfo\CreateVaRequestAdditionalInfo;
 use Doku\Snap\Models\VA\VirtualAccountConfig\CreateVaVirtualAccountConfig;
@@ -200,7 +200,7 @@ class PaymentService
             );
 
             // Create VA request
-            $createVaRequest = new CreateVaRequestDto(
+            $createVaRequest = new CreateVaRequestDtoV1(
                 $partnerServiceId,
                 $customerNo,
                 $virtualAccountNo,
