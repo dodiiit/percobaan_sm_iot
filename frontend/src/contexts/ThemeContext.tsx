@@ -3,6 +3,7 @@ import { ThemeProvider as MuiThemeProvider, createTheme, Theme, PaletteMode } fr
 
 interface ThemeContextType {
   mode: PaletteMode;
+  isDark: boolean;
   toggleTheme: () => void;
   theme: Theme;
 }
@@ -102,6 +103,12 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     if (savedMode) {
       setMode(savedMode);
       setTheme(getTheme(savedMode));
+      // Update document class for Tailwind dark mode
+      if (savedMode === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
     }
   }, []);
 
@@ -110,10 +117,18 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setMode(newMode);
     setTheme(getTheme(newMode));
     localStorage.setItem('theme', newMode);
+    
+    // Update document class for Tailwind dark mode
+    if (newMode === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
   };
 
   const value = {
     mode,
+    isDark: mode === 'dark',
     toggleTheme,
     theme,
   };

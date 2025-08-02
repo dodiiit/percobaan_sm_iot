@@ -1,160 +1,190 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  BeakerIcon, 
-  ChartBarIcon, 
-  CogIcon, 
-  ShieldCheckIcon,
-  DevicePhoneMobileIcon,
-  CloudIcon,
-  ArrowRightIcon,
-  CheckIcon,
-  PlayIcon
-} from '@heroicons/react/24/outline';
+  Droplets, 
+  Shield, 
+  Smartphone, 
+  BarChart3, 
+  Zap, 
+  Users, 
+  CheckCircle, 
+  ArrowRight,
+  Play,
+  Star,
+  Award,
+  Globe,
+  Clock,
+  TrendingUp,
+  Wifi,
+  Battery,
+  Settings,
+  Moon,
+  Sun
+} from 'lucide-react';
+import { useTheme } from '../contexts/ThemeContext';
 
 const LandingPage: React.FC = () => {
+  const { isDark, toggleTheme } = useTheme();
+
   const features = [
     {
-      icon: BeakerIcon,
-      title: 'Smart Water Monitoring',
-      description: 'Real-time monitoring of water consumption with IoT-enabled smart meters for accurate billing and usage tracking.'
+      icon: Droplets,
+      title: 'Meteran Air Prabayar IoT',
+      description: 'Sistem meteran air pintar dengan teknologi IoT yang memungkinkan monitoring real-time dan pembayaran prabayar.',
+      color: 'from-blue-500 to-cyan-500'
     },
     {
-      icon: ChartBarIcon,
-      title: 'Advanced Analytics',
-      description: 'Comprehensive analytics dashboard with usage patterns, consumption forecasts, and performance insights.'
+      icon: Shield,
+      title: 'Keamanan Tingkat Tinggi',
+      description: 'Dilengkapi dengan sistem anti-tamper, enkripsi data, dan monitoring keamanan 24/7.',
+      color: 'from-green-500 to-emerald-500'
     },
     {
-      icon: CogIcon,
-      title: 'Automated Management',
-      description: 'Automated billing, payment processing, and meter management with minimal manual intervention.'
+      icon: Smartphone,
+      title: 'Aplikasi Mobile Friendly',
+      description: 'Interface yang responsif dan mudah digunakan di berbagai perangkat mobile dan desktop.',
+      color: 'from-purple-500 to-pink-500'
     },
     {
-      icon: ShieldCheckIcon,
-      title: 'Secure & Reliable',
-      description: 'Enterprise-grade security with encrypted data transmission and reliable 99.9% uptime guarantee.'
+      icon: BarChart3,
+      title: 'Analytics & Reporting',
+      description: 'Dashboard analitik lengkap dengan laporan konsumsi, transaksi, dan performa sistem.',
+      color: 'from-orange-500 to-red-500'
     },
     {
-      icon: DevicePhoneMobileIcon,
-      title: 'Mobile Ready',
-      description: 'Access your water management system anywhere with our responsive web app and mobile applications.'
+      icon: Zap,
+      title: 'Real-time Monitoring',
+      description: 'Monitoring status perangkat, debit air, dan saldo secara real-time dengan notifikasi otomatis.',
+      color: 'from-yellow-500 to-orange-500'
     },
     {
-      icon: CloudIcon,
-      title: 'Cloud Infrastructure',
-      description: 'Scalable cloud-based infrastructure that grows with your business needs and handles millions of transactions.'
+      icon: Users,
+      title: 'Multi-Role Management',
+      description: 'Sistem manajemen pengguna dengan berbagai role: Admin, Operator, Teknisi, dan Pelanggan.',
+      color: 'from-indigo-500 to-purple-500'
+    }
+  ];
+
+  const stats = [
+    { number: '10,000+', label: 'Meteran Terpasang', icon: Droplets },
+    { number: '50+', label: 'Kota Terjangkau', icon: Globe },
+    { number: '99.9%', label: 'Uptime System', icon: Clock },
+    { number: '24/7', label: 'Customer Support', icon: Users }
+  ];
+
+  const testimonials = [
+    {
+      name: 'Budi Santoso',
+      role: 'Direktur PT Air Bersih',
+      content: 'IndoWater Solution telah mengubah cara kami mengelola distribusi air. Sistem yang sangat efisien dan mudah digunakan.',
+      rating: 5,
+      avatar: 'https://images.pexels.com/photos/1222271/pexels-photo-1222271.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2'
+    },
+    {
+      name: 'Siti Rahayu',
+      role: 'Manager Operasional AirKita',
+      content: 'Monitoring real-time dan sistem pembayaran prabayar sangat membantu dalam pengelolaan pelanggan dan keuangan.',
+      rating: 5,
+      avatar: 'https://images.pexels.com/photos/1239291/pexels-photo-1239291.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2'
+    },
+    {
+      name: 'Ahmad Wijaya',
+      role: 'Kepala Teknisi',
+      content: 'Aplikasi teknisi sangat memudahkan pekerjaan lapangan. Semua data tersentralisasi dan mudah diakses.',
+      rating: 5,
+      avatar: 'https://images.pexels.com/photos/1681010/pexels-photo-1681010.jpeg?auto=compress&cs=tinysrgb&w=150&h=150&dpr=2'
     }
   ];
 
   const pricingPlans = [
     {
       name: 'Starter',
-      price: 'Rp 500K',
-      period: '/month',
-      description: 'Perfect for small properties',
+      price: '2.5',
+      unit: 'juta',
+      period: '/bulan',
+      description: 'Cocok untuk Pengelolaan Air Skala kecil',
       features: [
-        'Up to 50 smart meters',
-        'Basic analytics dashboard',
-        'Email support',
-        'Mobile app access',
-        'Automated billing'
+        'Hingga 1,000 meteran',
+        'Dashboard basic',
+        'Support email',
+        'Laporan bulanan',
+        'Mobile app'
       ],
       popular: false
     },
     {
       name: 'Professional',
-      price: 'Rp 1.5M',
-      period: '/month',
-      description: 'Ideal for medium businesses',
+      price: '5',
+      unit: 'juta',
+      period: '/bulan',
+      description: 'Untuk Pengelolaan Air Skala Menengah',
       features: [
-        'Up to 500 smart meters',
-        'Advanced analytics & reports',
-        'Priority support',
-        'API access',
-        'Custom integrations',
-        'Multi-property management'
+        'Hingga 5,000 meteran',
+        'Dashboard advanced',
+        'Support 24/7',
+        'Laporan real-time',
+        'Mobile app',
+        'API integration',
+        'Custom branding'
       ],
       popular: true
     },
     {
       name: 'Enterprise',
       price: 'Custom',
+      unit: '',
       period: '',
-      description: 'For large organizations',
+      description: 'Solusi enterprise',
       features: [
-        'Unlimited smart meters',
-        'White-label solution',
+        'Unlimited meteran',
+        'Dashboard enterprise',
         'Dedicated support',
-        'Custom development',
-        'SLA guarantee',
-        'On-premise deployment'
+        'Custom features',
+        'White-label solution',
+        'On-premise deployment',
+        'SLA guarantee'
       ],
       popular: false
     }
   ];
 
-  const testimonials = [
-    {
-      name: 'Budi Santoso',
-      role: 'Property Manager',
-      company: 'Jakarta Residence',
-      content: 'IndoWater has revolutionized how we manage water billing. The automated system saves us hours of manual work every month.',
-      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
-    },
-    {
-      name: 'Sari Dewi',
-      role: 'Facility Director',
-      company: 'Surabaya Complex',
-      content: 'The real-time monitoring and analytics help us identify leaks quickly and reduce water waste significantly.',
-      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
-    },
-    {
-      name: 'Ahmad Rahman',
-      role: 'Operations Manager',
-      company: 'Bandung Properties',
-      content: 'Customer satisfaction improved dramatically since we implemented IndoWater. Transparent billing builds trust.',
-      avatar: 'https://images.unsplash.com/photo-1519244703995-f4e0f30006d5?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80'
-    }
-  ];
-
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors duration-300">
+      {/* Theme Toggle Button */}
+      <button
+        onClick={toggleTheme}
+        className="fixed top-6 right-6 p-3 rounded-full bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-all duration-200 z-50 group"
+        title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+      >
+        {isDark ? (
+          <Sun className="h-6 w-6 text-yellow-500 group-hover:text-yellow-400 transition-colors duration-200" />
+        ) : (
+          <Moon className="h-6 w-6 text-gray-600 group-hover:text-blue-600 transition-colors duration-200" />
+        )}
+      </button>
+
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b border-gray-200">
+      <nav className="fixed top-0 left-0 right-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-700 z-40 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <BeakerIcon className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">IndoWater</span>
-            </div>
-            <div className="hidden md:block">
-              <div className="ml-10 flex items-baseline space-x-4">
-                <a href="#features" className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Features
-                </a>
-                <a href="#pricing" className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Pricing
-                </a>
-                <a href="#testimonials" className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Testimonials
-                </a>
-                <a href="#contact" className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">
-                  Contact
-                </a>
+            <div className="flex items-center space-x-3">
+              <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-2 rounded-lg">
+                <Droplets className="h-8 w-8 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-gray-900 dark:text-white">IndoWater Solution</h1>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Mengalirkan Solusi Bukan Sekedar Air</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-8">
+              <a href="#features" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Fitur</a>
+              <a href="#testimonials" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Testimoni</a>
+              <a href="#contact" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">Kontak</a>
               <Link
                 to="/login"
-                className="text-gray-500 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium"
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 transform hover:scale-105"
               >
-                Sign In
-              </Link>
-              <Link
-                to="/register"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-              >
-                Get Started
+                Masuk
               </Link>
             </div>
           </div>
@@ -162,281 +192,263 @@ const LandingPage: React.FC = () => {
       </nav>
 
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-blue-600 to-blue-800 overflow-hidden">
-        <div className="max-w-7xl mx-auto">
-          <div className="relative z-10 pb-8 bg-gradient-to-r from-blue-600 to-blue-800 sm:pb-16 md:pb-20 lg:max-w-2xl lg:w-full lg:pb-28 xl:pb-32">
-            <main className="mt-10 mx-auto max-w-7xl px-4 sm:mt-12 sm:px-6 md:mt-16 lg:mt-20 lg:px-8 xl:mt-28">
-              <div className="sm:text-center lg:text-left">
-                <h1 className="text-4xl tracking-tight font-extrabold text-white sm:text-5xl md:text-6xl">
-                  <span className="block xl:inline">Smart Water</span>{' '}
-                  <span className="block text-blue-200 xl:inline">Management</span>
+      <section className="pt-24 pb-20 bg-gradient-to-br from-blue-50 via-white to-cyan-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="space-y-8">
+              <div className="space-y-4">
+                <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 dark:text-white leading-tight">
+                  <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+                    IndoWater
+                  </span>
+                  <br />
+                  Solution
                 </h1>
-                <p className="mt-3 text-base text-blue-100 sm:mt-5 sm:text-lg sm:max-w-xl sm:mx-auto md:mt-5 md:text-xl lg:mx-0">
-                  Revolutionary IoT-based prepaid water meter management system for modern properties. 
-                  Monitor, manage, and optimize water consumption with real-time analytics and automated billing.
+                <p className="text-2xl text-blue-600 dark:text-blue-400 font-medium">
+                  Mengalirkan Solusi Bukan Sekedar Air
                 </p>
-                <div className="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
-                  <div className="rounded-md shadow">
-                    <Link
-                      to="/register"
-                      className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10"
-                    >
-                      Start Free Trial
-                      <ArrowRightIcon className="ml-2 h-5 w-5" />
-                    </Link>
+                <p className="text-xl text-gray-600 dark:text-gray-400 leading-relaxed">
+                  Sistem manajemen meteran air prabayar yang revolusioner untuk Pengelolaan Air secara Efisien di berbagai Aspek.
+                </p>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+                <Link
+                  to="/login"
+                  className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-cyan-700 transition-all duration-200 transform hover:scale-105 shadow-lg"
+                >
+                  Mulai Sekarang
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+                <button className="inline-flex items-center justify-center px-8 py-4 border-2 border-blue-600 text-blue-600 dark:text-blue-400 font-semibold rounded-xl hover:bg-blue-600 hover:text-white dark:hover:bg-blue-600 dark:hover:text-white transition-all duration-200">
+                  <Play className="mr-2 h-5 w-5" />
+                  Lihat Demo
+                </button>
+              </div>
+
+              <div className="flex items-center space-x-8 pt-4">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <span className="text-gray-600 dark:text-gray-400">Setup dalam 24 jam</span>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                  <span className="text-gray-600 dark:text-gray-400">Support 24/7</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div className="relative z-10 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-8 transform rotate-3 hover:rotate-0 transition-transform duration-300">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Dashboard Real-time</h3>
+                    <div className="flex space-x-2">
+                      <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                      <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    </div>
                   </div>
-                  <div className="mt-3 sm:mt-0 sm:ml-3">
-                    <button className="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-500 hover:bg-blue-400 md:py-4 md:text-lg md:px-10">
-                      <PlayIcon className="mr-2 h-5 w-5" />
-                      Watch Demo
-                    </button>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Droplets className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Debit Air</span>
+                      </div>
+                      <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">2.5 L/min</p>
+                    </div>
+                    
+                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Battery className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Baterai</span>
+                      </div>
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">98%</p>
+                    </div>
+                    
+                    <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Wifi className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Koneksi</span>
+                      </div>
+                      <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">Online</p>
+                    </div>
+                    
+                    <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Settings className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Status</span>
+                      </div>
+                      <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">Aktif</p>
+                    </div>
                   </div>
                 </div>
               </div>
-            </main>
-          </div>
-        </div>
-        <div className="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
-          <img
-            className="h-56 w-full object-cover sm:h-72 md:h-96 lg:w-full lg:h-full"
-            src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2069&q=80"
-            alt="Smart water meter technology"
-          />
-        </div>
-      </div>
-
-      {/* Features Section */}
-      <div id="features" className="py-12 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="lg:text-center">
-            <h2 className="text-base text-blue-600 font-semibold tracking-wide uppercase">Features</h2>
-            <p className="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-              Everything you need to manage water efficiently
-            </p>
-            <p className="mt-4 max-w-2xl text-xl text-gray-500 lg:mx-auto">
-              Our comprehensive platform provides all the tools you need to monitor, manage, and optimize water consumption across your properties.
-            </p>
-          </div>
-
-          <div className="mt-10">
-            <div className="space-y-10 md:space-y-0 md:grid md:grid-cols-2 md:gap-x-8 md:gap-y-10 lg:grid-cols-3">
-              {features.map((feature, index) => (
-                <div key={index} className="relative">
-                  <div className="absolute flex items-center justify-center h-12 w-12 rounded-md bg-blue-500 text-white">
-                    <feature.icon className="h-6 w-6" aria-hidden="true" />
-                  </div>
-                  <p className="ml-16 text-lg leading-6 font-medium text-gray-900">{feature.title}</p>
-                  <p className="mt-2 ml-16 text-base text-gray-500">{feature.description}</p>
-                </div>
-              ))}
+              
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-2xl transform rotate-6 opacity-20"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl transform -rotate-3 opacity-10"></div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* Stats Section */}
-      <div className="bg-blue-600">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:py-16 sm:px-6 lg:px-8 lg:py-20">
-          <div className="max-w-4xl mx-auto text-center">
-            <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
-              Trusted by property managers across Indonesia
-            </h2>
-            <p className="mt-3 text-xl text-blue-200 sm:mt-4">
-              Join thousands of satisfied customers who have transformed their water management
-            </p>
-          </div>
-          <dl className="mt-10 text-center sm:max-w-3xl sm:mx-auto sm:grid sm:grid-cols-3 sm:gap-8">
-            <div className="flex flex-col">
-              <dt className="order-2 mt-2 text-lg leading-6 font-medium text-blue-200">Properties Managed</dt>
-              <dd className="order-1 text-5xl font-extrabold text-white">10,000+</dd>
-            </div>
-            <div className="flex flex-col mt-10 sm:mt-0">
-              <dt className="order-2 mt-2 text-lg leading-6 font-medium text-blue-200">Smart Meters Deployed</dt>
-              <dd className="order-1 text-5xl font-extrabold text-white">500K+</dd>
-            </div>
-            <div className="flex flex-col mt-10 sm:mt-0">
-              <dt className="order-2 mt-2 text-lg leading-6 font-medium text-blue-200">Water Saved (Liters)</dt>
-              <dd className="order-1 text-5xl font-extrabold text-white">50M+</dd>
-            </div>
-          </dl>
-        </div>
-      </div>
-
-      {/* Pricing Section */}
-      <div id="pricing" className="bg-gray-50 py-12">
+      <section className="py-16 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="sm:text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-              Simple, transparent pricing
-            </h2>
-            <p className="mt-4 text-lg text-gray-600">
-              Choose the plan that fits your property management needs
-            </p>
-          </div>
-          <div className="mt-12 space-y-4 sm:mt-16 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-6 lg:max-w-4xl lg:mx-auto xl:max-w-none xl:mx-0 xl:grid-cols-3">
-            {pricingPlans.map((plan, index) => (
-              <div
-                key={index}
-                className={`border border-gray-200 rounded-lg shadow-sm divide-y divide-gray-200 ${
-                  plan.popular ? 'border-blue-500 relative' : ''
-                }`}
-              >
-                {plan.popular && (
-                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                    <span className="inline-flex px-4 py-1 rounded-full text-sm font-semibold tracking-wide uppercase bg-blue-500 text-white">
-                      Most Popular
-                    </span>
-                  </div>
-                )}
-                <div className="p-6">
-                  <h2 className="text-lg leading-6 font-medium text-gray-900">{plan.name}</h2>
-                  <p className="mt-4 text-sm text-gray-500">{plan.description}</p>
-                  <p className="mt-8">
-                    <span className="text-4xl font-extrabold text-gray-900">{plan.price}</span>
-                    <span className="text-base font-medium text-gray-500">{plan.period}</span>
-                  </p>
-                  <Link
-                    to="/register"
-                    className={`mt-8 block w-full border rounded-md py-2 text-sm font-semibold text-center ${
-                      plan.popular
-                        ? 'bg-blue-500 border-blue-500 text-white hover:bg-blue-600'
-                        : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    Get started
-                  </Link>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-full mb-4">
+                  <stat.icon className="h-8 w-8 text-white" />
                 </div>
-                <div className="pt-6 pb-8 px-6">
-                  <h3 className="text-xs font-medium text-gray-900 tracking-wide uppercase">What's included</h3>
-                  <ul className="mt-6 space-y-4">
-                    {plan.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex space-x-3">
-                        <CheckIcon className="flex-shrink-0 h-5 w-5 text-green-500" aria-hidden="true" />
-                        <span className="text-sm text-gray-500">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                <div className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{stat.number}</div>
+                <div className="text-gray-600 dark:text-gray-400">{stat.label}</div>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Features Section */}
+      <section id="features" className="py-20 bg-white dark:bg-gray-900 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              Fitur Unggulan
+            </h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+              Solusi lengkap untuk manajemen meteran air prabayar dengan teknologi IoT terdepan
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <div key={index} className="group relative bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-200 dark:border-gray-700">
+                <div className={`inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r ${feature.color} rounded-xl mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                  <feature.icon className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">{feature.title}</h3>
+                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Testimonials Section */}
-      <div id="testimonials" className="bg-white py-16">
+      <section id="testimonials" className="py-20 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-              What our customers say
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+              Apa Kata Mereka
             </h2>
-            <p className="mt-4 text-lg text-gray-600">
-              Don't just take our word for it - hear from property managers who use IndoWater daily
+            <p className="text-xl text-gray-600 dark:text-gray-400">
+              Testimoni dari klien yang telah mempercayai IndoWater Solution
             </p>
           </div>
-          <div className="mt-12 grid gap-8 lg:grid-cols-3">
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-gray-50 rounded-lg p-6">
-                <div className="flex items-center">
+              <div key={index} className="bg-white dark:bg-gray-900 rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center space-x-1 mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} className="h-5 w-5 text-yellow-400 fill-current" />
+                  ))}
+                </div>
+                <p className="text-gray-700 dark:text-gray-300 mb-6 italic">"{testimonial.content}"</p>
+                <div className="flex items-center space-x-4">
                   <img
-                    className="h-12 w-12 rounded-full"
                     src={testimonial.avatar}
                     alt={testimonial.name}
+                    className="w-12 h-12 rounded-full object-cover"
                   />
-                  <div className="ml-4">
-                    <div className="text-sm font-medium text-gray-900">{testimonial.name}</div>
-                    <div className="text-sm text-gray-500">{testimonial.role}, {testimonial.company}</div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900 dark:text-white">{testimonial.name}</h4>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm">{testimonial.role}</p>
                   </div>
                 </div>
-                <p className="mt-4 text-gray-600">{testimonial.content}</p>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
       {/* CTA Section */}
-      <div className="bg-blue-600">
-        <div className="max-w-2xl mx-auto text-center py-16 px-4 sm:py-20 sm:px-6 lg:px-8">
-          <h2 className="text-3xl font-extrabold text-white sm:text-4xl">
-            <span className="block">Ready to get started?</span>
-            <span className="block">Start your free trial today.</span>
+      <section className="py-20 bg-gradient-to-r from-blue-600 to-cyan-600">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-4xl font-bold text-white mb-4">
+            Siap Mengalirkan Solusi untuk Perusahaan Anda?
           </h2>
-          <p className="mt-4 text-lg leading-6 text-blue-200">
-            Join thousands of property managers who trust IndoWater for their water management needs.
+          <p className="text-xl text-blue-100 mb-8 max-w-3xl mx-auto">
+            Bergabunglah dengan ratusan perusahaan air yang telah mempercayai IndoWater Solution untuk mengelola sistem distribusi air mereka.
           </p>
-          <Link
-            to="/register"
-            className="mt-8 w-full inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-blue-600 bg-white hover:bg-blue-50 sm:w-auto"
-          >
-            Start Free Trial
-            <ArrowRightIcon className="ml-2 h-5 w-5" />
-          </Link>
+          <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+            <Link
+              to="/login"
+              className="inline-flex items-center justify-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-xl hover:bg-gray-100 transition-all duration-200 transform hover:scale-105"
+            >
+              Mulai Gratis Sekarang
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+            <button className="inline-flex items-center justify-center px-8 py-4 border-2 border-white text-white font-semibold rounded-xl hover:bg-white hover:text-blue-600 transition-all duration-200">
+              Hubungi Sales
+            </button>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Footer */}
-      <footer id="contact" className="bg-gray-800">
-        <div className="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:py-16 lg:px-8">
-          <div className="xl:grid xl:grid-cols-3 xl:gap-8">
-            <div className="space-y-8 xl:col-span-1">
-              <div className="flex items-center">
-                <BeakerIcon className="h-8 w-8 text-blue-400" />
-                <span className="ml-2 text-xl font-bold text-white">IndoWater</span>
+      <footer id="contact" className="bg-gray-900 dark:bg-black text-white py-16 transition-colors duration-300">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div className="col-span-1 md:col-span-2">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="bg-gradient-to-r from-blue-600 to-cyan-600 p-2 rounded-lg">
+                  <Droplets className="h-8 w-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-bold">IndoWater Solution</h3>
+                  <p className="text-blue-400">Mengalirkan Solusi Bukan Sekedar Air</p>
+                </div>
               </div>
-              <p className="text-gray-300 text-base">
-                Smart IoT-based prepaid water meter management system for modern properties across Indonesia.
+              <p className="text-gray-400 mb-6 max-w-md">
+                Solusi terdepan untuk manajemen meteran air prabayar IoT di Indonesia. Menghadirkan teknologi canggih untuk masa depan distribusi air yang lebih efisien.
               </p>
-              <div className="flex space-x-6">
-                {/* Social media icons would go here */}
+              <div className="flex items-center space-x-4">
+                <Award className="h-6 w-6 text-yellow-400" />
+                <span className="text-gray-400">ISO 27001 Certified</span>
               </div>
             </div>
-            <div className="mt-12 grid grid-cols-2 gap-8 xl:mt-0 xl:col-span-2">
-              <div className="md:grid md:grid-cols-2 md:gap-8">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Solutions</h3>
-                  <ul className="mt-4 space-y-4">
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">Property Management</a></li>
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">Smart Metering</a></li>
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">Billing Automation</a></li>
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">Analytics</a></li>
-                  </ul>
-                </div>
-                <div className="mt-12 md:mt-0">
-                  <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Support</h3>
-                  <ul className="mt-4 space-y-4">
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">Documentation</a></li>
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">API Reference</a></li>
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">Help Center</a></li>
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">Contact Us</a></li>
-                  </ul>
-                </div>
-              </div>
-              <div className="md:grid md:grid-cols-2 md:gap-8">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Company</h3>
-                  <ul className="mt-4 space-y-4">
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">About</a></li>
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">Blog</a></li>
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">Careers</a></li>
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">Press</a></li>
-                  </ul>
-                </div>
-                <div className="mt-12 md:mt-0">
-                  <h3 className="text-sm font-semibold text-gray-400 tracking-wider uppercase">Legal</h3>
-                  <ul className="mt-4 space-y-4">
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">Privacy</a></li>
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">Terms</a></li>
-                    <li><a href="#" className="text-base text-gray-300 hover:text-white">Security</a></li>
-                  </ul>
-                </div>
-              </div>
+
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Produk</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white transition-colors">Meteran IoT</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Dashboard Admin</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Mobile App</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">API Integration</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Kontak</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>Email: info@indowatersolution.com</li>
+                <li>Phone: +62 21 1234 5678</li>
+                <li>WhatsApp: +62 812 3456 7890</li>
+                <li>Jakarta, Indonesia</li>
+              </ul>
             </div>
           </div>
-          <div className="mt-12 border-t border-gray-700 pt-8">
-            <p className="text-base text-gray-400 xl:text-center">
-              &copy; 2025 IndoWater. All rights reserved.
-            </p>
+
+          <div className="border-t border-gray-800 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
+            <p className="text-gray-400">© 2025 IndoWater Solution. All rights reserved.</p>
+            <div className="flex space-x-6 mt-4 md:mt-0">
+              <a href="#" className="text-gray-400 hover:text-white transition-colors">Privacy Policy</a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors">Terms of Service</a>
+              <a href="#" className="text-gray-400 hover:text-white transition-colors">Support</a>
+            </div>
           </div>
         </div>
       </footer>

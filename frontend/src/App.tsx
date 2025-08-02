@@ -56,6 +56,9 @@ import SystemSettings from './pages/dashboard/superadmin/SystemSettings';
 // Error Pages
 import NotFound from './pages/errors/NotFound';
 
+// Landing Page
+import LandingPage from './pages/LandingPage';
+
 // Legacy Components (to be replaced with role-specific pages)
 import MeterList from './components/Meters/MeterList';
 import MeterDetails from './components/Meters/MeterDetails';
@@ -138,8 +141,8 @@ const App: React.FC = () => {
                 </Route>
               </Route>
 
-              {/* Redirect root to dashboard */}
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              {/* Landing Page */}
+              <Route path="/" element={<LandingPage />} />
               
               {/* 404 Page */}
               <Route path="*" element={<NotFound />} />
