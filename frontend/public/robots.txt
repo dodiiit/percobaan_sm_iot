@@ -1,0 +1,26 @@
+# Allow all web crawlers
+User-agent: *
+Allow: /
+
+# Disallow sensitive routes
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /profile
+Disallow: /settings
+Disallow: /dashboard
+Disallow: /meters
+Disallow: /consumption
+Disallow: /payments
+Disallow: /topup
+Disallow: /customers
+Disallow: /properties
+Disallow: /analytics
+Disallow: /reports
+Disallow: /clients
+Disallow: /tariffs
+Disallow: /system
+
+# Sitemap location
+Sitemap: https://example.com/sitemap.xml

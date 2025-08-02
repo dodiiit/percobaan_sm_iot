@@ -2,21 +2,158 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    
+    <!-- Favicon and App Icons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0288d1" />
-    <meta
-      name="description"
-      content="IndoWater - Prepaid Water Meter Management System"
-    />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
-    />
-    <title>IndoWater</title>
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="mask-icon" href="/favicon.svg" color="#0ea5e9" />
+    
+    <!-- Primary Meta Tags -->
+    <title>IndoWater - Smart Water Metering</title>
+    <meta name="title" content="IndoWater - Smart Water Metering" />
+    <meta name="description" content="Manage your water consumption efficiently with IndoWater's smart metering system. Monitor usage, make payments, and save water." />
+    <meta name="theme-color" content="#0ea5e9" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://indowater.example.com/" />
+    <meta property="og:title" content="IndoWater - Smart Water Metering" />
+    <meta property="og:description" content="Manage your water consumption efficiently with IndoWater's smart metering system. Monitor usage, make payments, and save water." />
+    <meta property="og:image" content="/og-image.jpg" />
+    
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://indowater.example.com/" />
+    <meta property="twitter:title" content="IndoWater - Smart Water Metering" />
+    <meta property="twitter:description" content="Manage your water consumption efficiently with IndoWater's smart metering system. Monitor usage, make payments, and save water." />
+    <meta property="twitter:image" content="/og-image.jpg" />
+    
+    <!-- Preload Critical Resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@400;500;600;700&display=swap" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="IndoWater" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="IndoWater" />
+    
+    <!-- Performance Optimizations -->
+    <link rel="dns-prefetch" href="https://api.indowater.example.com" />
+    <meta name="format-detection" content="telephone=no" />
+    
+    <!-- Prevent Flash of Unstyled Content -->
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        background-color: #f9fafb;
+        color: #111827;
+      }
+      .dark body {
+        background-color: #111827;
+        color: #f9fafb;
+      }
+      #root {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+      }
+      .initial-loader {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        width: 100vw;
+        background-color: #f9fafb;
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 9999;
+      }
+      .dark .initial-loader {
+        background-color: #111827;
+      }
+      .initial-loader__spinner {
+        width: 50px;
+        height: 50px;
+        border: 3px solid rgba(14, 165, 233, 0.2);
+        border-top-color: #0ea5e9;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      .initial-loader__text {
+        margin-top: 16px;
+        font-size: 16px;
+        color: #111827;
+      }
+      .dark .initial-loader__text {
+        color: #f9fafb;
+      }
+    </style>
+    
+    <!-- Detect dark mode preference -->
+    <script>
+      (function() {
+        // Check for saved theme preference or use OS preference
+        const savedTheme = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Initial loading state -->
+      <div class="initial-loader">
+        <div class="initial-loader__spinner"></div>
+        <p class="initial-loader__text">Loading IndoWater...</p>
+      </div>
+    </div>
     <script type="module" src="/src/index.tsx"></script>
+    
+    <!-- Preload main script -->
+    <link rel="modulepreload" href="/src/index.tsx" />
+    
+    <!-- Inline critical CSS -->
+    <script>
+      // Remove initial loader once app is loaded
+      window.addEventListener('load', function() {
+        const initialLoader = document.querySelector('.initial-loader');
+        if (initialLoader) {
+          initialLoader.style.opacity = '0';
+          initialLoader.style.transition = 'opacity 0.3s ease-out';
+          setTimeout(function() {
+            initialLoader.style.display = 'none';
+          }, 300);
+        }
+      });
+    </script>
+    
+    <!-- No JS fallback -->
+    <noscript>
+      <div style="padding: 2rem; text-align: center;">
+        <h1>JavaScript Required</h1>
+        <p>IndoWater requires JavaScript to function properly. Please enable JavaScript in your browser settings and reload the page.</p>
+      </div>
+    </noscript>
   </body>
 </html>
