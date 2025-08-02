@@ -11,6 +11,7 @@ use IndoWater\Api\Controllers\CustomerController;
 use IndoWater\Api\Controllers\PropertyController;
 use IndoWater\Api\Controllers\MeterController;
 use IndoWater\Api\Controllers\PaymentController;
+use IndoWater\Api\Controllers\WebhookController;
 use IndoWater\Api\Controllers\CreditController;
 use IndoWater\Api\Controllers\ReportController;
 use IndoWater\Api\Controllers\NotificationController;
@@ -18,6 +19,7 @@ use IndoWater\Api\Controllers\DashboardController;
 use IndoWater\Api\Controllers\SettingController;
 use IndoWater\Api\Controllers\HealthController;
 use IndoWater\Api\Controllers\CacheController;
+use IndoWater\Api\Middleware\WebhookMiddleware;
 
 return function (App $app) {
     // Health Check
@@ -182,10 +184,17 @@ return function (App $app) {
         });
     });
 
-    // Webhook Routes
+    // Webhook Routes (No authentication required)
     $app->group('/webhooks', function (RouteCollectorProxy $group) {
+        // Webhook status endpoint
+        $group->get('/status', [WebhookController::class, 'status']);
+        
+        // Payment gateway webhooks
+        $group->post('/payment/{method}', [WebhookController::class, 'handlePayment']);
+        
+        // Legacy webhook route for backward compatibility
         $group->post('/{method}', [PaymentController::class, 'webhook']);
-    });
+    })->add(WebhookMiddleware::class);
 
     // Fallback for undefined routes
     $app->map(['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], '/{routes:.+}', function ($request, $response) {

@@ -224,5 +224,29 @@ return function (ContainerBuilder $containerBuilder) {
                 $serviceFeeService
             );
         },
+
+        // Webhook Retry Service
+        \IndoWater\Api\Services\WebhookRetryService::class => function (ContainerInterface $c) {
+            $logger = $c->get(LoggerInterface::class);
+            $cache = $c->get(CacheService::class);
+            
+            return new \IndoWater\Api\Services\WebhookRetryService($logger, $cache);
+        },
+
+        // Webhook Controller
+        \IndoWater\Api\Controllers\WebhookController::class => function (ContainerInterface $c) {
+            $paymentService = $c->get(PaymentService::class);
+            $retryService = $c->get(\IndoWater\Api\Services\WebhookRetryService::class);
+            $logger = $c->get(LoggerInterface::class);
+            
+            return new \IndoWater\Api\Controllers\WebhookController($paymentService, $retryService, $logger);
+        },
+
+        // Webhook Middleware
+        \IndoWater\Api\Middleware\WebhookMiddleware::class => function (ContainerInterface $c) {
+            $logger = $c->get(LoggerInterface::class);
+            
+            return new \IndoWater\Api\Middleware\WebhookMiddleware($logger);
+        },
     ]);
 };

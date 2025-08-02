@@ -239,91 +239,185 @@ class PaymentService
     private function handleMidtransWebhook(array $data): array
     {
         try {
+            // Validate required fields
+            $requiredFields = ['order_id', 'transaction_status', 'status_code', 'gross_amount', 'signature_key'];
+            foreach ($requiredFields as $field) {
+                if (!isset($data[$field]) || empty($data[$field])) {
+                    throw new \Exception("Missing required field: {$field}");
+                }
+            }
+
             $orderId = $data['order_id'];
             $transactionStatus = $data['transaction_status'];
             $fraudStatus = $data['fraud_status'] ?? '';
 
+            // Find existing payment
+            $payment = $this->paymentModel->find($orderId);
+            if (!$payment) {
+                throw new \Exception("Payment not found: {$orderId}");
+            }
+
             // Verify signature
             $signatureKey = hash('sha512', $orderId . $data['status_code'] . $data['gross_amount'] . Config::$serverKey);
             
-            if ($signatureKey !== $data['signature_key']) {
-                throw new \Exception('Invalid signature');
+            if (!hash_equals($signatureKey, $data['signature_key'])) {
+                throw new \Exception('Invalid Midtrans signature');
+            }
+
+            // Verify amount matches
+            if ((float) $data['gross_amount'] !== (float) $payment['amount']) {
+                throw new \Exception('Amount mismatch in webhook');
             }
 
             // Determine payment status
-            $status = 'pending';
-            if ($transactionStatus === 'capture') {
-                $status = ($fraudStatus === 'challenge') ? 'pending' : 'success';
-            } elseif ($transactionStatus === 'settlement') {
-                $status = 'success';
-            } elseif (in_array($transactionStatus, ['cancel', 'deny', 'expire'])) {
-                $status = 'failed';
+            $status = $this->mapMidtransStatus($transactionStatus, $fraudStatus);
+
+            // Only update if status has changed
+            if ($status !== $payment['status']) {
+                $updateData = [
+                    'status' => $status,
+                    'gateway_response' => json_encode($data),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+
+                if ($status === 'success') {
+                    $updateData['paid_at'] = date('Y-m-d H:i:s');
+                }
+
+                $payment = $this->paymentModel->update($orderId, $updateData);
+
+                // Process successful payment
+                if ($status === 'success') {
+                    $this->processSuccessfulPayment($payment);
+                }
             }
 
-            // Update payment
-            $payment = $this->paymentModel->update($orderId, [
+            return [
                 'status' => $status,
-                'paid_at' => $status === 'success' ? date('Y-m-d H:i:s') : null,
-                'gateway_response' => json_encode($data)
-            ]);
-
-            // Process successful payment
-            if ($status === 'success') {
-                $this->processSuccessfulPayment($payment);
-            }
-
-            return ['status' => $status, 'payment' => $payment];
+                'payment_id' => $orderId,
+                'transaction_status' => $transactionStatus,
+                'processed' => true
+            ];
 
         } catch (\Exception $e) {
             throw new \Exception('Failed to process Midtrans webhook: ' . $e->getMessage());
         }
     }
 
+    /**
+     * Map Midtrans transaction status to internal status
+     */
+    private function mapMidtransStatus(string $transactionStatus, string $fraudStatus = ''): string
+    {
+        switch ($transactionStatus) {
+            case 'capture':
+                return ($fraudStatus === 'challenge') ? 'pending' : 'success';
+            case 'settlement':
+                return 'success';
+            case 'pending':
+                return 'pending';
+            case 'cancel':
+            case 'deny':
+            case 'expire':
+            case 'failure':
+                return 'failed';
+            default:
+                return 'pending';
+        }
+    }
+
     private function handleDokuWebhook(array $data): array
     {
         try {
+            // Validate webhook structure
+            if (!isset($data['order']) || !isset($data['transaction'])) {
+                throw new \Exception('Invalid DOKU webhook structure');
+            }
+
             $invoiceNumber = $data['order']['invoice_number'] ?? '';
             $transactionStatus = $data['transaction']['status'] ?? '';
             $amount = $data['order']['amount'] ?? 0;
+            $virtualAccountNo = $data['virtual_account_info']['virtual_account_number'] ?? '';
+
+            // Validate required fields
+            if (empty($invoiceNumber)) {
+                throw new \Exception('Missing invoice number in DOKU webhook');
+            }
+
+            // Find existing payment
+            $payment = $this->paymentModel->find($invoiceNumber);
+            if (!$payment) {
+                // Try to find by external_id (virtual account number)
+                $payment = $this->paymentModel->findByExternalId($virtualAccountNo);
+                if (!$payment) {
+                    throw new \Exception("Payment not found: {$invoiceNumber}");
+                }
+            }
 
             // Verify signature
             $signature = $this->generateDokuSignature($data);
-            if ($signature !== ($data['security']['checksum'] ?? '')) {
+            if (!hash_equals($signature, $data['security']['checksum'] ?? '')) {
                 throw new \Exception('Invalid DOKU signature');
             }
 
+            // Verify amount matches
+            if ((float) $amount !== (float) $payment['amount']) {
+                throw new \Exception('Amount mismatch in DOKU webhook');
+            }
+
             // Determine payment status
-            $status = 'pending';
-            switch ($transactionStatus) {
-                case 'SUCCESS':
-                    $status = 'success';
-                    break;
-                case 'FAILED':
-                case 'EXPIRED':
-                    $status = 'failed';
-                    break;
-                case 'PENDING':
-                default:
-                    $status = 'pending';
-                    break;
+            $status = $this->mapDokuStatus($transactionStatus);
+
+            // Only update if status has changed
+            if ($status !== $payment['status']) {
+                $updateData = [
+                    'status' => $status,
+                    'gateway_response' => json_encode($data),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+
+                if ($status === 'success') {
+                    $updateData['paid_at'] = date('Y-m-d H:i:s');
+                }
+
+                $payment = $this->paymentModel->update($payment['id'], $updateData);
+
+                // Process successful payment
+                if ($status === 'success') {
+                    $this->processSuccessfulPayment($payment);
+                }
             }
 
-            // Update payment
-            $payment = $this->paymentModel->update($invoiceNumber, [
+            return [
                 'status' => $status,
-                'paid_at' => $status === 'success' ? date('Y-m-d H:i:s') : null,
-                'gateway_response' => json_encode($data)
-            ]);
-
-            // Process successful payment
-            if ($status === 'success') {
-                $this->processSuccessfulPayment($payment);
-            }
-
-            return ['status' => $status, 'payment' => $payment];
+                'payment_id' => $payment['id'],
+                'invoice_number' => $invoiceNumber,
+                'transaction_status' => $transactionStatus,
+                'processed' => true
+            ];
 
         } catch (\Exception $e) {
             throw new \Exception('Failed to process DOKU webhook: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Map DOKU transaction status to internal status
+     */
+    private function mapDokuStatus(string $transactionStatus): string
+    {
+        switch (strtoupper($transactionStatus)) {
+            case 'SUCCESS':
+            case 'SETTLEMENT':
+                return 'success';
+            case 'FAILED':
+            case 'EXPIRED':
+            case 'CANCELLED':
+                return 'failed';
+            case 'PENDING':
+            case 'PROCESSING':
+            default:
+                return 'pending';
         }
     }
 
