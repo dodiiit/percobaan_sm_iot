@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
+use Psr\Http\Message\ResponseInterface as Response;
+use Psr\Http\Message\ServerRequestInterface as Request;
 use IndoWater\Api\Controllers\AuthController;
 use IndoWater\Api\Controllers\UserController;
 use IndoWater\Api\Controllers\ClientController;
@@ -224,6 +226,24 @@ return function (App $app) {
             $group->post('/invalidate', [CacheController::class, 'invalidate']);
             $group->get('/key/{key}', [CacheController::class, 'keyInfo']);
         });
+
+        // Device API Routes (Legacy endpoints for Arduino/NodeMCU firmware)
+        $group->group('/device', function (RouteCollectorProxy $group) {
+            // Device registration (provisioning)
+            $group->post('/register_device.php', [DeviceController::class, 'registerDevice']);
+            
+            // Get device credit/balance
+            $group->get('/credit.php', [DeviceController::class, 'getCredit']);
+            
+            // Submit meter reading
+            $group->post('/MeterReading.php', [DeviceController::class, 'submitReading']);
+            
+            // Get pending commands
+            $group->get('/get_commands.php', [DeviceController::class, 'getCommands']);
+            
+            // Acknowledge command execution
+            $group->post('/ack_command.php', [DeviceController::class, 'acknowledgeCommand']);
+        });
     });
 
     // Webhook Routes (No authentication required)
@@ -237,24 +257,6 @@ return function (App $app) {
         // Legacy webhook route for backward compatibility
         $group->post('/{method}', [PaymentController::class, 'webhook']);
     })->add(WebhookMiddleware::class);
-
-    // Device API Routes (Legacy endpoints for Arduino/NodeMCU firmware)
-    $app->group('/device', function (RouteCollectorProxy $group) {
-        // Device registration (provisioning)
-        $group->post('/register_device.php', [DeviceController::class, 'registerDevice']);
-        
-        // Get device credit/balance
-        $group->get('/credit.php', [DeviceController::class, 'getCredit']);
-        
-        // Submit meter reading
-        $group->post('/MeterReading.php', [DeviceController::class, 'submitReading']);
-        
-        // Get pending commands
-        $group->get('/get_commands.php', [DeviceController::class, 'getCommands']);
-        
-        // Acknowledge command execution
-        $group->post('/ack_command.php', [DeviceController::class, 'acknowledgeCommand']);
-    });
 
     // OTA Update endpoint
     $app->get('/ota/firmware.bin', function (Request $request, Response $response) {
