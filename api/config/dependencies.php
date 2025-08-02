@@ -20,6 +20,11 @@ use Doctrine\ORM\EntityManager;
 use Doctrine\ORM\ORMSetup;
 use Predis\Client as RedisClient;
 use IndoWater\Api\Services\CacheService;
+use IndoWater\Api\Services\PaymentService;
+use IndoWater\Api\Services\EmailService;
+use IndoWater\Api\Services\RealtimeService;
+use IndoWater\Api\Services\ServiceFeeService;
+use IndoWater\Api\Models\Payment;
 
 return function (ContainerBuilder $containerBuilder) {
     $containerBuilder->addDefinitions([
@@ -178,6 +183,46 @@ return function (ContainerBuilder $containerBuilder) {
             $defaultTtl = $settings['cache']['default_ttl'] ?? 3600;
             
             return new CacheService($redis, $logger, $prefix, $defaultTtl);
+        },
+
+        // Payment Service
+        PaymentService::class => function (ContainerInterface $c) {
+            $settings = $c->get('settings');
+            $paymentModel = $c->get(Payment::class);
+            
+            // Get optional services if they exist
+            $meterModel = null;
+            $emailService = null;
+            $realtimeService = null;
+            $serviceFeeService = null;
+            
+            try {
+                $emailService = $c->get(EmailService::class);
+            } catch (\Exception $e) {
+                // EmailService not available
+            }
+            
+            try {
+                $realtimeService = $c->get(RealtimeService::class);
+            } catch (\Exception $e) {
+                // RealtimeService not available
+            }
+            
+            try {
+                $serviceFeeService = $c->get(ServiceFeeService::class);
+            } catch (\Exception $e) {
+                // ServiceFeeService not available
+            }
+            
+            return new PaymentService(
+                $paymentModel,
+                $settings['midtrans'],
+                $settings['doku'],
+                $meterModel,
+                $emailService,
+                $realtimeService,
+                $serviceFeeService
+            );
         },
     ]);
 };

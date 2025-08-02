@@ -8,6 +8,11 @@ use IndoWater\Api\Models\Payment;
 use Midtrans\Config;
 use Midtrans\Snap;
 use Midtrans\Transaction;
+use Doku\Snap\Snap as DokuSnap;
+use Doku\Snap\Models\VA\Request\CreateVaRequestDto;
+use Doku\Snap\Models\TotalAmount\TotalAmount;
+use Doku\Snap\Models\VA\AdditionalInfo\CreateVaRequestAdditionalInfo;
+use Doku\Snap\Models\VA\VirtualAccountConfig\CreateVaVirtualAccountConfig;
 
 class PaymentService
 {
@@ -18,6 +23,7 @@ class PaymentService
     private $emailService;
     private $realtimeService;
     private $serviceFeeService;
+    private DokuSnap $dokuSnap;
 
     public function __construct(
         Payment $paymentModel, 
@@ -41,6 +47,17 @@ class PaymentService
         Config::$isProduction = $midtransConfig['environment'] === 'production';
         Config::$isSanitized = true;
         Config::$is3ds = true;
+
+        // Configure DOKU
+        $this->dokuSnap = new DokuSnap(
+            $dokuConfig['private_key'],
+            $dokuConfig['public_key'],
+            $dokuConfig['doku_public_key'],
+            $dokuConfig['client_id'],
+            $dokuConfig['issuer'] ?? 'IndoWater',
+            $dokuConfig['environment'] === 'production',
+            $dokuConfig['secret_key']
+        );
     }
 
     public function createPayment(array $paymentData): array
@@ -164,22 +181,59 @@ class PaymentService
 
     private function createDokuPayment(array $payment, array $paymentData): string
     {
-        // DOKU payment implementation
-        $params = [
-            'amount' => $payment['amount'],
-            'invoice_number' => $payment['id'],
-            'currency' => 'IDR',
-            'session_id' => session_id(),
-            'customer' => [
-                'name' => $paymentData['customer_name'] ?? 'Customer',
-                'email' => $paymentData['customer_email'] ?? '',
-                'phone' => $paymentData['customer_phone'] ?? ''
-            ]
-        ];
+        try {
+            // Generate virtual account number
+            $partnerServiceId = $this->dokuConfig['partner_service_id'] ?? '8129014';
+            $customerNo = $paymentData['customer_id'] ?? 'customer_' . $payment['id'];
+            $virtualAccountNo = $partnerServiceId . substr($customerNo, -8);
 
-        // This would integrate with DOKU API
-        // For now, return a placeholder URL
-        return 'https://staging.doku.com/Suite/Receive/' . $payment['id'];
+            // Create total amount
+            $totalAmount = new TotalAmount(
+                number_format($payment['amount'], 2, '.', ''),
+                'IDR'
+            );
+
+            // Create additional info
+            $additionalInfo = new CreateVaRequestAdditionalInfo(
+                'VIRTUAL_ACCOUNT_BANK_BCA',
+                new CreateVaVirtualAccountConfig(false) // reusableStatus = false for one-time use
+            );
+
+            // Create VA request
+            $createVaRequest = new CreateVaRequestDto(
+                $partnerServiceId,
+                $customerNo,
+                $virtualAccountNo,
+                $paymentData['customer_name'] ?? 'Customer',
+                $paymentData['customer_email'] ?? '',
+                $paymentData['customer_phone'] ?? '',
+                $payment['id'], // trxId
+                $totalAmount,
+                $additionalInfo,
+                'C', // virtualAccountTrxType (C = Closed Amount)
+                date('c', strtotime('+24 hours')) // expiredDate (24 hours from now)
+            );
+
+            // Create virtual account
+            $response = $this->dokuSnap->createVa($createVaRequest);
+
+            // Update payment with external ID and VA details
+            $this->paymentModel->update($payment['id'], [
+                'external_id' => $virtualAccountNo,
+                'gateway_response' => json_encode([
+                    'virtual_account_no' => $virtualAccountNo,
+                    'response' => $response
+                ])
+            ]);
+
+            // Return payment instructions URL or virtual account number
+            return $this->dokuConfig['environment'] === 'production' 
+                ? 'https://doku.com/payment/' . $virtualAccountNo
+                : 'https://staging.doku.com/payment/' . $virtualAccountNo;
+
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to create DOKU payment: ' . $e->getMessage());
+        }
     }
 
     private function handleMidtransWebhook(array $data): array
@@ -227,9 +281,50 @@ class PaymentService
 
     private function handleDokuWebhook(array $data): array
     {
-        // DOKU webhook implementation
-        // This would process DOKU webhook data
-        return ['status' => 'pending'];
+        try {
+            $invoiceNumber = $data['order']['invoice_number'] ?? '';
+            $transactionStatus = $data['transaction']['status'] ?? '';
+            $amount = $data['order']['amount'] ?? 0;
+
+            // Verify signature
+            $signature = $this->generateDokuSignature($data);
+            if ($signature !== ($data['security']['checksum'] ?? '')) {
+                throw new \Exception('Invalid DOKU signature');
+            }
+
+            // Determine payment status
+            $status = 'pending';
+            switch ($transactionStatus) {
+                case 'SUCCESS':
+                    $status = 'success';
+                    break;
+                case 'FAILED':
+                case 'EXPIRED':
+                    $status = 'failed';
+                    break;
+                case 'PENDING':
+                default:
+                    $status = 'pending';
+                    break;
+            }
+
+            // Update payment
+            $payment = $this->paymentModel->update($invoiceNumber, [
+                'status' => $status,
+                'paid_at' => $status === 'success' ? date('Y-m-d H:i:s') : null,
+                'gateway_response' => json_encode($data)
+            ]);
+
+            // Process successful payment
+            if ($status === 'success') {
+                $this->processSuccessfulPayment($payment);
+            }
+
+            return ['status' => $status, 'payment' => $payment];
+
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to process DOKU webhook: ' . $e->getMessage());
+        }
     }
 
     private function checkMidtransStatus(string $orderId): array
@@ -257,10 +352,29 @@ class PaymentService
         }
     }
 
-    private function checkDokuStatus(string $invoiceNumber): array
+    private function checkDokuStatus(string $virtualAccountNo): array
     {
-        // DOKU status check implementation
-        return ['status' => 'pending'];
+        try {
+            // For DOKU VA, we need to check the status using the inquiry method
+            // This would typically be done through webhook notifications
+            // For now, return a basic status check
+            
+            $payment = $this->paymentModel->findByExternalId($virtualAccountNo);
+            if (!$payment) {
+                return ['status' => 'unknown', 'error' => 'Payment not found'];
+            }
+
+            // In a real implementation, you would call DOKU's inquiry API
+            // For now, return the current status from database
+            return [
+                'status' => $payment['status'],
+                'gateway_status' => $payment['status'],
+                'gateway_response' => $payment['gateway_response'] ?? '{}'
+            ];
+
+        } catch (\Exception $e) {
+            return ['status' => 'unknown', 'error' => $e->getMessage()];
+        }
     }
 
     private function processSuccessfulPayment(array $payment): void
@@ -415,5 +529,23 @@ class PaymentService
         } catch (\Exception $e) {
             error_log('Error sending payment notification: ' . $e->getMessage());
         }
+    }
+
+    private function generateDokuSignature(array $data): string
+    {
+        // Generate DOKU signature for webhook verification
+        $clientId = $this->dokuConfig['client_id'];
+        $requestId = $data['header']['request_id'] ?? '';
+        $requestTimestamp = $data['header']['request_timestamp'] ?? '';
+        $requestTarget = '/v1/payment/notification';
+        $digest = hash('sha256', json_encode($data));
+        
+        $componentSignature = "Client-Id:" . $clientId . "\n" .
+                             "Request-Id:" . $requestId . "\n" .
+                             "Request-Timestamp:" . $requestTimestamp . "\n" .
+                             "Request-Target:" . $requestTarget . "\n" .
+                             "Digest:SHA-256=" . $digest;
+
+        return base64_encode(hash_hmac('sha256', $componentSignature, $this->dokuConfig['secret_key'], true));
     }
 }

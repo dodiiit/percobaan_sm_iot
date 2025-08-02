@@ -16,7 +16,6 @@ use IndoWater\Api\Controllers\ReportController;
 use IndoWater\Api\Controllers\NotificationController;
 use IndoWater\Api\Controllers\DashboardController;
 use IndoWater\Api\Controllers\SettingController;
-use IndoWater\Api\Controllers\WebhookController;
 use IndoWater\Api\Controllers\HealthController;
 use IndoWater\Api\Controllers\CacheController;
 
@@ -113,12 +112,9 @@ return function (App $app) {
         $group->group('/payments', function (RouteCollectorProxy $group) {
             $group->get('', [PaymentController::class, 'index']);
             $group->get('/{id}', [PaymentController::class, 'show']);
-            $group->post('', [PaymentController::class, 'store']);
-            $group->put('/{id}', [PaymentController::class, 'update']);
-            $group->delete('/{id}', [PaymentController::class, 'delete']);
-            $group->post('/midtrans', [PaymentController::class, 'midtrans']);
-            $group->post('/doku', [PaymentController::class, 'doku']);
-            $group->get('/{id}/receipt', [PaymentController::class, 'receipt']);
+            $group->post('', [PaymentController::class, 'create']);
+            $group->get('/{id}/status', [PaymentController::class, 'status']);
+            $group->get('/summary', [PaymentController::class, 'summary']);
         });
 
         // Credit Routes
@@ -188,9 +184,7 @@ return function (App $app) {
 
     // Webhook Routes
     $app->group('/webhooks', function (RouteCollectorProxy $group) {
-        $group->post('/midtrans', [WebhookController::class, 'midtrans']);
-        $group->post('/doku', [WebhookController::class, 'doku']);
-        $group->post('/meter', [WebhookController::class, 'meter']);
+        $group->post('/{method}', [PaymentController::class, 'webhook']);
     });
 
     // Fallback for undefined routes

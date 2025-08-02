@@ -53,6 +53,11 @@ return function (ContainerBuilder $containerBuilder) {
             'doku' => [
                 'client_id' => $_ENV['DOKU_CLIENT_ID'] ?? null,
                 'secret_key' => $_ENV['DOKU_SECRET_KEY'] ?? null,
+                'private_key' => $_ENV['DOKU_PRIVATE_KEY'] ?? null,
+                'public_key' => $_ENV['DOKU_PUBLIC_KEY'] ?? null,
+                'doku_public_key' => $_ENV['DOKU_PUBLIC_KEY_DOKU'] ?? null,
+                'issuer' => $_ENV['DOKU_ISSUER'] ?? 'IndoWater',
+                'partner_service_id' => $_ENV['DOKU_PARTNER_SERVICE_ID'] ?? '8129014',
                 'environment' => $_ENV['DOKU_ENVIRONMENT'] ?? 'sandbox',
             ],
             'whatsapp' => [
