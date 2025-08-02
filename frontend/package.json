@@ -6,11 +6,19 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:analyze": "node scripts/analyze-bundle.js",
+    "build:prod": "tsc && vite build --mode production",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "optimize:images": "node scripts/optimize-images.js",
+    "serve:prod": "vite preview --port 12000 --host 0.0.0.0",
+    "lighthouse": "lighthouse http://localhost:12000 --view --output-path=./lighthouse-report.html",
+    "check:deps": "node scripts/check-unused-deps.js",
+    "check:bundle": "source-map-explorer 'dist/assets/js/*.js'",
+    "analyze:performance": "npm run build:prod && npm run serve:prod & sleep 5 && npm run lighthouse"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",
@@ -54,6 +62,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "jsdom": "^22.1.0",
     "rollup-plugin-visualizer": "^6.0.3",
+    "source-map-explorer": "^2.5.3",
     "terser": "^5.43.1",
     "typescript": "^5.0.2",
     "vite": "^4.4.5",

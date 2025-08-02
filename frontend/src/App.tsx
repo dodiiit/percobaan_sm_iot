@@ -14,8 +14,9 @@ import AuthLayout from './components/Layout/AuthLayout';
 import ProtectedRoute from './components/Layout/ProtectedRoute';
 import RoleBasedRoute from './components/Layout/RoleBasedRoute';
 
-// Performance monitoring
-import { registerWebVitals } from './utils/performance';
+// Performance and optimization
+import PerformanceMonitor from './components/common/PerformanceMonitor';
+import ImagePreloader from './components/common/ImagePreloader';
 
 // Loading Fallback
 const LoadingFallback = () => (
@@ -80,17 +81,24 @@ const MeterDetails = lazy(() => import('./components/Meters/MeterDetails'));
 const MeterTopUp = lazy(() => import('./components/Meters/MeterTopUp'));
 const PaymentHistory = lazy(() => import('./components/Payments/PaymentHistory'));
 
-const App: React.FC = () => {
-  // Register web vitals for performance monitoring
-  React.useEffect(() => {
-    registerWebVitals();
-  }, []);
+// Critical images to preload
+const CRITICAL_IMAGES = [
+  '/favicon.svg',
+  // Add other critical images here
+];
 
+const App: React.FC = () => {
   return (
     <ThemeProvider>
       <LanguageProvider>
         <AuthProvider>
           <CssBaseline />
+          {/* Performance monitoring */}
+          <PerformanceMonitor enabled={process.env.NODE_ENV === 'production'} />
+          
+          {/* Preload critical images */}
+          <ImagePreloader images={CRITICAL_IMAGES} />
+          
           <Router>
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
