@@ -33,9 +33,18 @@ import {
   Brightness4 as DarkModeIcon,
   Brightness7 as LightModeIcon,
   Translate as TranslateIcon,
+  People as PeopleIcon,
+  Home as HomeIcon,
+  Assessment as AssessmentIcon,
+  Business as BusinessIcon,
+  BarChart as BarChartIcon,
+  AdminPanelSettings as AdminIcon,
+  MonetizationOn as TariffsIcon,
+  Apartment as PropertiesIcon,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../contexts/AuthContext';
+import { UserRole } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useLanguage } from '../../contexts/LanguageContext';
 
@@ -43,7 +52,7 @@ const drawerWidth = 240;
 
 const MainLayout: React.FC = () => {
   const { t } = useTranslation();
-  const { user, logout } = useAuth();
+  const { user, logout, userRole, isCustomer, isClient, isSuperAdmin } = useAuth();
   const { mode, toggleTheme } = useTheme();
   const { language, changeLanguage } = useLanguage();
   const navigate = useNavigate();
@@ -86,13 +95,53 @@ const MainLayout: React.FC = () => {
     handleCloseLangMenu();
   };
 
-  const menuItems = [
+  // Common menu items for all users
+  const commonMenuItems = [
     { text: t('dashboard.title'), icon: <DashboardIcon />, path: '/dashboard' },
-    { text: t('meters.title'), icon: <WaterDropIcon />, path: '/meters' },
-    { text: t('payments.title'), icon: <PaymentIcon />, path: '/payments' },
     { text: t('profile.title'), icon: <PersonIcon />, path: '/profile' },
     { text: t('settings.title'), icon: <SettingsIcon />, path: '/settings' },
   ];
+
+  // Customer-specific menu items
+  const customerMenuItems = [
+    { text: t('meters.title'), icon: <WaterDropIcon />, path: '/meters' },
+    { text: t('consumption.title'), icon: <BarChartIcon />, path: '/consumption' },
+    { text: t('payments.title'), icon: <PaymentIcon />, path: '/payments' },
+    { text: t('topup.title'), icon: <MonetizationOn />, path: '/topup' },
+  ];
+
+  // Client (Water Utility Company) menu items
+  const clientMenuItems = [
+    { text: t('customers.title'), icon: <PeopleIcon />, path: '/customers' },
+    { text: t('meters.title'), icon: <WaterDropIcon />, path: '/meters' },
+    { text: t('properties.title'), icon: <PropertiesIcon />, path: '/properties' },
+    { text: t('analytics.title'), icon: <BarChartIcon />, path: '/analytics' },
+    { text: t('payments.title'), icon: <PaymentIcon />, path: '/payments' },
+    { text: t('reports.title'), icon: <AssessmentIcon />, path: '/reports' },
+  ];
+
+  // Superadmin menu items
+  const superadminMenuItems = [
+    { text: t('clients.title'), icon: <BusinessIcon />, path: '/clients' },
+    { text: t('customers.title'), icon: <PeopleIcon />, path: '/customers' },
+    { text: t('meters.title'), icon: <WaterDropIcon />, path: '/meters' },
+    { text: t('properties.title'), icon: <PropertiesIcon />, path: '/properties' },
+    { text: t('payments.title'), icon: <PaymentIcon />, path: '/payments' },
+    { text: t('reports.title'), icon: <AssessmentIcon />, path: '/reports' },
+    { text: t('tariffs.title'), icon: <TariffsIcon />, path: '/tariffs' },
+    { text: t('system.title'), icon: <AdminIcon />, path: '/system' },
+  ];
+
+  // Determine which menu items to show based on user role
+  let menuItems = [...commonMenuItems];
+  
+  if (isCustomer) {
+    menuItems = [...menuItems, ...customerMenuItems];
+  } else if (isClient) {
+    menuItems = [...menuItems, ...clientMenuItems];
+  } else if (isSuperAdmin) {
+    menuItems = [...menuItems, ...superadminMenuItems];
+  }
 
   const drawer = (
     <div>

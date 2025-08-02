@@ -2,13 +2,18 @@ import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Box, CircularProgress } from '@mui/material';
 import { useAuth } from '../../contexts/AuthContext';
+import { UserRole } from '../../contexts/AuthContext';
 
 interface ProtectedRouteProps {
-  allowedRoles?: string[];
+  allowedRoles?: UserRole[];
 }
 
+/**
+ * A component that restricts access to authenticated users
+ * For role-based access control, use RoleBasedRoute instead
+ */
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, userRole } = useAuth();
   const location = useLocation();
 
   if (isLoading) {
@@ -31,8 +36,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check if user has required role
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+  // Check if user has required role (if specified)
+  if (allowedRoles && allowedRoles.length > 0 && userRole && !allowedRoles.includes(userRole)) {
     // User doesn't have the required role, redirect to dashboard
     return <Navigate to="/dashboard" replace />;
   }

@@ -1,17 +1,27 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authAPI, userAPI } from '../services/api';
 
+export enum UserRole {
+  CUSTOMER = 'customer',
+  CLIENT = 'client',
+  SUPERADMIN = 'superadmin'
+}
+
 interface User {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: UserRole;
 }
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  userRole: UserRole | null;
+  isCustomer: boolean;
+  isClient: boolean;
+  isSuperAdmin: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (userData: any) => Promise<void>;
@@ -36,6 +46,7 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -43,11 +54,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (token) {
         try {
           const response = await userAPI.getProfile();
-          setUser(response.data.data);
+          const userData = response.data.data;
+          
+          // Ensure the role is one of the defined UserRole values
+          const userRoleValue = userData.role as UserRole;
+          if (Object.values(UserRole).includes(userRoleValue)) {
+            setUserRole(userRoleValue);
+          } else {
+            // Default to customer if role is not recognized
+            console.warn(`Unrecognized role: ${userData.role}, defaulting to customer`);
+            userData.role = UserRole.CUSTOMER;
+            setUserRole(UserRole.CUSTOMER);
+          }
+          
+          setUser(userData);
         } catch (error) {
           console.error('Failed to fetch user profile:', error);
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
+          setUserRole(null);
         }
       }
       setIsLoading(false);
@@ -61,6 +86,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await authAPI.login({ email, password });
       const { user, access_token, refresh_token } = response.data.data;
+      
+      // Ensure the role is one of the defined UserRole values
+      const userRoleValue = user.role as UserRole;
+      if (Object.values(UserRole).includes(userRoleValue)) {
+        setUserRole(userRoleValue);
+      } else {
+        // Default to customer if role is not recognized
+        console.warn(`Unrecognized role: ${user.role}, defaulting to customer`);
+        user.role = UserRole.CUSTOMER;
+        setUserRole(UserRole.CUSTOMER);
+      }
       
       localStorage.setItem('access_token', access_token);
       localStorage.setItem('refresh_token', refresh_token);
@@ -83,6 +119,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       setUser(null);
+      setUserRole(null);
       setIsLoading(false);
     }
   };
@@ -123,10 +160,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Compute role-based flags
+  const isCustomer = userRole === UserRole.CUSTOMER;
+  const isClient = userRole === UserRole.CLIENT;
+  const isSuperAdmin = userRole === UserRole.SUPERADMIN;
+
   const value = {
     user,
     isAuthenticated: !!user,
     isLoading,
+    userRole,
+    isCustomer,
+    isClient,
+    isSuperAdmin,
     login,
     logout,
     register,
