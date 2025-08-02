@@ -1,157 +1,83 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { ToastContainer } from 'react-toastify';
+import { CssBaseline } from '@mui/material';
+
+// Contexts
 import { AuthProvider } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
-import ProtectedRoute from './components/common/ProtectedRoute';
-import PublicRoute from './components/common/PublicRoute';
-import DashboardLayout from './components/layouts/DashboardLayout';
+import { LanguageProvider } from './contexts/LanguageContext';
 
-// Public Pages
-import LandingPage from './pages/LandingPage';
+// Layouts
+import MainLayout from './components/Layout/MainLayout';
+import AuthLayout from './components/Layout/AuthLayout';
+import ProtectedRoute from './components/Layout/ProtectedRoute';
 
 // Auth Pages
-import LoginPage from './pages/auth/LoginPage';
-import RegisterPage from './pages/auth/RegisterPage';
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
-import ResetPasswordPage from './pages/auth/ResetPasswordPage';
-import VerifyEmailPage from './pages/auth/VerifyEmailPage';
+import Login from './components/Auth/Login';
+import Register from './components/Auth/Register';
+import ForgotPassword from './components/Auth/ForgotPassword';
+import ResetPassword from './components/Auth/ResetPassword';
 
-// Dashboard Pages
-import SuperadminDashboard from './pages/dashboard/superadmin/SuperadminDashboard';
-import ClientDashboard from './pages/dashboard/client/ClientDashboard';
-import CustomerDashboard from './pages/dashboard/customer/CustomerDashboard';
+// Dashboard
+import Dashboard from './components/Dashboard/Dashboard';
 
-// Error Pages
-import NotFoundPage from './pages/errors/NotFoundPage';
-import UnauthorizedPage from './pages/errors/UnauthorizedPage';
-import ServerErrorPage from './pages/errors/ServerErrorPage';
+// Meters
+import MeterList from './components/Meters/MeterList';
+import MeterDetails from './components/Meters/MeterDetails';
+import MeterTopUp from './components/Meters/MeterTopUp';
 
-// Styles
-import 'react-toastify/dist/ReactToastify.css';
-import './styles/index.css';
+// Payments
+import PaymentHistory from './components/Payments/PaymentHistory';
 
-function App() {
+// Profile
+import Profile from './components/Profile/Profile';
+
+// Settings
+import Settings from './components/Settings/Settings';
+
+const App: React.FC = () => {
   return (
-    <Router>
-      <ThemeProvider>
+    <ThemeProvider>
+      <LanguageProvider>
         <AuthProvider>
-          <div className="App min-h-screen bg-gray-50 dark:bg-gray-900">
+          <CssBaseline />
+          <Router>
             <Routes>
-              {/* Public Routes */}
-              <Route 
-                path="/" 
-                element={
-                  <PublicRoute>
-                    <LandingPage />
-                  </PublicRoute>
-                } 
-              />
-              <Route
-                path="/login"
-                element={
-                  <PublicRoute>
-                    <LoginPage />
-                  </PublicRoute>
-                }
-              />
-              <Route
-                path="/register"
-                element={
-                  <PublicRoute>
-                    <RegisterPage />
-                  </PublicRoute>
-                }
-              />
-              <Route
-                path="/forgot-password"
-                element={
-                  <PublicRoute>
-                    <ForgotPasswordPage />
-                  </PublicRoute>
-                }
-              />
-              <Route
-                path="/reset-password/:token"
-                element={
-                  <PublicRoute>
-                    <ResetPasswordPage />
-                  </PublicRoute>
-                }
-              />
-              <Route
-                path="/verify-email/:token"
-                element={
-                  <PublicRoute>
-                    <VerifyEmailPage />
-                  </PublicRoute>
-                }
-              />
-
-              {/* Protected Dashboard Routes */}
-              <Route
-                path="/dashboard/*"
-                element={
-                  <ProtectedRoute allowedRoles={['superadmin', 'client', 'customer']}>
-                    <DashboardLayout />
-                  </ProtectedRoute>
-                }
-              >
-                {/* Superadmin Routes */}
-                <Route
-                  path="superadmin/*"
-                  element={
-                    <ProtectedRoute allowedRoles={['superadmin']}>
-                      <SuperadminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                
-                {/* Client Routes */}
-                <Route
-                  path="client/*"
-                  element={
-                    <ProtectedRoute allowedRoles={['client']}>
-                      <ClientDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-                
-                {/* Customer Routes */}
-                <Route
-                  path="customer/*"
-                  element={
-                    <ProtectedRoute allowedRoles={['customer']}>
-                      <CustomerDashboard />
-                    </ProtectedRoute>
-                  }
-                />
+              {/* Auth Routes */}
+              <Route element={<AuthLayout />}>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
               </Route>
 
-              {/* Error Routes */}
-              <Route path="/unauthorized" element={<UnauthorizedPage />} />
-              <Route path="/server-error" element={<ServerErrorPage />} />
-              <Route path="*" element={<NotFoundPage />} />
-            </Routes>
+              {/* Protected Routes */}
+              <Route element={<ProtectedRoute />}>
+                <Route element={<MainLayout />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  
+                  <Route path="/meters" element={<MeterList />} />
+                  <Route path="/meters/:id" element={<MeterDetails />} />
+                  <Route path="/meters/:id/topup" element={<MeterTopUp />} />
+                  
+                  <Route path="/payments" element={<PaymentHistory />} />
+                  
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/settings" element={<Settings />} />
+                </Route>
+              </Route>
 
-            {/* Toast Notifications */}
-            <ToastContainer
-              position="top-right"
-              autoClose={5000}
-              hideProgressBar={false}
-              newestOnTop={false}
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="colored"
-            />
-          </div>
+              {/* Redirect root to dashboard or login */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              
+              {/* Catch all - redirect to dashboard */}
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Router>
         </AuthProvider>
-      </ThemeProvider>
-    </Router>
+      </LanguageProvider>
+    </ThemeProvider>
   );
-}
+};
 
 export default App;

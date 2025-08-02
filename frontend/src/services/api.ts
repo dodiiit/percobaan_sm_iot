@@ -1,24 +1,21 @@
-import axios from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
-const api = axios.create({
-  baseURL: 'https://api.lingindustri.com/api',
+// Create axios instance with base configuration
+const api: AxiosInstance = axios.create({
+  baseURL: '/api',
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
-    'Accept': 'application/json',
   },
 });
 
-// Add a request interceptor
+// Request interceptor to add auth token
 api.interceptors.request.use(
-  (config) => {
-    // Get token from localStorage or sessionStorage
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-    
-    // If token exists, add it to the request headers
-    if (token) {
+  (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
+    const token = localStorage.getItem('access_token');
+    if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
     return config;
   },
   (error) => {
@@ -26,38 +23,121 @@ api.interceptors.request.use(
   }
 );
 
-// Add a response interceptor
+// Response interceptor to handle token refresh
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    // Handle 401 Unauthorized errors
-    if (error.response && error.response.status === 401) {
-      // Remove token from localStorage and sessionStorage
-      localStorage.removeItem('token');
-      sessionStorage.removeItem('token');
-      
-      // Redirect to login page
-      window.location.href = '/login';
+  (response: AxiosResponse): AxiosResponse => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (refreshToken) {
+          const response = await axios.post('/auth/refresh', {
+            refresh_token: refreshToken,
+          });
+
+          const { access_token } = response.data.data;
+          localStorage.setItem('access_token', access_token);
+
+          // Retry original request with new token
+          if (originalRequest.headers) {
+            originalRequest.headers.Authorization = `Bearer ${access_token}`;
+          }
+          return api(originalRequest);
+        }
+      } catch (refreshError) {
+        // Refresh failed, redirect to login
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/login';
+      }
     }
-    
-    // Handle 403 Forbidden errors
-    if (error.response && error.response.status === 403) {
-      // Redirect to unauthorized page
-      window.location.href = '/unauthorized';
-    }
-    
-    // Handle 500 Internal Server Error
-    if (error.response && error.response.status === 500) {
-      // Redirect to server error page
-      window.location.href = '/server-error';
-    }
-    
+
     return Promise.reject(error);
   }
 );
 
-// Export both cached and non-cached API instances
-export { default as cachedApi, cacheManager } from './cachedApi';
+// Auth API
+export const authAPI = {
+  login: (credentials: { email: string; password: string }) => 
+    api.post('/auth/login', credentials),
+  register: (userData: any) => 
+    api.post('/auth/register', userData),
+  logout: () => 
+    api.post('/auth/logout'),
+  forgotPassword: (email: string) => 
+    api.post('/auth/forgot-password', { email }),
+  resetPassword: (token: string, password: string, password_confirmation: string) => 
+    api.post('/auth/reset-password', { token, password, password_confirmation }),
+  refreshToken: (refreshToken: string) => 
+    api.post('/auth/refresh', { refresh_token: refreshToken }),
+};
+
+// User API
+export const userAPI = {
+  getProfile: () => 
+    api.get('/api/users/me'),
+  updateProfile: (userData: any) => 
+    api.put('/api/users/me', userData),
+  changePassword: (passwordData: { current_password: string; password: string; password_confirmation: string }) => 
+    api.put('/api/users/me/password', passwordData),
+};
+
+// Meter API
+export const meterAPI = {
+  getMeters: (params = {}) => 
+    api.get('/api/meters', { params }),
+  getMeter: (id: string) => 
+    api.get(`/api/meters/${id}`),
+  getBalance: (id: string) => 
+    api.get(`/api/meters/${id}/balance`),
+  getConsumption: (id: string, params = {}) => 
+    api.get(`/api/meters/${id}/consumption`, { params }),
+  getCredits: (id: string, params = {}) => 
+    api.get(`/api/meters/${id}/credits`, { params }),
+  topup: (id: string, amount: number, description: string) => 
+    api.post(`/api/meters/${id}/topup`, { amount, description }),
+  getStatus: (id: string) => 
+    api.get(`/api/meters/${id}/status`),
+};
+
+// Payment API
+export const paymentAPI = {
+  getPayments: (params = {}) => 
+    api.get('/api/payments', { params }),
+  getPayment: (id: string) => 
+    api.get(`/api/payments/${id}`),
+  createPayment: (paymentData: any) => 
+    api.post('/api/payments', paymentData),
+  checkPaymentStatus: (id: string) => 
+    api.get(`/api/payments/${id}/status`),
+  getSummary: () => 
+    api.get('/api/payments/summary'),
+};
+
+// Real-time API
+export const realtimeAPI = {
+  getMeterUpdates: (meterId: string) => 
+    api.get(`/api/realtime/poll/updates?meter_id=${meterId}`),
+  getNotifications: () => 
+    api.get('/api/realtime/poll/updates?type=notifications'),
+};
+
+// Property API
+export const propertyAPI = {
+  getProperties: (params = {}) => 
+    api.get('/api/properties', { params }),
+  getProperty: (id: string) => 
+    api.get(`/api/properties/${id}`),
+  createProperty: (propertyData: any) => 
+    api.post('/api/properties', propertyData),
+  updateProperty: (id: string, propertyData: any) => 
+    api.put(`/api/properties/${id}`, propertyData),
+  deleteProperty: (id: string) => 
+    api.delete(`/api/properties/${id}`),
+};
+
 export default api;
