@@ -290,6 +290,8 @@ class FirmwareSimulationTest
 }
 
 // Run the simulation if this script is executed directly
+// Usage: php firmware_simulation_test.php [base_url]
+// Example: php firmware_simulation_test.php https://api.lingindustri.com
 if (php_sapi_name() === 'cli') {
     $baseUrl = $argv[1] ?? 'http://localhost:8000/api';
     

@@ -257,6 +257,8 @@ class DeviceIntegrationTest
 }
 
 // Run the tests if this script is executed directly
+// Usage: php device_integration_test.php [base_url]
+// Example: php device_integration_test.php https://api.lingindustri.com
 if (php_sapi_name() === 'cli') {
     $baseUrl = $argv[1] ?? 'http://localhost:8000/api';
     

@@ -3,6 +3,11 @@
 ## Overview
 This document summarizes the successful integration and synchronization between the Arduino/NodeMCU firmware and the API backend for the Smart Water Meter IoT system.
 
+## Target URLs Configuration
+- **Frontend Target**: https://lingidustri.com
+- **Backend API Target**: https://api.lingindustri.com
+- **Development API**: http://localhost:8000/api
+
 ## ✅ Completed Tasks
 
 ### 1. API Endpoint Synchronization
@@ -224,7 +229,7 @@ NodeMCU → API: {
 ### Production Environment
 ```cpp
 // DEVELOPMENT_MODE not defined
-// Uses: https://lingindustri.com/api
+// Uses: https://api.lingindustri.com
 ```
 
 ### Docker Environment
@@ -261,14 +266,14 @@ Execute the following migration to add device-specific fields:
 3. **Update Firmware Configuration**
    ```cpp
    // In NodeMCU.cpp, set production URL:
-   const char* API_BASE_URL = "https://lingindustri.com/api";
+   const char* API_BASE_URL = "https://api.lingindustri.com";
    ```
 
 4. **Test Device Communication**
    ```bash
    # Run integration tests
-   php api/tests/device_integration_test.php https://lingindustri.com/api
-   php api/tests/firmware_simulation_test.php https://lingindustri.com/api
+   php api/tests/device_integration_test.php https://api.lingindustri.com
+   php api/tests/firmware_simulation_test.php https://api.lingindustri.com
    ```
 
 ## ✅ Integration Verification Checklist

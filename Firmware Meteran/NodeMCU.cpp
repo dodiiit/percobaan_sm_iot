@@ -42,13 +42,14 @@
 #define EEPROM_JWT_ADDR 96
 
 // URL API Backend - Configurable for different environments
-// PRODUCTION: Use https://lingindustri.com/api
+// PRODUCTION: Use https://api.lingindustri.com (Target Backend API)
 // DEVELOPMENT: Use http://localhost:8000/api or your development server
 // DOCKER: Use http://host.docker.internal:8000/api if running in Docker
+// Frontend Target: https://lingidustri.com
 #ifdef DEVELOPMENT_MODE
 const char* API_BASE_URL = "http://localhost:8000/api";
 #else
-const char* API_BASE_URL = "https://lingindustri.com/api";
+const char* API_BASE_URL = "https://api.lingindustri.com";
 #endif
 const char* BALANCE = "/device/credit.php"; //Endpoint Untuk Saldo Pulsa
 const char* REGISTER_DEVICE_ENDPOINT = "/device/register_device.php"; //Endoint untuk Provisioning device
