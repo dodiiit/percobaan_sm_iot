@@ -263,7 +263,7 @@ const ValveControl: React.FC<ValveControlProps> = ({ valveId, onCommandSent, onE
         <div className="bg-gray-50 rounded-lg p-4">
           <h4 className="text-sm font-medium text-gray-700 mb-2">Device Status</h4>
           <div className="space-y-2 text-sm">
-            {valve.battery_level !== null && (
+            {valve.battery_level !== null && valve.battery_level !== undefined && (
               <div className="flex justify-between">
                 <span>Battery:</span>
                 <span className={valve.battery_level < 20 ? 'text-red-600' : 'text-gray-900'}>
@@ -271,7 +271,7 @@ const ValveControl: React.FC<ValveControlProps> = ({ valveId, onCommandSent, onE
                 </span>
               </div>
             )}
-            {valve.signal_strength !== null && (
+            {valve.signal_strength !== null && valve.signal_strength !== undefined && (
               <div className="flex justify-between">
                 <span>Signal:</span>
                 <span className={valve.signal_strength < -80 ? 'text-red-600' : 'text-gray-900'}>
@@ -279,10 +279,10 @@ const ValveControl: React.FC<ValveControlProps> = ({ valveId, onCommandSent, onE
                 </span>
               </div>
             )}
-            {valve.operating_pressure !== null && (
+            {valve.operating_pressure !== null && valve.operating_pressure !== undefined && (
               <div className="flex justify-between">
                 <span>Pressure:</span>
-                <span className={valve.operating_pressure > valve.max_pressure * 0.9 ? 'text-red-600' : 'text-gray-900'}>
+                <span className={valve.operating_pressure > (valve.max_pressure || 0) * 0.9 ? 'text-red-600' : 'text-gray-900'}>
                   {valve.operating_pressure} bar
                 </span>
               </div>

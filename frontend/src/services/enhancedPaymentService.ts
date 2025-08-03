@@ -104,7 +104,7 @@ class EnhancedPaymentService {
   async createPayment(paymentData: PaymentRequest): Promise<ApiResponse<PaymentResponse>> {
     // Validate required fields
     const requiredFields = ['amount', 'type', 'payment_method', 'description'];
-    const missingFields = requiredFields.filter(field => !paymentData[field]);
+    const missingFields = requiredFields.filter(field => !(paymentData as any)[field]);
     
     if (missingFields.length > 0) {
       throw {
@@ -491,7 +491,7 @@ class EnhancedPaymentService {
     }
 
     const requiredFields = ['reason', 'description'];
-    const missingFields = requiredFields.filter(field => !disputeData[field]);
+    const missingFields = requiredFields.filter(field => !(disputeData as any)[field]);
     
     if (missingFields.length > 0) {
       throw {
@@ -558,7 +558,7 @@ class EnhancedPaymentService {
     }
   ): Promise<ApiResponse<{ recurring_payment_id: string }>> {
     const requiredFields = ['amount', 'type', 'payment_method', 'frequency', 'start_date'];
-    const missingFields = requiredFields.filter(field => !paymentData[field]);
+    const missingFields = requiredFields.filter(field => !(paymentData as any)[field]);
     
     if (missingFields.length > 0) {
       throw {

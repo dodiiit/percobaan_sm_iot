@@ -171,7 +171,7 @@ const CustomerOverview: React.FC = () => {
     lowCreditMeters: 0,
     averageDailyUsage: 0
   });
-  const [recentReadings, setRecentReadings] = useState([]);
+  const [recentReadings, setRecentReadings] = useState<any[]>([]);
   const [usageChartData, setUsageChartData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

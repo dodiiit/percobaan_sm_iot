@@ -65,7 +65,7 @@ const EnhancedMeterDashboard: React.FC<EnhancedMeterDashboardProps> = ({ custome
     error: statsError,
     execute: fetchStats
   } = useApiState(
-    () => enhancedMeterService.getMeterStats(selectedMeterId, 'month'),
+    () => enhancedMeterService.getMeterStats(selectedMeterId),
     {
       dependencies: [selectedMeterId],
       immediate: false,

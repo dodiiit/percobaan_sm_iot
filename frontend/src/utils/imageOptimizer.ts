@@ -44,7 +44,7 @@ export const generateSrcSet = (src: string, widths: number[] = [640, 750, 828, 1
 
 // Get image dimensions from filename (if available)
 export const getImageDimensions = (src: string): { width: number | undefined; height: number | undefined } => {
-  const dimensions = { width: undefined, height: undefined };
+  const dimensions: { width: number | undefined; height: number | undefined } = { width: undefined, height: undefined };
   
   // Try to extract dimensions from filename (e.g., image-800x600.jpg)
   const match = src.match(/(\d+)x(\d+)/);

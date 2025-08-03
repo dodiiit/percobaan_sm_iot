@@ -1,5 +1,15 @@
 import React from 'react';
-import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } from 'axios';
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
+
+// Extend Axios config to include metadata
+declare module 'axios' {
+  interface InternalAxiosRequestConfig {
+    metadata?: {
+      startTime?: number;
+      responseTime?: number;
+    };
+  }
+}
 
 // Types for enhanced API functionality
 export interface ApiResponse<T = any> {
@@ -171,7 +181,7 @@ class EnhancedApi {
       (response) => {
         // Add response time to metadata
         const startTime = response.config.metadata?.startTime;
-        if (startTime) {
+        if (startTime && response.config.metadata) {
           response.config.metadata.responseTime = Date.now() - startTime;
         }
 
@@ -308,8 +318,8 @@ class EnhancedApi {
       return {
         data: response.data,
         status: response.status,
-        message: response.data?.message,
-        meta: response.data?.meta
+        message: (response.data as any)?.message,
+        meta: (response.data as any)?.meta
       };
     } catch (error) {
       const apiError = this.formatError(error);

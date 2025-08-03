@@ -21,7 +21,7 @@ performance.mark('app_init_end');
 performance.measure('app_initialization', 'app_init_start', 'app_init_end');
 
 // Report web vitals
-reportWebVitals((metric) => {
+reportWebVitals((metric: any) => {
   // Log the metrics
   console.info(`Web Vital: ${metric.name} - ${metric.value}`);
   

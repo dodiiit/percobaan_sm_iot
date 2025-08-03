@@ -265,7 +265,7 @@ class ApiIntegration {
       results.api = await enhancedApi.healthCheck();
       results.details.api = results.api ? 'OK' : 'Failed';
     } catch (error) {
-      results.details.api = `Error: ${error.message}`;
+      results.details.api = `Error: ${(error as any)?.message || 'Unknown error'}`;
     }
 
     try {
@@ -278,7 +278,7 @@ class ApiIntegration {
         results.details.realtime = 'Disabled';
       }
     } catch (error) {
-      results.details.realtime = `Error: ${error.message}`;
+      results.details.realtime = `Error: ${(error as any)?.message || 'Unknown error'}`;
     }
 
     try {
@@ -286,7 +286,7 @@ class ApiIntegration {
       results.auth = await enhancedAuthService.validateToken();
       results.details.auth = results.auth ? 'OK' : 'Invalid token';
     } catch (error) {
-      results.details.auth = `Error: ${error.message}`;
+      results.details.auth = `Error: ${(error as any)?.message || 'Unknown error'}`;
     }
 
     // Overall health

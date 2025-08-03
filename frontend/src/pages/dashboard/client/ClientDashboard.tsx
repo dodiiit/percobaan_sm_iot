@@ -32,10 +32,10 @@ const ClientOverview: React.FC = () => {
     offlineMeters: 0,
     lowCreditMeters: 0,
     pendingPayments: 0,
-    recentActivities: [],
+    recentActivities: [] as any[],
     usageData: {
-      labels: [],
-      datasets: []
+      labels: [] as string[],
+      datasets: [] as any[]
     }
   });
   const [loading, setLoading] = useState(true);

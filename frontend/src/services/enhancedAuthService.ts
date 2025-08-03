@@ -103,7 +103,7 @@ class EnhancedAuthService {
   async register(userData: RegisterData): Promise<ApiResponse<{ message: string }>> {
     // Validate required fields
     const requiredFields = ['name', 'email', 'password', 'password_confirmation', 'role'];
-    const missingFields = requiredFields.filter(field => !userData[field]);
+    const missingFields = requiredFields.filter(field => !(userData as any)[field]);
     
     if (missingFields.length > 0) {
       throw {
@@ -216,7 +216,7 @@ class EnhancedAuthService {
   // Reset password with validation
   async resetPassword(resetData: PasswordResetRequest): Promise<ApiResponse<{ message: string }>> {
     const requiredFields = ['token', 'password', 'password_confirmation'];
-    const missingFields = requiredFields.filter(field => !resetData[field]);
+    const missingFields = requiredFields.filter(field => !(resetData as any)[field]);
     
     if (missingFields.length > 0) {
       throw {
@@ -327,7 +327,7 @@ class EnhancedAuthService {
   // Change password
   async changePassword(passwordData: PasswordChangeRequest): Promise<ApiResponse<{ message: string }>> {
     const requiredFields = ['current_password', 'password', 'password_confirmation'];
-    const missingFields = requiredFields.filter(field => !passwordData[field]);
+    const missingFields = requiredFields.filter(field => !(passwordData as any)[field]);
     
     if (missingFields.length > 0) {
       throw {

@@ -1,4 +1,4 @@
-import { ReportHandler, getCLS, getFID, getFCP, getLCP, getTTFB } from 'web-vitals';
+import { onCLS, onFCP, onINP, onLCP, onTTFB, type Metric } from 'web-vitals';
 
 // Configuration
 const config = {
@@ -88,11 +88,11 @@ export const initPerformanceMonitoring = (): void => {
   if (Math.random() > config.sampleRate) return;
   
   // Collect Core Web Vitals
-  getCLS((metric) => sendMetric({ name: 'CLS', ...metric }));
-  getFCP((metric) => sendMetric({ name: 'FCP', ...metric }));
-  getFID((metric) => sendMetric({ name: 'FID', ...metric }));
-  getLCP((metric) => sendMetric({ name: 'LCP', ...metric }));
-  getTTFB((metric) => sendMetric({ name: 'TTFB', ...metric }));
+  onCLS((metric) => sendMetric({ ...metric, name: 'CLS' }));
+  onFCP((metric) => sendMetric({ ...metric, name: 'FCP' }));
+  onINP((metric) => sendMetric({ ...metric, name: 'INP' }));
+  onLCP((metric) => sendMetric({ ...metric, name: 'LCP' }));
+  onTTFB((metric) => sendMetric({ ...metric, name: 'TTFB' }));
   
   if (typeof window !== 'undefined' && 'PerformanceObserver' in window) {
     // Create and observe long task
@@ -193,14 +193,14 @@ export const initPerformanceMonitoring = (): void => {
 };
 
 // Report web vitals
-export const reportWebVitals = (onPerfEntry?: ReportHandler): void => {
+export const reportWebVitals = (onPerfEntry?: (metric: Metric) => void): void => {
   if (onPerfEntry && onPerfEntry instanceof Function) {
-    import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
-      getCLS(onPerfEntry);
-      getFID(onPerfEntry);
-      getFCP(onPerfEntry);
-      getLCP(onPerfEntry);
-      getTTFB(onPerfEntry);
+    import('web-vitals').then(({ onCLS, onFCP, onINP, onLCP, onTTFB }) => {
+      onCLS(onPerfEntry);
+      onFCP(onPerfEntry);
+      onINP(onPerfEntry);
+      onLCP(onPerfEntry);
+      onTTFB(onPerfEntry);
     });
   }
 };

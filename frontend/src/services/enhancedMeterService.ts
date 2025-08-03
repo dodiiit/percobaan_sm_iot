@@ -103,7 +103,7 @@ class EnhancedMeterService {
       retry: {
         retries: 2,
         retryDelay: 1000,
-        retryCondition: (error) => {
+        retryCondition: (error: any) => {
           // Don't retry on 404 (meter not found)
           return error.response?.status !== 404;
         }
@@ -115,7 +115,7 @@ class EnhancedMeterService {
   async createMeter(meterData: Partial<Meter>): Promise<ApiResponse<Meter>> {
     // Validate required fields
     const requiredFields = ['meter_number', 'customer_id', 'property_id'];
-    const missingFields = requiredFields.filter(field => !meterData[field]);
+    const missingFields = requiredFields.filter(field => !(meterData as any)[field]);
     
     if (missingFields.length > 0) {
       throw {
@@ -130,7 +130,7 @@ class EnhancedMeterService {
       retry: {
         retries: 1,
         retryDelay: 2000,
-        retryCondition: (error) => {
+        retryCondition: (error: any) => {
           // Don't retry on validation errors (422) or conflicts (409)
           return ![422, 409].includes(error.response?.status || 0);
         }
@@ -170,7 +170,7 @@ class EnhancedMeterService {
       retry: {
         retries: 1,
         retryDelay: 2000,
-        retryCondition: (error) => {
+        retryCondition: (error: any) => {
           // Don't retry on 404 (already deleted) or 409 (conflict)
           return ![404, 409].includes(error.response?.status || 0);
         }
@@ -207,7 +207,7 @@ class EnhancedMeterService {
       retry: {
         retries: 2,
         retryDelay: 2000,
-        retryCondition: (error) => {
+        retryCondition: (error: any) => {
           // Don't retry on insufficient funds or validation errors
           return ![400, 422].includes(error.response?.status || 0);
         }
@@ -237,7 +237,7 @@ class EnhancedMeterService {
       retry: {
         retries: 1,
         retryDelay: 3000,
-        retryCondition: (error) => {
+        retryCondition: (error: any) => {
           // Only retry on server errors, not client errors
           return (error.response?.status || 0) >= 500;
         }
@@ -256,6 +256,24 @@ class EnhancedMeterService {
 
     return enhancedApi.get(`${this.baseUrl}/${meterId}/status`, {
       cacheKey: `meter_status_${meterId}`,
+      retry: {
+        retries: 3,
+        retryDelay: 1000
+      }
+    });
+  }
+
+  // Get meter statistics with consumption data
+  async getMeterStats(meterId: string): Promise<ApiResponse<MeterStats>> {
+    if (!meterId) {
+      throw {
+        message: 'Meter ID is required',
+        code: 'VALIDATION_ERROR'
+      } as ApiError;
+    }
+
+    return enhancedApi.get(`${this.baseUrl}/${meterId}/stats`, {
+      cacheKey: `meter_stats_${meterId}`,
       retry: {
         retries: 3,
         retryDelay: 1000
