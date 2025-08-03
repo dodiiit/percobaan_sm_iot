@@ -9,164 +9,175 @@
 
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import glob from 'glob';
 
-// Get the directory name
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
+// =================================================================
 // Configuration
+// =================================================================
+
 const config = {
-  localesDir: path.resolve(__dirname, '../public/locales'),
-  languages: ['en', 'id'],
-  namespaces: ['translation'],
+  localesDir: path.resolve(__dirname, '../src/locales'),
+  sourceLocale: 'en',
+  sourceCodeDir: path.resolve(__dirname, '../src'),
+  fileExtensions: ['.js', '.jsx', '.ts', '.tsx']
 };
 
-// Utility function to get all keys from an object (including nested keys)
-function getAllKeys(obj, prefix = '') {
-  let keys = [];
-  
-  for (const key in obj) {
-    const newPrefix = prefix ? `${prefix}.${key}` : key;
-    
-    if (typeof obj[key] === 'object' && obj[key] !== null) {
-      keys = [...keys, ...getAllKeys(obj[key], newPrefix)];
-    } else {
-      keys.push(newPrefix);
-    }
+// =================================================================
+// Utility Functions
+// =================================================================
+
+/**
+ * Loads a JSON file.
+ * @param {string} filePath Path to the JSON file.
+ * @returns {object | null} The parsed JSON object or null on error.
+ */
+function loadTranslations(filePath) {
+  try {
+    const fileContent = fs.readFileSync(filePath, 'utf8');
+    return JSON.parse(fileContent);
+  } catch (error) {
+    console.error(`Error reading or parsing file: ${filePath}`);
+    console.error(error);
+    return null;
   }
-  
-  return keys;
 }
 
-// Utility function to check if a key exists in an object
-function keyExists(obj, key) {
-  const parts = key.split('.');
-  let current = obj;
-  
-  for (const part of parts) {
-    if (!current[part]) {
-      return false;
-    }
-    current = current[part];
-  }
-  
-  return true;
-}
+/**
+ * Collects all translation keys used in the source code.
+ * @param {string} dir Directory to search.
+ * @returns {Set<string>} A set of all found translation keys.
+ */
+function collectAllKeys(dir) {
+  const allKeys = new Set();
+  const files = glob.sync(`${dir}/**/*(${config.fileExtensions.join('|')})`);
 
-// Utility function to get a value from an object using a dot-notation key
-function getValue(obj, key) {
-  const parts = key.split('.');
-  let current = obj;
-  
-  for (const part of parts) {
-    if (!current[part]) {
-      return undefined;
-    }
-    current = current[part];
-  }
-  
-  return current;
-}
+  files.forEach(file => {
+    const content = fs.readFileSync(file, 'utf8');
+    const matches = content.match(/t\(['"](.*?)['"]\)/g); // Matches t('key') or t("key")
 
-// Main function
-function checkTranslations() {
-  console.log('Checking translations...');
-  
-  const results = {
-    missingKeys: {},
-    emptyValues: {},
-  };
-  
-  // Initialize results structure
-  config.languages.forEach(lang => {
-    results.missingKeys[lang] = [];
-    results.emptyValues[lang] = [];
+    if (matches) {
+      matches.forEach(match => {
+        const key = match.replace(/t\(['"](.*?)['"]\)/, '$1');
+        allKeys.add(key);
+      });
+    }
   });
-  
-  // Load all translation files
-  const translations = {};
-  
-  config.languages.forEach(lang => {
-    translations[lang] = {};
-    
-    config.namespaces.forEach(ns => {
-      const filePath = path.join(config.localesDir, lang, `${ns}.json`);
-      
-      try {
-        const content = fs.readFileSync(filePath, 'utf8');
-        translations[lang][ns] = JSON.parse(content);
-      } catch (error) {
-        console.error(`Error loading ${filePath}:`, error.message);
-        process.exit(1);
+
+  return allKeys;
+}
+
+/**
+ * Checks for missing and unused keys in other locale files.
+ * @param {object} sourceKeys Object of keys from the source locale.
+ * @param {object} targetKeys Object of keys from the target locale.
+ * @param {string} targetLocale The name of the target locale.
+ * @param {Set<string>} usedKeys A set of keys found in the source code.
+ */
+function checkKeysExist(sourceKeys, targetKeys, targetLocale, usedKeys) {
+  let hasErrors = false;
+
+  console.log(`Checking '${targetLocale}.json'...`);
+
+  // Check for missing keys
+  for (const key in sourceKeys) {
+    if (Object.prototype.hasOwnProperty.call(sourceKeys, key) && usedKeys.has(key)) {
+      if (!Object.prototype.hasOwnProperty.call(targetKeys, key)) {
+        console.error(`  [ERROR] Missing key in '${targetLocale}.json': '${key}'`);
+        hasErrors = true;
       }
-    });
-  });
-  
-  // Check for missing keys and empty values
-  config.namespaces.forEach(ns => {
-    // Get all keys from all languages
-    const allKeys = new Set();
-    
-    config.languages.forEach(lang => {
-      const keys = getAllKeys(translations[lang][ns]);
-      keys.forEach(key => allKeys.add(key));
-    });
-    
-    // Check each key in each language
-    allKeys.forEach(key => {
-      config.languages.forEach(lang => {
-        if (!keyExists(translations[lang][ns], key)) {
-          results.missingKeys[lang].push(`${ns}:${key}`);
-        } else {
-          const value = getValue(translations[lang][ns], key);
-          if (value === '' || value === null || value === undefined) {
-            results.emptyValues[lang].push(`${ns}:${key}`);
-          }
-        }
-      });
-    });
-  });
-  
-  // Print results
-  let hasIssues = false;
-  
-  console.log('\n=== Missing Translation Keys ===');
-  config.languages.forEach(lang => {
-    if (results.missingKeys[lang].length > 0) {
-      hasIssues = true;
-      console.log(`\n${lang.toUpperCase()} is missing ${results.missingKeys[lang].length} keys:`);
-      results.missingKeys[lang].forEach(key => {
-        console.log(`  - ${key}`);
-      });
-    } else {
-      console.log(`\n${lang.toUpperCase()}: No missing keys.`);
     }
-  });
-  
-  console.log('\n=== Empty Translation Values ===');
-  config.languages.forEach(lang => {
-    if (results.emptyValues[lang].length > 0) {
-      hasIssues = true;
-      console.log(`\n${lang.toUpperCase()} has ${results.emptyValues[lang].length} empty values:`);
-      results.emptyValues[lang].forEach(key => {
-        console.log(`  - ${key}`);
-      });
-    } else {
-      console.log(`\n${lang.toUpperCase()}: No empty values.`);
+  }
+
+  // Check for unused keys
+  for (const key in targetKeys) {
+    if (Object.prototype.hasOwnProperty.call(targetKeys, key) && !Object.prototype.hasOwnProperty.call(sourceKeys, key)) {
+      console.warn(`  [WARNING] Unused key in '${targetLocale}.json': '${key}'`);
     }
-  });
+  }
   
-  console.log('\n=== Summary ===');
-  if (hasIssues) {
-    console.log('❌ Translation issues found. Please fix the issues above.');
-    return 1;
-  } else {
-    console.log('✅ All translations are complete!');
-    return 0;
+  if (!hasErrors) {
+    console.log(`  '${targetLocale}.json' is clean.`);
   }
 }
 
-// Run the script
-const exitCode = checkTranslations();
-process.exit(exitCode);
+/**
+ * Checks if all translation values are strings.
+ * @param {object} keys Object of keys to check.
+ * @param {string} locale The name of the locale.
+ * @returns {boolean} True if no errors were found, false otherwise.
+ */
+function checkKeyTypes(keys, locale) {
+  let isValid = true;
+  for (const key in keys) {
+    if (Object.prototype.hasOwnProperty.call(keys, key)) {
+      if (typeof keys[key] !== 'string') {
+        console.error(`  [ERROR] Key '${key}' in '${locale}.json' has a non-string value. Type: ${typeof keys[key]}`);
+        isValid = false;
+      }
+    }
+  }
+  return isValid;
+}
+
+// =================================================================
+// Main Script
+// =================================================================
+
+function checkTranslations() {
+  console.log('======================================');
+  console.log(' Running Translation Integrity Check ');
+  console.log('======================================\n');
+  
+  // Load source locale
+  const sourcePath = path.join(config.localesDir, `${config.sourceLocale}.json`);
+  const sourceTranslations = loadTranslations(sourcePath);
+
+  if (!sourceTranslations) {
+    console.error(`Aborting: Could not load source locale file '${config.sourceLocale}.json'`);
+    return;
+  }
+
+  // Find all used keys in the source code
+  console.log('Collecting keys from source code...');
+  const usedKeys = collectAllKeys(config.sourceCodeDir);
+  console.log(`Found ${usedKeys.size} keys in total.`);
+  console.log('--------------------------------------\n');
+  
+  // Check the source locale file itself
+  console.log(`Checking source locale file: '${config.sourceLocale}.json'`);
+  if (!checkKeyTypes(sourceTranslations, config.sourceLocale)) {
+      console.error(`\nSource locale file '${config.sourceLocale}.json' has type errors. Please fix them.`);
+      return;
+  }
+  
+  for (const key of Object.keys(sourceTranslations)) {
+      if (!usedKeys.has(key)) {
+          console.warn(`  [WARNING] Unused key in source locale: '${key}'`);
+      }
+  }
+  console.log(`\nSource locale file '${config.sourceLocale}.json' is valid.`);
+  console.log('--------------------------------------\n');
+
+  // Load and check other locale files
+  const otherLocaleFiles = fs.readdirSync(config.localesDir)
+    .filter(file => file.endsWith('.json') && !file.startsWith(config.sourceLocale));
+
+  otherLocaleFiles.forEach(file => {
+    const localeName = file.split('.')[0];
+    const filePath = path.join(config.localesDir, file);
+    const translations = loadTranslations(filePath);
+
+    if (translations) {
+      if (checkKeyTypes(translations, localeName)) {
+        checkKeysExist(sourceTranslations, translations, localeName, usedKeys);
+      } else {
+        console.error(`\nAborting check for '${localeName}.json' due to type errors.`);
+      }
+      console.log('--------------------------------------\n');
+    }
+  });
+  
+  console.log('Translation check finished.');
+}
+
+checkTranslations();
