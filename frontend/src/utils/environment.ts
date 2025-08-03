@@ -7,7 +7,7 @@
 interface EnvironmentVariables {
   NODE_ENV: 'development' | 'production' | 'test';
   REACT_APP_API_URL: string;
-  REACT_APP_USE_MOCK_API: string;
+  REACT_APP_USE_MOCK_DATA: string;
   REACT_APP_CACHE_ENABLED: string;
 }
 
@@ -15,7 +15,7 @@ interface EnvironmentVariables {
 const defaultEnv: EnvironmentVariables = {
   NODE_ENV: 'development',
   REACT_APP_API_URL: 'https://api.indowater.com',
-  REACT_APP_USE_MOCK_API: 'false',
+  REACT_APP_USE_MOCK_DATA: 'false',
   REACT_APP_CACHE_ENABLED: 'true',
 };
 
@@ -78,7 +78,7 @@ export const isTest = (): boolean => getEnv('NODE_ENV') === 'test';
 /**
  * Check if mock API should be used
  */
-export const useMockApi = (): boolean => getEnv('REACT_APP_USE_MOCK_API') === 'true';
+export const useMockApi = (): boolean => getEnv('REACT_APP_USE_MOCK_DATA') === 'true';
 
 /**
  * Check if caching is enabled

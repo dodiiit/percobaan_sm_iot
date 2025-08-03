@@ -12,8 +12,7 @@ import {
   ClockIcon,
   BanknotesIcon
 } from '@heroicons/react/24/outline';
-import api from '../../../services/api';
-import { mockApi, shouldUseMockApi } from '../../../services/mockApi';
+import { meterAPI } from '../../../services/api';
 import { toast } from 'react-toastify';
 
 interface Meter {
@@ -126,6 +125,7 @@ const BatteryLevelIndicator: React.FC<{ level: number }> = ({ level }) => {
 const Meters: React.FC = () => {
   const [meters, setMeters] = useState<Meter[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedMeter, setSelectedMeter] = useState<Meter | null>(null);
   const [showMeterDetails, setShowMeterDetails] = useState<boolean>(false);
 
@@ -136,74 +136,59 @@ const Meters: React.FC = () => {
   const fetchMeters = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      let response;
+      // Use real API
+      const response = await meterAPI.getCustomerMeters();
       
-      if (shouldUseMockApi()) {
-        // Use mock data
-        response = {
-          data: {
-            status: 'success',
-            data: [
-              {
-                id: 'meter-001',
-                meter_number: 'M-001',
-                location: 'Main House',
-                installation_date: '2024-05-15',
-                last_reading_date: '2025-07-30',
-                credit_balance: 75000,
-                status: 'active',
-                last_reading: 1250,
-                daily_average: 42,
-                monthly_average: 1260,
-                signal_strength: 85,
-                battery_level: 72,
-                firmware_version: '2.3.1'
-              },
-              {
-                id: 'meter-002',
-                meter_number: 'M-002',
-                location: 'Garden',
-                installation_date: '2024-05-15',
-                last_reading_date: '2025-07-30',
-                credit_balance: 25000,
-                status: 'low_credit',
-                last_reading: 850,
-                daily_average: 28,
-                monthly_average: 840,
-                signal_strength: 92,
-                battery_level: 65,
-                firmware_version: '2.3.1'
-              },
-              {
-                id: 'meter-003',
-                meter_number: 'M-003',
-                location: 'Pool House',
-                installation_date: '2024-06-10',
-                last_reading_date: '2025-07-29',
-                credit_balance: 120000,
-                status: 'active',
-                last_reading: 3200,
-                daily_average: 107,
-                monthly_average: 3210,
-                signal_strength: 78,
-                battery_level: 88,
-                firmware_version: '2.3.1'
-              }
-            ]
-          }
-        };
+      if (response.data && response.data.status === 'success') {
+        const metersData = response.data.data || [];
+        setMeters(metersData);
       } else {
-        // Use real API
-        response = await api.get('/meters/my-meters');
+        throw new Error(response.data?.message || 'Failed to fetch meters data');
       }
-      
-      if (response.data.status === 'success') {
-        setMeters(response.data.data);
-      }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching meters:', error);
-      toast.error('Failed to load meters. Please try again.');
+      
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load meters. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      
+      // Fallback data for development/testing
+      const fallbackMeters = [
+        {
+          id: 'meter-001',
+          meter_number: 'WM-001234',
+          location: 'Main House',
+          installation_date: '2024-05-15',
+          last_reading_date: '2025-07-30',
+          credit_balance: 75000,
+          status: 'active',
+          last_reading: 1250,
+          daily_average: 42,
+          monthly_average: 1260,
+          signal_strength: 85,
+          battery_level: 72,
+          firmware_version: '2.3.1'
+        },
+        {
+          id: 'meter-002',
+          meter_number: 'WM-005678',
+          location: 'Garden',
+          installation_date: '2024-05-15',
+          last_reading_date: '2025-07-30',
+          credit_balance: 25000,
+          status: 'low_credit',
+          last_reading: 850,
+          daily_average: 28,
+          monthly_average: 840,
+          signal_strength: 92,
+          battery_level: 65,
+          firmware_version: '2.3.1'
+        }
+      ];
+      
+      setMeters(fallbackMeters);
     } finally {
       setLoading(false);
     }
@@ -212,22 +197,20 @@ const Meters: React.FC = () => {
   const handleRefreshMeter = async (meterId: string) => {
     try {
       setLoading(true);
+      setError(null);
       
-      // In a real app, this would call the API to refresh meter data
-      if (!shouldUseMockApi()) {
-        await api.post(`/meters/${meterId}/refresh`);
-      }
-      
-      // Simulate a delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call the API to refresh meter data
+      await meterAPI.getStatus(meterId);
       
       // Refresh all meters
       await fetchMeters();
       
       toast.success('Meter data refreshed successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error refreshing meter:', error);
-      toast.error('Failed to refresh meter data. Please try again.');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to refresh meter data. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -263,12 +246,38 @@ const Meters: React.FC = () => {
             type="button"
             onClick={() => fetchMeters()}
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600"
+            disabled={loading}
           >
-            <ArrowPathIcon className="-ml-1 mr-2 h-5 w-5 text-gray-500 dark:text-gray-400" />
-            Refresh All
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500 mr-2"></div>
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <ArrowPathIcon className="-ml-1 mr-2 h-5 w-5 text-gray-500 dark:text-gray-400" />
+                Refresh All
+              </>
+            )}
           </button>
         </div>
       </div>
+      
+      {/* Error display */}
+      {error && (
+        <div className="mb-6 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700 dark:text-red-300">
+                {error}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
@@ -360,9 +369,16 @@ const Meters: React.FC = () => {
                     handleRefreshMeter(meter.id);
                   }}
                   className="inline-flex items-center px-2.5 py-1.5 border border-gray-300 shadow-sm text-xs font-medium rounded text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white dark:hover:bg-gray-500"
+                  disabled={loading}
                 >
-                  <ArrowPathIcon className="h-3 w-3 mr-1" />
-                  Refresh
+                  {loading ? (
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-500"></div>
+                  ) : (
+                    <>
+                      <ArrowPathIcon className="h-3 w-3 mr-1" />
+                      Refresh
+                    </>
+                  )}
                 </button>
               </div>
             </div>
