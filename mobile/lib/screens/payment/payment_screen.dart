@@ -5,7 +5,7 @@ import '../../models/payment.dart';
 import '../../models/water_meter.dart';
 import '../../services/api_service.dart';
 import '../../services/notification_service.dart';
-import '../qr/qr_generator_screen.dart';
+// import '../qr/qr_generator_screen.dart'; // Unused import
 import 'payment_confirmation_screen.dart';
 
 class PaymentScreen extends StatefulWidget {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
-import 'package:share_plus/share_plus.dart';
+// import 'package:share_plus/share_plus.dart'; // Removed - not in pubspec.yaml
 import '../../services/qr_service.dart';
 
 class QRGeneratorScreen extends StatefulWidget {
@@ -529,9 +529,13 @@ class _QRGeneratorScreenState extends State<QRGeneratorScreen>
   }
 
   void _shareQRCode() {
-    Share.share(
-      widget.qrData,
-      subject: widget.title,
+    // Copy QR data to clipboard since share_plus is not available
+    Clipboard.setData(ClipboardData(text: widget.qrData));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('QR data copied to clipboard'),
+        duration: Duration(seconds: 2),
+      ),
     );
   }
 

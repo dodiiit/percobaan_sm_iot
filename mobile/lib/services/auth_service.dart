@@ -1,14 +1,14 @@
 import 'dart:convert';
-import 'package:dio/dio.dart';
-import 'package:indowater_mobile/services/api_service.dart';
-import 'package:indowater_mobile/services/storage_service.dart';
-import 'package:indowater_mobile/models/user.dart';
+// import 'package:dio/dio.dart'; // Unused import
+import '../services/api_service.dart';
+import '../services/storage_service.dart';
+import '../models/user.dart';
 
 class AuthService {
-  final ApiService _apiService;
-  final StorageService _storageService;
+  final ApiService _apiService = ApiService();
+  final StorageService _storageService = StorageService();
   
-  AuthService(this._apiService, this._storageService);
+  AuthService();
   
   // Login
   Future<Map<String, dynamic>> login(String email, String password) async {

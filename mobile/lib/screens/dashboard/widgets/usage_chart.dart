@@ -187,7 +187,7 @@ class _UsageChartState extends State<UsageChart> {
         lineTouchData: LineTouchData(
           enabled: true,
           touchTooltipData: LineTouchTooltipData(
-            tooltipBgColor: Colors.blue[600],
+            tooltipBgColor: Colors.blue[600] ?? Colors.blue,
             tooltipRoundedRadius: 8,
             getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
               return touchedBarSpots.map((barSpot) {

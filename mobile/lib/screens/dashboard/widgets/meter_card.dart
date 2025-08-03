@@ -297,9 +297,9 @@ class MeterCard extends StatelessWidget {
       case 'strong':
         return Icons.signal_cellular_4_bar;
       case 'medium':
-        return Icons.signal_cellular_2_bar;
+        return Icons.network_wifi_3_bar;
       case 'weak':
-        return Icons.signal_cellular_1_bar;
+        return Icons.network_wifi_1_bar;
       default:
         return Icons.signal_cellular_off;
     }
