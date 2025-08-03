@@ -1,35 +1,52 @@
+import { vi } from 'vitest';
 import axios from 'axios';
 import { CachedApi } from '../../services/CachedApi';
 import { CacheService, CacheStorage } from '../../services/CacheService';
 
 // Mock axios
-jest.mock('axios');
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+vi.mock('axios', async () => {
+  const actual = await vi.importActual('axios');
+  return {
+    ...actual,
+    default: {
+      create: vi.fn(() => ({
+        interceptors: {
+          request: { use: vi.fn() },
+          response: { use: vi.fn() },
+        },
+        get: vi.fn(),
+        post: vi.fn(),
+        put: vi.fn(),
+        delete: vi.fn(),
+      })),
+    },
+  };
+});
 
 // Mock CacheService
-jest.mock('../../services/CacheService');
-const MockedCacheService = CacheService as jest.MockedClass<typeof CacheService>;
+vi.mock('../../services/CacheService');
+const MockedCacheService = CacheService as any;
 
 describe('CachedApi', () => {
   let cachedApi: CachedApi;
-  let mockCacheService: jest.Mocked<CacheService>;
+  let mockCacheService: any;
 
   beforeEach(() => {
     // Reset mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Create mock cache service instance
     mockCacheService = {
-      get: jest.fn(),
-      set: jest.fn(),
-      delete: jest.fn(),
-      has: jest.fn(),
-      clear: jest.fn(),
-      getStats: jest.fn(),
-      invalidateByPattern: jest.fn(),
-      invalidateByTags: jest.fn(),
-      getTTL: jest.fn(),
-      extendTTL: jest.fn()
+      get: vi.fn(),
+      set: vi.fn(),
+      delete: vi.fn(),
+      has: vi.fn(),
+      clear: vi.fn(),
+      getStats: vi.fn(),
+      invalidateByPattern: vi.fn(),
+      invalidateByTags: vi.fn(),
+      getTTL: vi.fn(),
+      extendTTL: vi.fn()
     } as any;
 
     MockedCacheService.mockImplementation(() => mockCacheService);

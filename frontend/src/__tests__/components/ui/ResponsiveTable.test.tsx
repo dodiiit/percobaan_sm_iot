@@ -1,9 +1,10 @@
 import React from 'react';
+import { vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ResponsiveTable from '../../../components/ui/ResponsiveTable';
 
 // Mock the useResponsive hook
-jest.mock('../../../hooks/useResponsive', () => ({
+vi.mock('../../../hooks/useResponsive', () => ({
   useResponsive: () => ({
     isMobile: false,
     isTablet: false,
@@ -25,7 +26,7 @@ describe('ResponsiveTable', () => {
     { header: 'Value', accessor: 'value' as const }
   ];
   
-  const mockOnRowClick = jest.fn();
+  const mockOnRowClick = vi.fn();
   
   beforeEach(() => {
     mockOnRowClick.mockClear();

@@ -1,35 +1,42 @@
+import { vi } from 'vitest';
 import axios from 'axios';
 import api from '../../services/api';
 
 // Mock axios
-jest.mock('axios', () => ({
-  create: jest.fn(() => ({
-    interceptors: {
-      request: {
-        use: jest.fn(),
-      },
-      response: {
-        use: jest.fn(),
-      },
+vi.mock('axios', async () => {
+  const actual = await vi.importActual('axios');
+  return {
+    ...actual,
+    default: {
+      create: vi.fn(() => ({
+        interceptors: {
+          request: {
+            use: vi.fn(),
+          },
+          response: {
+            use: vi.fn(),
+          },
+        },
+        get: vi.fn(),
+        post: vi.fn(),
+        put: vi.fn(),
+        delete: vi.fn(),
+      })),
     },
-    get: jest.fn(),
-    post: jest.fn(),
-    put: jest.fn(),
-    delete: jest.fn(),
-  })),
-}));
+  };
+});
 
 describe('API Service', () => {
   beforeEach(() => {
     // Clear all mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     
     // Mock localStorage
     Object.defineProperty(window, 'localStorage', {
       value: {
-        getItem: jest.fn(),
-        setItem: jest.fn(),
-        removeItem: jest.fn(),
+        getItem: vi.fn(),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
       },
       writable: true,
     });
@@ -37,9 +44,9 @@ describe('API Service', () => {
     // Mock sessionStorage
     Object.defineProperty(window, 'sessionStorage', {
       value: {
-        getItem: jest.fn(),
-        setItem: jest.fn(),
-        removeItem: jest.fn(),
+        getItem: vi.fn(),
+        setItem: vi.fn(),
+        removeItem: vi.fn(),
       },
       writable: true,
     });

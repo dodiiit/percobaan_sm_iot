@@ -1,9 +1,10 @@
 import React from 'react';
+import { vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import ResponsiveCard from '../../../components/ui/ResponsiveCard';
 
 describe('ResponsiveCard', () => {
-  const mockOnClick = jest.fn();
+  const mockOnClick = vi.fn();
   
   beforeEach(() => {
     mockOnClick.mockClear();

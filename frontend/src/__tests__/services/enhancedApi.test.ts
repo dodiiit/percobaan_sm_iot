@@ -2,15 +2,25 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import axios, { AxiosError } from 'axios';
 
 // Mock axios
-vi.mock('axios', () => ({
-  create: vi.fn(() => ({
-    interceptors: {
-      request: { use: vi.fn() },
-      response: { use: vi.fn() },
+vi.mock('axios', async () => {
+  const actual = await vi.importActual('axios');
+  return {
+    ...actual,
+    default: {
+      create: vi.fn(() => ({
+        interceptors: {
+          request: { use: vi.fn() },
+          response: { use: vi.fn() },
+        },
+        request: vi.fn(),
+        get: vi.fn(),
+        post: vi.fn(),
+        put: vi.fn(),
+        delete: vi.fn(),
+      })),
     },
-    request: vi.fn(),
-  })),
-}));
+  };
+});
 
 // Import after mocking
 const { enhancedApi, loadingStateManager } = await import('../../services/enhancedApi');

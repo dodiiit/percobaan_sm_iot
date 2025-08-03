@@ -1,23 +1,24 @@
+import { vi } from 'vitest';
 import { CacheService, CacheConfig, CacheStorage } from '../../services/CacheService';
 
 // Mock localStorage and sessionStorage
 const mockStorage = () => {
   let store: { [key: string]: string } = {};
   return {
-    getItem: jest.fn((key: string) => store[key] || null),
-    setItem: jest.fn((key: string, value: string) => {
+    getItem: vi.fn((key: string) => store[key] || null),
+    setItem: vi.fn((key: string, value: string) => {
       store[key] = value;
     }),
-    removeItem: jest.fn((key: string) => {
+    removeItem: vi.fn((key: string) => {
       delete store[key];
     }),
-    clear: jest.fn(() => {
+    clear: vi.fn(() => {
       store = {};
     }),
     get length() {
       return Object.keys(store).length;
     },
-    key: jest.fn((index: number) => Object.keys(store)[index] || null)
+    key: vi.fn((index: number) => Object.keys(store)[index] || null)
   };
 };
 
@@ -41,7 +42,7 @@ describe('CacheService', () => {
 
   beforeEach(() => {
     cacheService = new CacheService(mockConfig);
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
@@ -172,7 +173,7 @@ describe('CacheService', () => {
       const data = { message: 'Error test' };
 
       // Mock localStorage.setItem to throw an error
-      (localStorage.setItem as jest.Mock).mockImplementation(() => {
+      (localStorage.setItem as any).mockImplementation(() => {
         throw new Error('Storage quota exceeded');
       });
 
@@ -326,14 +327,14 @@ describe('CacheService', () => {
       
       // Manually set invalid JSON in localStorage
       if (mockConfig.storage === CacheStorage.LOCAL_STORAGE) {
-        (localStorage.setItem as jest.Mock).mockImplementation((k, v) => {
+        (localStorage.setItem as any).mockImplementation((k, v) => {
           if (k === key) {
             // Simulate corrupted data
             return 'invalid-json-data';
           }
         });
         
-        (localStorage.getItem as jest.Mock).mockImplementation((k) => {
+        (localStorage.getItem as any).mockImplementation((k) => {
           if (k === key) {
             return 'invalid-json-data';
           }
@@ -352,7 +353,7 @@ describe('CacheService', () => {
       });
 
       // Mock localStorage.setItem to throw quota exceeded error
-      (localStorage.setItem as jest.Mock).mockImplementation(() => {
+      (localStorage.setItem as any).mockImplementation(() => {
         throw new DOMException('QuotaExceededError');
       });
 
