@@ -9,8 +9,7 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
-import api from '../../../services/api';
-import { mockApi, shouldUseMockApi } from '../../../services/mockApi';
+import { meterAPI } from '../../../services/api';
 import { toast } from 'react-toastify';
 import { Line, Bar } from 'react-chartjs-2';
 import {
@@ -260,6 +259,7 @@ const Consumption: React.FC = () => {
   });
   const [stats, setStats] = useState<ConsumptionStats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchMeters();
@@ -274,47 +274,46 @@ const Consumption: React.FC = () => {
   const fetchMeters = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      let response;
+      // Use real API
+      const response = await meterAPI.getCustomerMeters();
       
-      if (shouldUseMockApi()) {
-        // Use mock data
-        response = {
-          data: {
-            status: 'success',
-            data: [
-              {
-                id: 'meter-001',
-                meter_number: 'M-001',
-                location: 'Main House'
-              },
-              {
-                id: 'meter-002',
-                meter_number: 'M-002',
-                location: 'Garden'
-              },
-              {
-                id: 'meter-003',
-                meter_number: 'M-003',
-                location: 'Pool House'
-              }
-            ]
-          }
-        };
-      } else {
-        // Use real API
-        response = await api.get('/meters/my-meters');
-      }
-      
-      if (response.data.status === 'success') {
-        setMeters(response.data.data);
-        if (response.data.data.length > 0) {
-          setSelectedMeter(response.data.data[0].id);
+      if (response.data && response.data.status === 'success') {
+        const metersData = response.data.data || [];
+        setMeters(metersData);
+        
+        if (metersData.length > 0) {
+          setSelectedMeter(metersData[0].id);
+        } else {
+          setError('No meters found for your account. Please contact customer support.');
         }
+      } else {
+        throw new Error(response.data?.message || 'Failed to fetch meters data');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching meters:', error);
-      toast.error('Failed to load meters. Please try again.');
+      
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load meters. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      
+      // Fallback data for development/testing
+      const fallbackMeters = [
+        {
+          id: 'meter-001',
+          meter_number: 'WM-001234',
+          location: 'Main House'
+        },
+        {
+          id: 'meter-002',
+          meter_number: 'WM-005678',
+          location: 'Garden'
+        }
+      ];
+      
+      setMeters(fallbackMeters);
+      setSelectedMeter(fallbackMeters[0].id);
     } finally {
       setLoading(false);
     }
@@ -323,48 +322,54 @@ const Consumption: React.FC = () => {
   const fetchConsumptionData = async (meterId: string) => {
     try {
       setLoading(true);
+      setError(null);
       
-      let response;
+      // Use real API
+      const response = await meterAPI.getConsumption(meterId, { range: timeRange });
       
-      if (shouldUseMockApi()) {
-        // Generate mock data
-        const mockData = generateMockConsumptionData();
-        response = {
-          data: {
-            status: 'success',
-            data: {
-              consumption: mockData,
-              stats: {
-                total_consumption: 12560,
-                average_daily: 42,
-                peak_usage: {
-                  value: 78,
-                  date: '2025-07-25'
-                },
-                lowest_usage: {
-                  value: 22,
-                  date: '2025-07-19'
-                },
-                change_percentage: -8.5,
-                estimated_monthly: 1260,
-                water_saved: 120,
-                carbon_footprint: 3.2
-              }
-            }
-          }
+      if (response.data && response.data.status === 'success') {
+        const consumptionData = response.data.data.consumption || {
+          daily: { labels: [], values: [] },
+          weekly: { labels: [], values: [] },
+          monthly: { labels: [], values: [] },
+          yearly: { labels: [], values: [] }
         };
+        
+        const statsData = response.data.data.stats || null;
+        
+        setConsumptionData(consumptionData);
+        setStats(statsData);
       } else {
-        // Use real API
-        response = await api.get(`/meters/${meterId}/consumption?range=${timeRange}`);
+        throw new Error(response.data?.message || 'Failed to fetch consumption data');
       }
-      
-      if (response.data.status === 'success') {
-        setConsumptionData(response.data.data.consumption);
-        setStats(response.data.data.stats);
-      }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching consumption data:', error);
-      toast.error('Failed to load consumption data. Please try again.');
+      
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load consumption data. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      
+      // Generate fallback data for development/testing
+      const fallbackData = generateMockConsumptionData();
+      setConsumptionData(fallbackData);
+      
+      // Fallback stats
+      setStats({
+        total_consumption: 12560,
+        average_daily: 42,
+        peak_usage: {
+          value: 78,
+          date: '2025-07-25'
+        },
+        lowest_usage: {
+          value: 22,
+          date: '2025-07-19'
+        },
+        change_percentage: -8.5,
+        estimated_monthly: 1260,
+        water_saved: 120,
+        carbon_footprint: 3.2
+      });
     } finally {
       setLoading(false);
     }
@@ -420,12 +425,38 @@ const Consumption: React.FC = () => {
             type="button"
             onClick={() => selectedMeter && fetchConsumptionData(selectedMeter)}
             className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600"
+            disabled={loading}
           >
-            <ArrowPathIcon className="-ml-1 mr-2 h-5 w-5 text-gray-500 dark:text-gray-400" />
-            Refresh
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500 mr-2"></div>
+                Refreshing...
+              </>
+            ) : (
+              <>
+                <ArrowPathIcon className="-ml-1 mr-2 h-5 w-5 text-gray-500 dark:text-gray-400" />
+                Refresh
+              </>
+            )}
           </button>
         </div>
       </div>
+      
+      {/* Error display */}
+      {error && (
+        <div className="mb-6 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <ExclamationTriangleIcon className="h-5 w-5 text-red-500" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700 dark:text-red-300">
+                {error}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg mb-6">
         <div className="px-4 py-5 sm:p-6">
