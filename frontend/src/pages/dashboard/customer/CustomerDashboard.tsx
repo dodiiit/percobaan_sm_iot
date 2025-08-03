@@ -9,7 +9,7 @@ import {
   BanknotesIcon,
   BeakerIcon
 } from '@heroicons/react/24/outline';
-import api from '../../../services/api';
+import { dashboardAPI, meterAPI } from '../../../services/api';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -43,31 +43,52 @@ ChartJS.register(
 );
 
 // Water Usage Chart Component
-const WaterUsageChart: React.FC = () => {
+const WaterUsageChart: React.FC<{ chartData?: any }> = ({ chartData: propChartData }) => {
   const [chartData, setChartData] = useState<any>({
     labels: [],
     datasets: []
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // If chart data is provided as a prop, use it
+    if (propChartData && propChartData.labels && propChartData.datasets) {
+      setChartData(propChartData);
+      setLoading(false);
+      return;
+    }
+    
+    // Otherwise fetch from API
     const fetchChartData = async () => {
       try {
         setLoading(true);
+        setError(null);
         
-        // In a real app, this would fetch from the API
-        // For now, we'll use mock data
-        const mockData = {
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-          values: [120, 145, 132, 158, 142, 190, 210]
-        };
+        // Fetch chart data from the API
+        const response = await dashboardAPI.getCharts();
         
+        if (response.data && response.data.status === 'success') {
+          const usageData = response.data.data.water_usage || {};
+          
+          setChartData({
+            labels: usageData.labels || [],
+            datasets: usageData.datasets || []
+          });
+        } else {
+          throw new Error('Failed to fetch chart data');
+        }
+      } catch (error) {
+        console.error('Error fetching chart data:', error);
+        setError('Failed to load chart data');
+        
+        // Fallback data
         setChartData({
-          labels: mockData.labels,
+          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
           datasets: [
             {
               label: 'Water Usage (Liters)',
-              data: mockData.values,
+              data: [120, 145, 132, 158, 142, 190, 210],
               borderColor: 'rgb(59, 130, 246)',
               backgroundColor: 'rgba(59, 130, 246, 0.1)',
               tension: 0.4,
@@ -80,15 +101,13 @@ const WaterUsageChart: React.FC = () => {
             }
           ]
         });
-      } catch (error) {
-        console.error('Error fetching chart data:', error);
       } finally {
         setLoading(false);
       }
     };
 
     fetchChartData();
-  }, []);
+  }, [propChartData]);
 
   const options = {
     responsive: true,
@@ -153,7 +172,9 @@ const CustomerOverview: React.FC = () => {
     averageDailyUsage: 0
   });
   const [recentReadings, setRecentReadings] = useState([]);
+  const [usageChartData, setUsageChartData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -162,30 +183,50 @@ const CustomerOverview: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      // Fetch customer-specific dashboard data
-      const [metersRes, paymentsRes, readingsRes] = await Promise.all([
-        api.get('/meters/my-meters'),
-        api.get('/payments/my-payments'),
-        api.get('/meters/my-readings')
-      ]);
-
-      const meters = metersRes.data.data || [];
-      const payments = paymentsRes.data.data || [];
-      const readings = readingsRes.data.data || [];
-
-      setStats({
-        totalMeters: meters.length,
-        totalCredit: meters.reduce((sum: number, m: any) => sum + (m.credit_balance || 0), 0),
-        monthlyUsage: readings.reduce((sum: number, r: any) => sum + (r.consumption || 0), 0),
-        lastPayment: payments.length > 0 ? payments[0].amount : 0,
-        activeMeters: meters.filter((m: any) => m.status === 'active').length,
-        lowCreditMeters: meters.filter((m: any) => m.credit_balance < 50000).length,
-        averageDailyUsage: readings.length > 0 ? readings.reduce((sum: number, r: any) => sum + (r.consumption || 0), 0) / readings.length : 0
-      });
-
-      setRecentReadings(readings.slice(0, 5));
+      setError(null);
+      
+      // Fetch customer dashboard data from the API
+      const response = await dashboardAPI.getCustomerDashboard();
+      
+      if (response.data && response.data.status === 'success') {
+        const dashboardData = response.data.data;
+        
+        setStats({
+          totalMeters: dashboardData.meters.total || 0,
+          totalCredit: dashboardData.credit.total || 0,
+          monthlyUsage: dashboardData.usage.monthly || 0,
+          lastPayment: dashboardData.payments.last_amount || 0,
+          activeMeters: dashboardData.meters.active || 0,
+          lowCreditMeters: dashboardData.meters.low_credit || 0,
+          averageDailyUsage: dashboardData.usage.daily_average || 0
+        });
+        
+        setRecentReadings(dashboardData.recent_readings || []);
+        setUsageChartData(dashboardData.usage_chart || null);
+      } else {
+        throw new Error('Failed to fetch dashboard data');
+      }
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
+      setError('Failed to load dashboard data. Please try again later.');
+      
+      // Set fallback data for development/testing
+      setStats({
+        totalMeters: 2,
+        totalCredit: 150000,
+        monthlyUsage: 1250,
+        lastPayment: 100000,
+        activeMeters: 2,
+        lowCreditMeters: 1,
+        averageDailyUsage: 42
+      });
+      
+      // Mock readings data
+      setRecentReadings([
+        { meter_id: 'WM-001234', consumption: 45, created_at: new Date().toISOString() },
+        { meter_id: 'WM-001234', consumption: 42, created_at: new Date(Date.now() - 86400000).toISOString() },
+        { meter_id: 'WM-001234', consumption: 38, created_at: new Date(Date.now() - 172800000).toISOString() }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -325,8 +366,13 @@ const CustomerOverview: React.FC = () => {
             <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
               Daily Water Usage
             </h3>
+            {error && (
+              <div className="text-red-500 mt-2 mb-4 p-3 bg-red-50 rounded-md">
+                {error}
+              </div>
+            )}
             <div className="mt-5 h-64">
-              <WaterUsageChart />
+              <WaterUsageChart chartData={usageChartData} />
             </div>
           </div>
         </div>
@@ -337,6 +383,11 @@ const CustomerOverview: React.FC = () => {
             <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white">
               Recent Readings
             </h3>
+            {error && (
+              <div className="text-red-500 mt-2 mb-4 p-3 bg-red-50 rounded-md">
+                {error}
+              </div>
+            )}
             <div className="mt-5">
               <div className="flow-root">
                 <ul className="-mb-8">

@@ -2,7 +2,7 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosR
 
 // Create axios instance with base configuration
 const api: AxiosInstance = axios.create({
-  baseURL: '/api',
+  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -81,65 +81,101 @@ export const authAPI = {
 // User API
 export const userAPI = {
   getProfile: () => 
-    api.get('/api/users/me'),
+    api.get('/users/me'),
   updateProfile: (userData: any) => 
-    api.put('/api/users/me', userData),
+    api.put('/users/me', userData),
   changePassword: (passwordData: { current_password: string; password: string; password_confirmation: string }) => 
-    api.put('/api/users/me/password', passwordData),
+    api.put('/users/me/password', passwordData),
 };
 
 // Meter API
 export const meterAPI = {
   getMeters: (params = {}) => 
-    api.get('/api/meters', { params }),
+    api.get('/meters', { params }),
   getMeter: (id: string) => 
-    api.get(`/api/meters/${id}`),
+    api.get(`/meters/${id}`),
   getBalance: (id: string) => 
-    api.get(`/api/meters/${id}/balance`),
+    api.get(`/meters/${id}/balance`),
   getConsumption: (id: string, params = {}) => 
-    api.get(`/api/meters/${id}/consumption`, { params }),
+    api.get(`/meters/${id}/consumption`, { params }),
   getCredits: (id: string, params = {}) => 
-    api.get(`/api/meters/${id}/credits`, { params }),
+    api.get(`/meters/${id}/credits`, { params }),
   topup: (id: string, amount: number, description: string) => 
-    api.post(`/api/meters/${id}/topup`, { amount, description }),
+    api.post(`/meters/${id}/topup`, { amount, description }),
   getStatus: (id: string) => 
-    api.get(`/api/meters/${id}/status`),
+    api.get(`/meters/${id}/status`),
+  getCustomerMeters: () => 
+    api.get('/meters/my-meters'),
+  getReadings: (id: string, params = {}) => 
+    api.get(`/meters/${id}/readings`, { params }),
+  getCustomerReadings: (params = {}) => 
+    api.get('/meters/my-readings', { params }),
+  getAlerts: (id: string, params = {}) => 
+    api.get(`/meters/${id}/alerts`, { params }),
+  getCustomerAlerts: (params = {}) => 
+    api.get('/meters/my-alerts', { params }),
 };
 
 // Payment API
 export const paymentAPI = {
   getPayments: (params = {}) => 
-    api.get('/api/payments', { params }),
+    api.get('/payments', { params }),
   getPayment: (id: string) => 
-    api.get(`/api/payments/${id}`),
+    api.get(`/payments/${id}`),
   createPayment: (paymentData: any) => 
-    api.post('/api/payments', paymentData),
+    api.post('/payments', paymentData),
   checkPaymentStatus: (id: string) => 
-    api.get(`/api/payments/${id}/status`),
+    api.get(`/payments/${id}/status`),
   getSummary: () => 
-    api.get('/api/payments/summary'),
+    api.get('/payments/summary'),
+  getCustomerPayments: (params = {}) => 
+    api.get('/payments/my-payments', { params }),
+  createTopupPayment: (paymentData: any) => 
+    api.post('/payments/topup', paymentData),
+  getPaymentMethods: () => 
+    api.get('/payments/methods'),
+  getPaymentReceipt: (id: string) => 
+    api.get(`/payments/${id}/receipt`),
+  cancelPayment: (id: string) => 
+    api.post(`/payments/${id}/cancel`),
+  getPaymentHistory: (meterId: string, params = {}) => 
+    api.get(`/payments/history/${meterId}`, { params }),
 };
 
 // Real-time API
 export const realtimeAPI = {
   getMeterUpdates: (meterId: string) => 
-    api.get(`/api/realtime/poll/updates?meter_id=${meterId}`),
+    api.get(`/realtime/poll/updates?meter_id=${meterId}`),
   getNotifications: () => 
-    api.get('/api/realtime/poll/updates?type=notifications'),
+    api.get('/realtime/poll/updates?type=notifications'),
 };
 
 // Property API
 export const propertyAPI = {
   getProperties: (params = {}) => 
-    api.get('/api/properties', { params }),
+    api.get('/properties', { params }),
   getProperty: (id: string) => 
-    api.get(`/api/properties/${id}`),
+    api.get(`/properties/${id}`),
   createProperty: (propertyData: any) => 
-    api.post('/api/properties', propertyData),
+    api.post('/properties', propertyData),
   updateProperty: (id: string, propertyData: any) => 
-    api.put(`/api/properties/${id}`, propertyData),
+    api.put(`/properties/${id}`, propertyData),
   deleteProperty: (id: string) => 
-    api.delete(`/api/properties/${id}`),
+    api.delete(`/properties/${id}`),
+};
+
+// Dashboard API
+export const dashboardAPI = {
+  getSuperadminDashboard: () => 
+    api.get('/dashboard/superadmin'),
+  getClientDashboard: () => 
+    api.get('/dashboard/client'),
+  getCustomerDashboard: () => 
+    api.get('/dashboard/customer'),
+  getStats: () => 
+    api.get('/dashboard/stats'),
+  getCharts: () => 
+    api.get('/dashboard/charts'),
 };
 
 export default api;

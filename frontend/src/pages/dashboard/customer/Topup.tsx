@@ -6,10 +6,10 @@ import {
   BuildingLibraryIcon,
   DevicePhoneMobileIcon,
   CheckCircleIcon,
-  BeakerIcon
+  BeakerIcon,
+  ExclamationCircleIcon
 } from '@heroicons/react/24/outline';
-import api from '../../../services/api';
-import { mockApi, shouldUseMockApi } from '../../../services/mockApi';
+import { meterAPI, paymentAPI } from '../../../services/api';
 import { toast } from 'react-toastify';
 
 interface Meter {
@@ -36,6 +36,7 @@ const Topup: React.FC = () => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string>('');
   const [paymentSuccess, setPaymentSuccess] = useState<boolean>(false);
   const [transactionId, setTransactionId] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const paymentMethods: PaymentMethod[] = [
@@ -54,46 +55,50 @@ const Topup: React.FC = () => {
   const fetchMeters = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      let response;
+      // Use real API
+      const response = await meterAPI.getCustomerMeters();
       
-      if (shouldUseMockApi()) {
-        // Use mock data
-        response = {
-          data: {
-            status: 'success',
-            data: [
-              {
-                id: 'meter-001',
-                meter_number: 'M-001',
-                location: 'Main House',
-                credit_balance: 75000,
-                status: 'active'
-              },
-              {
-                id: 'meter-002',
-                meter_number: 'M-002',
-                location: 'Garden',
-                credit_balance: 25000,
-                status: 'active'
-              }
-            ]
-          }
-        };
-      } else {
-        // Use real API
-        response = await api.get('/meters/my-meters');
-      }
-      
-      if (response.data.status === 'success') {
-        setMeters(response.data.data);
-        if (response.data.data.length > 0) {
-          setSelectedMeter(response.data.data[0].id);
+      if (response.data && response.data.status === 'success') {
+        const metersData = response.data.data || [];
+        setMeters(metersData);
+        
+        if (metersData.length > 0) {
+          setSelectedMeter(metersData[0].id);
+        } else {
+          setError('No meters found for your account. Please contact customer support.');
         }
+      } else {
+        throw new Error(response.data?.message || 'Failed to fetch meters data');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching meters:', error);
-      toast.error('Failed to load meters. Please try again.');
+      
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load meters. Please try again.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      
+      // Fallback data for development/testing
+      const fallbackMeters = [
+        {
+          id: 'meter-001',
+          meter_number: 'WM-001234',
+          location: 'Main House',
+          credit_balance: 75000,
+          status: 'active'
+        },
+        {
+          id: 'meter-002',
+          meter_number: 'WM-005678',
+          location: 'Garden',
+          credit_balance: 25000,
+          status: 'active'
+        }
+      ];
+      
+      setMeters(fallbackMeters);
+      setSelectedMeter(fallbackMeters[0].id);
     } finally {
       setLoading(false);
     }
@@ -131,34 +136,102 @@ const Topup: React.FC = () => {
   const processPayment = async () => {
     try {
       setLoading(true);
+      setError(null);
       
-      // In a real app, this would call the payment gateway API
-      // For demo purposes, we'll simulate a successful payment
+      // Create payment request
+      const paymentData = {
+        meter_id: selectedMeter,
+        amount: amount,
+        payment_method: selectedPaymentMethod
+      };
       
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Call the payment API
+      const response = await paymentAPI.createTopupPayment(paymentData);
       
-      // Generate a random transaction ID
-      const txId = 'TX-' + Math.random().toString(36).substring(2, 10).toUpperCase();
-      setTransactionId(txId);
-      
-      // Update UI
-      setPaymentSuccess(true);
-      setPaymentStep(3);
-      
-      // In a real app, this would update the meter credit balance
-      // For demo purposes, we'll just update the local state
-      setMeters(meters.map(meter => 
-        meter.id === selectedMeter 
-          ? { ...meter, credit_balance: meter.credit_balance + amount } 
-          : meter
-      ));
-      
-      toast.success('Payment successful! Credit has been added to your meter.');
-    } catch (error) {
+      if (response.data && response.data.status === 'success') {
+        const paymentResult = response.data.data;
+        
+        // Set transaction ID from response
+        setTransactionId(paymentResult.transaction_id || 'TX-' + Math.random().toString(36).substring(2, 10).toUpperCase());
+        
+        // If payment gateway requires redirect
+        if (paymentResult.redirect_url) {
+          // Open payment gateway in new window
+          window.open(paymentResult.redirect_url, '_blank');
+          
+          // Show waiting message
+          toast.info('Please complete your payment in the opened window');
+          
+          // Poll for payment status
+          const checkPaymentStatus = async () => {
+            try {
+              const statusResponse = await paymentAPI.checkPaymentStatus(paymentResult.transaction_id);
+              
+              if (statusResponse.data && statusResponse.data.status === 'success') {
+                const status = statusResponse.data.data.status;
+                
+                if (status === 'completed' || status === 'success') {
+                  // Payment successful
+                  setPaymentSuccess(true);
+                  setPaymentStep(3);
+                  
+                  // Refresh meters to get updated balance
+                  await fetchMeters();
+                  
+                  toast.success('Payment successful! Credit has been added to your meter.');
+                  setLoading(false);
+                  return;
+                } else if (status === 'failed' || status === 'expired') {
+                  // Payment failed
+                  const errorMsg = 'Payment failed or expired. Please try again.';
+                  setError(errorMsg);
+                  toast.error(errorMsg);
+                  setLoading(false);
+                  return;
+                } else if (status === 'pending') {
+                  // Payment still pending
+                  toast.info('Payment is still being processed. Please wait...');
+                  
+                  // If still pending, check again after 5 seconds
+                  setTimeout(checkPaymentStatus, 5000);
+                }
+              } else {
+                throw new Error('Invalid payment status response');
+              }
+            } catch (error: any) {
+              console.error('Error checking payment status:', error);
+              const errorMsg = error.response?.data?.message || error.message || 'Error checking payment status';
+              setError(errorMsg);
+              toast.error(errorMsg);
+              setLoading(false);
+            }
+          };
+          
+          // Start polling
+          setTimeout(checkPaymentStatus, 5000);
+        } else {
+          // Direct payment (no redirect needed)
+          setPaymentSuccess(true);
+          setPaymentStep(3);
+          
+          // Update meter balance
+          setMeters(meters.map(meter => 
+            meter.id === selectedMeter 
+              ? { ...meter, credit_balance: meter.credit_balance + amount } 
+              : meter
+          ));
+          
+          toast.success('Payment successful! Credit has been added to your meter.');
+          setLoading(false);
+        }
+      } else {
+        throw new Error(response.data?.message || 'Payment processing failed');
+      }
+    } catch (error: any) {
       console.error('Payment error:', error);
-      toast.error('Payment failed. Please try again.');
-    } finally {
+      const errorMsg = error.response?.data?.message || error.message || 'Payment failed. Please try again.';
+      setError(errorMsg);
+      toast.error(errorMsg);
       setLoading(false);
     }
   };
@@ -168,6 +241,8 @@ const Topup: React.FC = () => {
     setSelectedPaymentMethod('');
     setPaymentSuccess(false);
     setTransactionId('');
+    setError(null);
+    fetchMeters(); // Refresh meters data
   };
 
   const getSelectedMeter = () => {
@@ -414,6 +489,22 @@ const Topup: React.FC = () => {
         </div>
       </div>
 
+      {/* Error display */}
+      {error && (
+        <div className="mb-4 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700 dark:text-red-300">
+                {error}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
         <div className="px-4 py-5 sm:p-6">
           <form onSubmit={handleSubmit}>
