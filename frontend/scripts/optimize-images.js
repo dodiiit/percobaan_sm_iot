@@ -2,19 +2,23 @@
 
 /**
  * Image Optimization Script
- * 
- * This script optimizes all images in the src directory:
+ * * This script optimizes all images in the src directory:
  * - Converts images to WebP format
  * - Generates multiple sizes for responsive images
  * - Optimizes SVGs using SVGO
  * - Compresses PNG and JPEG images
  */
 
-const fs = require('fs');
-const path = require('path');
-const sharp = require('sharp');
-const { optimize } = require('svgo');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import sharp from 'sharp';
+import { optimize } from 'svgo';
+import { execSync } from 'child_process';
+
+// FIX: Definisikan ulang __dirname untuk ES Module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configuration
 const config = {
