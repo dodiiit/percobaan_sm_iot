@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # PHP API Backend
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.prod
+    container_name: indowater-api-prod
+    restart: always
+    volumes:
+      - ./api/storage:/var/www/html/storage
+    depends_on:
+      - db
+      - redis
+    networks:
+      - indowater-network
+    environment:
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_DATABASE=indowater
+      - DB_USERNAME=${DB_USERNAME}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MAIL_HOST=${MAIL_HOST}
+      - MAIL_PORT=${MAIL_PORT}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - MAIL_ENCRYPTION=${MAIL_ENCRYPTION}
+      - MAIL_FROM_ADDRESS=${MAIL_FROM_ADDRESS}
+      - USE_MOCK_DATA=false
+
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: indowater-db-prod
+    restart: always
+    environment:
+      MYSQL_DATABASE: indowater
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - indowater-db-data:/var/lib/mysql
+    networks:
+      - indowater-network
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: indowater-frontend-prod
+    restart: always
+    depends_on:
+      - api
+    networks:
+      - indowater-network
+    environment:
+      - REACT_APP_ENV=production
+      - REACT_APP_API_URL=https://api.lingindustri.com/api
+      - REACT_APP_USE_MOCK_DATA=false
+
+  # Redis Service
+  redis:
+    image: redis:alpine
+    container_name: indowater-redis-prod
+    restart: always
+    networks:
+      - indowater-network
+    volumes:
+      - indowater-redis-data:/data
+
+  # Nginx Service for Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: indowater-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+      - ./nginx/www:/var/www/html
+    depends_on:
+      - api
+      - frontend
+    networks:
+      - indowater-network
+
+networks:
+  indowater-network:
+    driver: bridge
+
+volumes:
+  indowater-db-data:
+    driver: local
+  indowater-redis-data:
+    driver: local

@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:indowater_mobile/services/auth_service.dart';
-import 'package:indowater_mobile/models/user.dart';
+import '../services/auth_service.dart';
+import '../models/user.dart';
 
 class AuthProvider extends ChangeNotifier {
-  final AuthService _authService;
+  final AuthService _authService = AuthService();
   
   User? _user;
   bool _isLoading = false;
   String? _error;
   bool _isAuthenticated = false;
   
-  AuthProvider(this._authService) {
+  AuthProvider() {
     _init();
   }
   

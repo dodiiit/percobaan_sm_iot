@@ -1,510 +1,645 @@
 <?php
 
-namespace App\Services;
+declare(strict_types=1);
 
-use App\Models\Payment;
-use App\Repositories\PaymentRepository;
-use App\Repositories\CustomerRepository;
-use App\Repositories\CreditRepository;
-use App\Services\PaymentGateway\PaymentGatewayFactory;
-use Exception;
-use PDO;
-use Psr\Log\LoggerInterface;
+namespace IndoWater\Api\Services;
 
-/**
- * PaymentService
- * 
- * Service for handling payment operations
- */
+use IndoWater\Api\Models\Payment;
+use Midtrans\Config;
+use Midtrans\Snap;
+use Midtrans\Transaction;
+use Doku\Snap\Snap as DokuSnap;
+use Doku\Snap\Models\VA\Request\CreateVaRequestDtoV1;
+use Doku\Snap\Models\TotalAmount\TotalAmount;
+use Doku\Snap\Models\VA\AdditionalInfo\CreateVaRequestAdditionalInfo;
+use Doku\Snap\Models\VA\VirtualAccountConfig\CreateVaVirtualAccountConfig;
+
 class PaymentService
 {
-    /**
-     * @var PDO
-     */
-    private $db;
-    
-    /**
-     * @var PaymentRepository
-     */
-    private $paymentRepository;
-    
-    /**
-     * @var CustomerRepository
-     */
-    private $customerRepository;
-    
-    /**
-     * @var CreditRepository
-     */
-    private $creditRepository;
-    
-    /**
-     * @var PaymentGatewayFactory
-     */
-    private $gatewayFactory;
-    
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
-    
-    /**
-     * Constructor
-     * 
-     * @param PDO $db
-     * @param PaymentRepository $paymentRepository
-     * @param CustomerRepository $customerRepository
-     * @param CreditRepository $creditRepository
-     * @param PaymentGatewayFactory $gatewayFactory
-     * @param LoggerInterface $logger
-     */
+    private Payment $paymentModel;
+    private array $midtransConfig;
+    private array $dokuConfig;
+    private $meterModel;
+    private $emailService;
+    private $realtimeService;
+    private $serviceFeeService;
+    private DokuSnap $dokuSnap;
+
     public function __construct(
-        PDO $db,
-        PaymentRepository $paymentRepository,
-        CustomerRepository $customerRepository,
-        CreditRepository $creditRepository,
-        PaymentGatewayFactory $gatewayFactory,
-        LoggerInterface $logger
+        Payment $paymentModel, 
+        array $midtransConfig, 
+        array $dokuConfig,
+        $meterModel = null,
+        $emailService = null,
+        $realtimeService = null,
+        $serviceFeeService = null
     ) {
-        $this->db = $db;
-        $this->paymentRepository = $paymentRepository;
-        $this->customerRepository = $customerRepository;
-        $this->creditRepository = $creditRepository;
-        $this->gatewayFactory = $gatewayFactory;
-        $this->logger = $logger;
+        $this->paymentModel = $paymentModel;
+        $this->midtransConfig = $midtransConfig;
+        $this->dokuConfig = $dokuConfig;
+        $this->meterModel = $meterModel;
+        $this->emailService = $emailService;
+        $this->realtimeService = $realtimeService;
+        $this->serviceFeeService = $serviceFeeService;
+
+        // Configure Midtrans
+        Config::$serverKey = $midtransConfig['server_key'];
+        Config::$isProduction = $midtransConfig['environment'] === 'production';
+        Config::$isSanitized = true;
+        Config::$is3ds = true;
+
+        // Configure DOKU
+        $this->dokuSnap = new DokuSnap(
+            $dokuConfig['private_key'],
+            $dokuConfig['public_key'],
+            $dokuConfig['doku_public_key'],
+            $dokuConfig['client_id'],
+            $dokuConfig['issuer'] ?? 'IndoWater',
+            $dokuConfig['environment'] === 'production',
+            $dokuConfig['secret_key']
+        );
     }
-    
-    /**
-     * Create a payment transaction
-     * 
-     * @param array $data
-     * @return array
-     * @throws Exception
-     */
-    public function createTransaction(array $data): array
+
+    public function createPayment(array $paymentData): array
     {
-        try {
-            $this->db->beginTransaction();
-            
-            // Validate customer
-            $customer = $this->customerRepository->findById($data['customer_id']);
-            if (!$customer) {
-                throw new Exception('Customer not found');
-            }
-            
-            // Get client ID from customer
-            $clientId = $customer->getClientId();
-            
-            // Create payment gateway instance
-            $gateway = $this->gatewayFactory->create($data['payment_gateway'], $clientId);
-            
-            // Prepare payment data
-            $paymentData = [
-                'customer_id' => $data['customer_id'],
-                'amount' => $data['amount'],
-                'payment_method' => $data['payment_method'] ?? '',
-                'payment_gateway' => $data['payment_gateway'],
-                'status' => 'pending'
-            ];
-            
-            // Create payment record
-            $payment = $this->paymentRepository->create($paymentData);
-            
-            // Prepare transaction data for gateway
-            $transactionData = [
-                'amount' => $data['amount'],
-                'customer_name' => $customer->getFullName(),
-                'customer_first_name' => $customer->getFirstName(),
-                'customer_last_name' => $customer->getLastName(),
-                'customer_email' => $customer->getEmail(),
-                'customer_phone' => $customer->getPhone(),
-                'customer_address' => $customer->getAddress(),
-                'customer_city' => $customer->getCity(),
-                'customer_postal_code' => $customer->getPostalCode(),
-                'item_name' => 'Water Credit',
-                'payment_type' => $data['payment_method'] ?? null,
-                'payment_method' => $data['payment_method'] ?? null,
-                'callback_url' => $data['callback_url'] ?? '',
-                'finish_url' => $data['finish_url'] ?? '',
-                'error_url' => $data['error_url'] ?? '',
-                'pending_url' => $data['pending_url'] ?? '',
-                'expiry_duration' => $data['expiry_duration'] ?? 60,
-                'expiry_unit' => $data['expiry_unit'] ?? 'minute'
-            ];
-            
-            // Create transaction in payment gateway
-            $result = $gateway->createTransaction($transactionData);
-            
-            if (!$result['success']) {
-                throw new Exception($result['message'] ?? 'Failed to create transaction');
-            }
-            
-            // Update payment with transaction details
-            $updateData = [
-                'transaction_id' => $result['transaction_id'],
-                'transaction_time' => date('Y-m-d H:i:s'),
-                'payment_details' => $result
-            ];
-            
-            $this->paymentRepository->update($payment->getId(), $updateData);
-            
-            $this->db->commit();
-            
-            return [
-                'success' => true,
-                'payment_id' => $payment->getId(),
-                'transaction_id' => $result['transaction_id'],
-                'payment_url' => $result['payment_url'] ?? $result['redirect_url'] ?? null,
-                'qr_code_url' => $result['qr_code_url'] ?? null,
-                'actions' => $result['actions'] ?? [],
-                'expiry_time' => $result['expiry_time'] ?? null,
-                'status' => 'pending'
-            ];
-        } catch (Exception $e) {
-            $this->db->rollBack();
-            $this->logger->error('Payment creation failed', [
-                'error' => $e->getMessage(),
-                'data' => $data
-            ]);
-            
-            throw $e;
+        // Create payment record
+        $payment = $this->paymentModel->create([
+            'customer_id' => $paymentData['customer_id'],
+            'amount' => $paymentData['amount'],
+            'method' => $paymentData['method'],
+            'status' => 'pending',
+            'description' => $paymentData['description'] ?? 'Water credit top-up'
+        ]);
+
+        // Generate payment URL based on method
+        switch ($paymentData['method']) {
+            case 'midtrans':
+                $paymentUrl = $this->createMidtransPayment($payment, $paymentData);
+                break;
+            case 'doku':
+                $paymentUrl = $this->createDokuPayment($payment, $paymentData);
+                break;
+            default:
+                throw new \Exception('Unsupported payment method');
+        }
+
+        // Update payment with external ID and URL
+        $this->paymentModel->update($payment['id'], [
+            'payment_url' => $paymentUrl
+        ]);
+
+        return array_merge($payment, ['payment_url' => $paymentUrl]);
+    }
+
+    public function handleWebhook(string $method, array $data): array
+    {
+        switch ($method) {
+            case 'midtrans':
+                return $this->handleMidtransWebhook($data);
+            case 'doku':
+                return $this->handleDokuWebhook($data);
+            default:
+                throw new \Exception('Unsupported payment method');
         }
     }
-    
-    /**
-     * Handle payment notification
-     * 
-     * @param string $gateway
-     * @param array $data
-     * @return array
-     * @throws Exception
-     */
-    public function handleNotification(string $gateway, array $data): array
+
+    public function checkPaymentStatus(string $paymentId): array
     {
-        try {
-            $this->db->beginTransaction();
-            
-            // Find payment by transaction ID
-            $transactionId = $data['transaction_id'] ?? ($data['order_id'] ?? '');
-            $payment = $this->paymentRepository->findByTransactionId($transactionId);
-            
-            if (!$payment) {
-                throw new Exception('Payment not found for transaction: ' . $transactionId);
-            }
-            
-            // Get customer
-            $customer = $this->customerRepository->findById($payment->getCustomerId());
-            if (!$customer) {
-                throw new Exception('Customer not found');
-            }
-            
-            // Get client ID from customer
-            $clientId = $customer->getClientId();
-            
-            // Create payment gateway instance
-            $gatewayInstance = $this->gatewayFactory->create($gateway, $clientId);
-            
-            // Process notification
-            $result = $gatewayInstance->handleNotification($data);
-            
-            if (!$result['success']) {
-                throw new Exception($result['message'] ?? 'Failed to process notification');
-            }
-            
-            // Update payment status
-            $updateData = [
-                'status' => $result['status'],
-                'payment_details' => array_merge(
-                    $payment->getPaymentDetails() ?? [],
-                    ['notification' => $result['raw_response']]
-                )
-            ];
-            
-            $this->paymentRepository->update($payment->getId(), $updateData);
-            
-            // If payment is successful, create credit
-            if ($result['status'] === 'success' && $payment->getCreditId() === null) {
-                $creditData = [
-                    'customer_id' => $payment->getCustomerId(),
-                    'amount' => $payment->getAmount(),
-                    'payment_id' => $payment->getId(),
-                    'status' => 'active'
-                ];
-                
-                $credit = $this->creditRepository->create($creditData);
-                
-                // Update payment with credit ID
-                $this->paymentRepository->update($payment->getId(), [
-                    'credit_id' => $credit->getId()
-                ]);
-                
-                // Create service fee record
-                $this->createServiceFee($payment, $credit);
-            }
-            
-            $this->db->commit();
-            
-            return [
-                'success' => true,
-                'payment_id' => $payment->getId(),
-                'transaction_id' => $transactionId,
-                'status' => $result['status'],
-                'message' => 'Notification processed successfully'
-            ];
-        } catch (Exception $e) {
-            $this->db->rollBack();
-            $this->logger->error('Payment notification handling failed', [
-                'error' => $e->getMessage(),
-                'gateway' => $gateway,
-                'data' => $data
-            ]);
-            
-            throw $e;
-        }
-    }
-    
-    /**
-     * Get payment status
-     * 
-     * @param string $paymentId
-     * @return array
-     * @throws Exception
-     */
-    public function getPaymentStatus(string $paymentId): array
-    {
-        // Find payment
-        $payment = $this->paymentRepository->findById($paymentId);
+        $payment = $this->paymentModel->find($paymentId);
         
         if (!$payment) {
-            throw new Exception('Payment not found');
+            throw new \Exception('Payment not found');
         }
-        
-        // Get customer
-        $customer = $this->customerRepository->findById($payment->getCustomerId());
-        if (!$customer) {
-            throw new Exception('Customer not found');
+
+        // Check status with payment gateway
+        switch ($payment['method']) {
+            case 'midtrans':
+                $status = $this->checkMidtransStatus($payment['external_id']);
+                break;
+            case 'doku':
+                $status = $this->checkDokuStatus($payment['external_id']);
+                break;
+            default:
+                $status = ['status' => $payment['status']];
         }
-        
-        // Get client ID from customer
-        $clientId = $customer->getClientId();
-        
-        // Create payment gateway instance
-        $gateway = $this->gatewayFactory->create($payment->getPaymentGateway(), $clientId);
-        
-        // Get transaction status from gateway
-        $result = $gateway->getTransactionStatus($payment->getTransactionId());
-        
-        if (!$result['success']) {
-            return [
-                'success' => false,
-                'payment_id' => $paymentId,
-                'transaction_id' => $payment->getTransactionId(),
-                'status' => $payment->getStatus(),
-                'message' => $result['message'] ?? 'Failed to get transaction status'
-            ];
-        }
-        
+
         // Update payment status if changed
-        if ($result['status'] !== $payment->getStatus()) {
-            $updateData = [
-                'status' => $result['status'],
-                'payment_details' => array_merge(
-                    $payment->getPaymentDetails() ?? [],
-                    ['status_check' => $result['raw_response']]
-                )
-            ];
+        if ($status['status'] !== $payment['status']) {
+            $this->paymentModel->update($paymentId, [
+                'status' => $status['status'],
+                'paid_at' => $status['status'] === 'success' ? date('Y-m-d H:i:s') : null
+            ]);
+        }
+
+        return array_merge($payment, $status);
+    }
+
+    private function createMidtransPayment(array $payment, array $paymentData): string
+    {
+        $params = [
+            'transaction_details' => [
+                'order_id' => $payment['id'],
+                'gross_amount' => (int) $payment['amount']
+            ],
+            'customer_details' => [
+                'first_name' => $paymentData['customer_name'] ?? 'Customer',
+                'email' => $paymentData['customer_email'] ?? '',
+                'phone' => $paymentData['customer_phone'] ?? ''
+            ],
+            'item_details' => [
+                [
+                    'id' => 'water-credit',
+                    'price' => (int) $payment['amount'],
+                    'quantity' => 1,
+                    'name' => $payment['description']
+                ]
+            ],
+            'callbacks' => [
+                'finish' => $paymentData['return_url'] ?? '',
+                'error' => $paymentData['return_url'] ?? '',
+                'pending' => $paymentData['return_url'] ?? ''
+            ]
+        ];
+
+        try {
+            $snapToken = Snap::getSnapToken($params);
             
-            $this->paymentRepository->update($paymentId, $updateData);
-            
-            // If payment is successful, create credit
-            if ($result['status'] === 'success' && $payment->getCreditId() === null) {
-                $this->db->beginTransaction();
-                
-                try {
-                    $creditData = [
-                        'customer_id' => $payment->getCustomerId(),
-                        'amount' => $payment->getAmount(),
-                        'payment_id' => $payment->getId(),
-                        'status' => 'active'
-                    ];
-                    
-                    $credit = $this->creditRepository->create($creditData);
-                    
-                    // Update payment with credit ID
-                    $this->paymentRepository->update($payment->getId(), [
-                        'credit_id' => $credit->getId()
-                    ]);
-                    
-                    // Create service fee record
-                    $this->createServiceFee($payment, $credit);
-                    
-                    $this->db->commit();
-                } catch (Exception $e) {
-                    $this->db->rollBack();
-                    $this->logger->error('Credit creation failed', [
-                        'error' => $e->getMessage(),
-                        'payment_id' => $paymentId
-                    ]);
+            // Update payment with external ID
+            $this->paymentModel->update($payment['id'], [
+                'external_id' => $payment['id'],
+                'snap_token' => $snapToken
+            ]);
+
+            return Config::$isProduction 
+                ? 'https://app.midtrans.com/snap/v2/vtweb/' . $snapToken
+                : 'https://app.sandbox.midtrans.com/snap/v2/vtweb/' . $snapToken;
+
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to create Midtrans payment: ' . $e->getMessage());
+        }
+    }
+
+    private function createDokuPayment(array $payment, array $paymentData): string
+    {
+        try {
+            // Generate virtual account number
+            $partnerServiceId = $this->dokuConfig['partner_service_id'] ?? '8129014';
+            $customerNo = $paymentData['customer_id'] ?? 'customer_' . $payment['id'];
+            $virtualAccountNo = $partnerServiceId . substr($customerNo, -8);
+
+            // Create total amount
+            $totalAmount = new TotalAmount(
+                number_format($payment['amount'], 2, '.', ''),
+                'IDR'
+            );
+
+            // Create additional info
+            $additionalInfo = new CreateVaRequestAdditionalInfo(
+                'VIRTUAL_ACCOUNT_BANK_BCA',
+                new CreateVaVirtualAccountConfig(false) // reusableStatus = false for one-time use
+            );
+
+            // Create VA request
+            $createVaRequest = new CreateVaRequestDtoV1(
+                $partnerServiceId,
+                $customerNo,
+                $virtualAccountNo,
+                $paymentData['customer_name'] ?? 'Customer',
+                $paymentData['customer_email'] ?? '',
+                $paymentData['customer_phone'] ?? '',
+                $payment['id'], // trxId
+                $totalAmount,
+                $additionalInfo,
+                'C', // virtualAccountTrxType (C = Closed Amount)
+                date('c', strtotime('+24 hours')) // expiredDate (24 hours from now)
+            );
+
+            // Create virtual account
+            $response = $this->dokuSnap->createVa($createVaRequest);
+
+            // Update payment with external ID and VA details
+            $this->paymentModel->update($payment['id'], [
+                'external_id' => $virtualAccountNo,
+                'gateway_response' => json_encode([
+                    'virtual_account_no' => $virtualAccountNo,
+                    'response' => $response
+                ])
+            ]);
+
+            // Return payment instructions URL or virtual account number
+            return $this->dokuConfig['environment'] === 'production' 
+                ? 'https://doku.com/payment/' . $virtualAccountNo
+                : 'https://staging.doku.com/payment/' . $virtualAccountNo;
+
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to create DOKU payment: ' . $e->getMessage());
+        }
+    }
+
+    private function handleMidtransWebhook(array $data): array
+    {
+        try {
+            // Validate required fields
+            $requiredFields = ['order_id', 'transaction_status', 'status_code', 'gross_amount', 'signature_key'];
+            foreach ($requiredFields as $field) {
+                if (!isset($data[$field]) || empty($data[$field])) {
+                    throw new \Exception("Missing required field: {$field}");
                 }
             }
+
+            $orderId = $data['order_id'];
+            $transactionStatus = $data['transaction_status'];
+            $fraudStatus = $data['fraud_status'] ?? '';
+
+            // Find existing payment
+            $payment = $this->paymentModel->find($orderId);
+            if (!$payment) {
+                throw new \Exception("Payment not found: {$orderId}");
+            }
+
+            // Verify signature
+            $signatureKey = hash('sha512', $orderId . $data['status_code'] . $data['gross_amount'] . Config::$serverKey);
+            
+            if (!hash_equals($signatureKey, $data['signature_key'])) {
+                throw new \Exception('Invalid Midtrans signature');
+            }
+
+            // Verify amount matches
+            if ((float) $data['gross_amount'] !== (float) $payment['amount']) {
+                throw new \Exception('Amount mismatch in webhook');
+            }
+
+            // Determine payment status
+            $status = $this->mapMidtransStatus($transactionStatus, $fraudStatus);
+
+            // Only update if status has changed
+            if ($status !== $payment['status']) {
+                $updateData = [
+                    'status' => $status,
+                    'gateway_response' => json_encode($data),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+
+                if ($status === 'success') {
+                    $updateData['paid_at'] = date('Y-m-d H:i:s');
+                }
+
+                $payment = $this->paymentModel->update($orderId, $updateData);
+
+                // Process successful payment
+                if ($status === 'success') {
+                    $this->processSuccessfulPayment($payment);
+                }
+            }
+
+            return [
+                'status' => $status,
+                'payment_id' => $orderId,
+                'transaction_status' => $transactionStatus,
+                'processed' => true
+            ];
+
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to process Midtrans webhook: ' . $e->getMessage());
         }
-        
-        return [
-            'success' => true,
-            'payment_id' => $paymentId,
-            'transaction_id' => $payment->getTransactionId(),
-            'status' => $result['status'],
-            'amount' => $payment->getAmount(),
-            'payment_method' => $payment->getPaymentMethod(),
-            'payment_gateway' => $payment->getPaymentGateway(),
-            'created_at' => $payment->getCreatedAt(),
-            'updated_at' => $payment->getUpdatedAt()
-        ];
     }
-    
+
     /**
-     * Cancel payment
-     * 
-     * @param string $paymentId
-     * @return array
-     * @throws Exception
+     * Map Midtrans transaction status to internal status
      */
-    public function cancelPayment(string $paymentId): array
+    private function mapMidtransStatus(string $transactionStatus, string $fraudStatus = ''): string
     {
-        // Find payment
-        $payment = $this->paymentRepository->findById($paymentId);
-        
-        if (!$payment) {
-            throw new Exception('Payment not found');
+        switch ($transactionStatus) {
+            case 'capture':
+                return ($fraudStatus === 'challenge') ? 'pending' : 'success';
+            case 'settlement':
+                return 'success';
+            case 'pending':
+                return 'pending';
+            case 'cancel':
+            case 'deny':
+            case 'expire':
+            case 'failure':
+                return 'failed';
+            default:
+                return 'pending';
         }
-        
-        // Check if payment can be cancelled
-        if ($payment->getStatus() !== 'pending') {
-            throw new Exception('Only pending payments can be cancelled');
-        }
-        
-        // Get customer
-        $customer = $this->customerRepository->findById($payment->getCustomerId());
-        if (!$customer) {
-            throw new Exception('Customer not found');
-        }
-        
-        // Get client ID from customer
-        $clientId = $customer->getClientId();
-        
-        // Create payment gateway instance
-        $gateway = $this->gatewayFactory->create($payment->getPaymentGateway(), $clientId);
-        
-        // Cancel transaction in gateway
-        $result = $gateway->cancelTransaction($payment->getTransactionId());
-        
-        // Update payment status
-        $updateData = [
-            'status' => 'failed',
-            'payment_details' => array_merge(
-                $payment->getPaymentDetails() ?? [],
-                ['cancellation' => $result['raw_response'] ?? []]
-            )
-        ];
-        
-        $this->paymentRepository->update($paymentId, $updateData);
-        
-        return [
-            'success' => $result['success'],
-            'payment_id' => $paymentId,
-            'transaction_id' => $payment->getTransactionId(),
-            'status' => 'failed',
-            'message' => $result['success'] ? 'Payment cancelled successfully' : ($result['message'] ?? 'Failed to cancel payment')
-        ];
     }
-    
-    /**
-     * Create service fee record
-     * 
-     * @param Payment $payment
-     * @param object $credit
-     * @return void
-     */
-    private function createServiceFee(Payment $payment, $credit): void
+
+    private function handleDokuWebhook(array $data): array
     {
         try {
-            // Get customer
-            $customer = $this->customerRepository->findById($payment->getCustomerId());
-            if (!$customer) {
-                return;
+            // Validate webhook structure
+            if (!isset($data['order']) || !isset($data['transaction'])) {
+                throw new \Exception('Invalid DOKU webhook structure');
             }
-            
-            // Get client
-            $clientId = $customer->getClientId();
-            
-            // Get client service fee settings
-            $stmt = $this->db->prepare("
-                SELECT service_fee_type, service_fee_value
-                FROM clients
-                WHERE id = ?
-            ");
-            $stmt->execute([$clientId]);
-            $clientSettings = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if (!$clientSettings) {
-                return;
+
+            $invoiceNumber = $data['order']['invoice_number'] ?? '';
+            $transactionStatus = $data['transaction']['status'] ?? '';
+            $amount = $data['order']['amount'] ?? 0;
+            $virtualAccountNo = $data['virtual_account_info']['virtual_account_number'] ?? '';
+
+            // Validate required fields
+            if (empty($invoiceNumber)) {
+                throw new \Exception('Missing invoice number in DOKU webhook');
             }
-            
-            // Calculate service fee
-            $feeAmount = 0;
-            if ($clientSettings['service_fee_type'] === 'percentage') {
-                $feeAmount = $payment->getAmount() * ($clientSettings['service_fee_value'] / 100);
-            } else {
-                $feeAmount = $clientSettings['service_fee_value'];
+
+            // Find existing payment
+            $payment = $this->paymentModel->find($invoiceNumber);
+            if (!$payment) {
+                // Try to find by external_id (virtual account number)
+                $payment = $this->paymentModel->findByExternalId($virtualAccountNo);
+                if (!$payment) {
+                    throw new \Exception("Payment not found: {$invoiceNumber}");
+                }
             }
+
+            // Verify signature
+            $signature = $this->generateDokuSignature($data);
+            if (!hash_equals($signature, $data['security']['checksum'] ?? '')) {
+                throw new \Exception('Invalid DOKU signature');
+            }
+
+            // Verify amount matches
+            if ((float) $amount !== (float) $payment['amount']) {
+                throw new \Exception('Amount mismatch in DOKU webhook');
+            }
+
+            // Determine payment status
+            $status = $this->mapDokuStatus($transactionStatus);
+
+            // Only update if status has changed
+            if ($status !== $payment['status']) {
+                $updateData = [
+                    'status' => $status,
+                    'gateway_response' => json_encode($data),
+                    'updated_at' => date('Y-m-d H:i:s')
+                ];
+
+                if ($status === 'success') {
+                    $updateData['paid_at'] = date('Y-m-d H:i:s');
+                }
+
+                $payment = $this->paymentModel->update($payment['id'], $updateData);
+
+                // Process successful payment
+                if ($status === 'success') {
+                    $this->processSuccessfulPayment($payment);
+                }
+            }
+
+            return [
+                'status' => $status,
+                'payment_id' => $payment['id'],
+                'invoice_number' => $invoiceNumber,
+                'transaction_status' => $transactionStatus,
+                'processed' => true
+            ];
+
+        } catch (\Exception $e) {
+            throw new \Exception('Failed to process DOKU webhook: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Map DOKU transaction status to internal status
+     */
+    private function mapDokuStatus(string $transactionStatus): string
+    {
+        switch (strtoupper($transactionStatus)) {
+            case 'SUCCESS':
+            case 'SETTLEMENT':
+                return 'success';
+            case 'FAILED':
+            case 'EXPIRED':
+            case 'CANCELLED':
+                return 'failed';
+            case 'PENDING':
+            case 'PROCESSING':
+            default:
+                return 'pending';
+        }
+    }
+
+    private function checkMidtransStatus(string $orderId): array
+    {
+        try {
+            $status = Transaction::status($orderId);
             
-            // Create service fee record
-            $stmt = $this->db->prepare("
-                INSERT INTO service_fees (
-                    id, client_id, payment_id, credit_id, amount, fee_type, fee_value,
-                    status, created_at, updated_at
-                ) VALUES (
-                    ?, ?, ?, ?, ?, ?, ?,
-                    'pending', NOW(), NOW()
-                )
-            ");
+            $paymentStatus = 'pending';
+            if ($status->transaction_status === 'capture') {
+                $paymentStatus = ($status->fraud_status === 'challenge') ? 'pending' : 'success';
+            } elseif ($status->transaction_status === 'settlement') {
+                $paymentStatus = 'success';
+            } elseif (in_array($status->transaction_status, ['cancel', 'deny', 'expire'])) {
+                $paymentStatus = 'failed';
+            }
+
+            return [
+                'status' => $paymentStatus,
+                'gateway_status' => $status->transaction_status,
+                'gateway_response' => json_encode($status)
+            ];
+
+        } catch (\Exception $e) {
+            return ['status' => 'unknown', 'error' => $e->getMessage()];
+        }
+    }
+
+    private function checkDokuStatus(string $virtualAccountNo): array
+    {
+        try {
+            // For DOKU VA, we need to check the status using the inquiry method
+            // This would typically be done through webhook notifications
+            // For now, return a basic status check
             
-            $feeId = $this->generateUuid();
-            
-            $stmt->execute([
-                $feeId,
-                $clientId,
-                $payment->getId(),
-                $credit->getId(),
-                $feeAmount,
-                $clientSettings['service_fee_type'],
-                $clientSettings['service_fee_value']
-            ]);
-        } catch (Exception $e) {
-            $this->logger->error('Service fee creation failed', [
-                'error' => $e->getMessage(),
-                'payment_id' => $payment->getId()
-            ]);
+            $payment = $this->paymentModel->findByExternalId($virtualAccountNo);
+            if (!$payment) {
+                return ['status' => 'unknown', 'error' => 'Payment not found'];
+            }
+
+            // In a real implementation, you would call DOKU's inquiry API
+            // For now, return the current status from database
+            return [
+                'status' => $payment['status'],
+                'gateway_status' => $payment['status'],
+                'gateway_response' => $payment['gateway_response'] ?? '{}'
+            ];
+
+        } catch (\Exception $e) {
+            return ['status' => 'unknown', 'error' => $e->getMessage()];
+        }
+    }
+
+    private function processSuccessfulPayment(array $payment): void
+    {
+        try {
+            // Add credit to customer's meter if meter model is available
+            if ($this->meterModel && isset($payment['meter_id'])) {
+                $this->addCreditToMeter($payment);
+            }
+
+            // Calculate and record service fees if service fee service is available
+            if ($this->serviceFeeService) {
+                $this->calculateAndRecordServiceFees($payment);
+            }
+
+            // Send confirmation email if email service is available
+            if ($this->emailService && isset($payment['customer_email'])) {
+                $this->sendPaymentConfirmationEmail($payment);
+            }
+
+            // Send real-time notification if realtime service is available
+            if ($this->realtimeService) {
+                $this->sendPaymentNotification($payment);
+            }
+
+        } catch (\Exception $e) {
+            // Log error but don't throw to avoid breaking the payment flow
+            error_log('Error processing successful payment: ' . $e->getMessage());
         }
     }
     
-    /**
-     * Generate a UUID v4
-     * 
-     * @return string
-     */
-    private function generateUuid(): string
+    private function calculateAndRecordServiceFees(array $payment): void
     {
-        return sprintf(
-            '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0x0fff) | 0x4000,
-            mt_rand(0, 0x3fff) | 0x8000,
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff)
-        );
+        if (!$this->serviceFeeService) {
+            return;
+        }
+
+        try {
+            // Calculate and record service fees
+            $feeResult = $this->serviceFeeService->calculateAndRecordFees($payment);
+            
+            // Update payment record with fee information
+            $feeInfo = [
+                'service_fee_amount' => $feeResult['total_fee'],
+                'service_fee_transactions' => array_map(function($tx) {
+                    return $tx['id'];
+                }, $feeResult['fee_transactions'])
+            ];
+            
+            $this->paymentModel->update($payment['id'], [
+                'gateway_response' => json_encode(array_merge(
+                    json_decode($payment['gateway_response'] ?? '{}', true),
+                    ['service_fees' => $feeInfo]
+                ))
+            ]);
+            
+        } catch (\Exception $e) {
+            error_log('Error calculating service fees: ' . $e->getMessage());
+        }
+    }
+
+    private function addCreditToMeter(array $payment): void
+    {
+        if (!$this->meterModel) {
+            return;
+        }
+
+        try {
+            // Find meter by customer ID or meter ID
+            $meter = null;
+            
+            if (isset($payment['meter_id'])) {
+                $meter = $this->meterModel->find($payment['meter_id']);
+            } elseif (isset($payment['customer_id'])) {
+                // Find customer's primary meter
+                $sql = "SELECT * FROM meters WHERE customer_id = ? AND deleted_at IS NULL ORDER BY created_at ASC LIMIT 1";
+                $stmt = $this->meterModel->db->prepare($sql);
+                $stmt->execute([$payment['customer_id']]);
+                $meter = $stmt->fetch(\PDO::FETCH_ASSOC);
+            }
+
+            if (!$meter) {
+                throw new \Exception('No meter found for payment');
+            }
+
+            // Add credit to meter
+            $description = 'Payment credit top-up - Payment ID: ' . $payment['external_id'];
+            $result = $this->meterModel->addCredit($meter['id'], $payment['amount'], $description);
+
+            // Update payment record with meter information
+            $this->paymentModel->update($payment['id'], [
+                'meter_id' => $meter['id'],
+                'gateway_response' => json_encode(array_merge(
+                    json_decode($payment['gateway_response'] ?? '{}', true),
+                    ['credit_added' => $result]
+                ))
+            ]);
+
+            // Send real-time meter update
+            if ($this->realtimeService) {
+                $this->realtimeService->broadcastMeterUpdate($meter['meter_id'], [
+                    'type' => 'payment_credit_added',
+                    'amount' => $payment['amount'],
+                    'new_balance' => $result['new_balance'],
+                    'payment_id' => $payment['external_id'],
+                    'timestamp' => time()
+                ]);
+            }
+
+        } catch (\Exception $e) {
+            error_log('Error adding credit to meter: ' . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    private function sendPaymentConfirmationEmail(array $payment): void
+    {
+        if (!$this->emailService) {
+            return;
+        }
+
+        try {
+            $this->emailService->sendPaymentConfirmation([
+                'to' => $payment['customer_email'],
+                'name' => $payment['customer_name'] ?? 'Customer',
+                'amount' => $payment['amount'],
+                'payment_id' => $payment['external_id'],
+                'payment_method' => $payment['method'],
+                'paid_at' => $payment['paid_at'] ?? date('Y-m-d H:i:s')
+            ]);
+        } catch (\Exception $e) {
+            error_log('Error sending payment confirmation email: ' . $e->getMessage());
+        }
+    }
+
+    private function sendPaymentNotification(array $payment): void
+    {
+        if (!$this->realtimeService) {
+            return;
+        }
+
+        try {
+            $this->realtimeService->broadcastNotification([
+                'type' => 'payment_success',
+                'title' => 'Payment Successful',
+                'message' => 'Your payment of Rp ' . number_format($payment['amount'], 0, ',', '.') . ' has been processed successfully.',
+                'customer_id' => $payment['customer_id'],
+                'payment_id' => $payment['external_id'],
+                'amount' => $payment['amount'],
+                'timestamp' => time()
+            ]);
+        } catch (\Exception $e) {
+            error_log('Error sending payment notification: ' . $e->getMessage());
+        }
+    }
+
+    private function generateDokuSignature(array $data): string
+    {
+        // Generate DOKU signature for webhook verification
+        $clientId = $this->dokuConfig['client_id'];
+        $requestId = $data['header']['request_id'] ?? '';
+        $requestTimestamp = $data['header']['request_timestamp'] ?? '';
+        $requestTarget = '/v1/payment/notification';
+        $digest = hash('sha256', json_encode($data));
+        
+        $componentSignature = "Client-Id:" . $clientId . "\n" .
+                             "Request-Id:" . $requestId . "\n" .
+                             "Request-Timestamp:" . $requestTimestamp . "\n" .
+                             "Request-Target:" . $requestTarget . "\n" .
+                             "Digest:SHA-256=" . $digest;
+
+        return base64_encode(hash_hmac('sha256', $componentSignature, $this->dokuConfig['secret_key'], true));
     }
 }

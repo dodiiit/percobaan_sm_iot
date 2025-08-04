@@ -1,703 +1,247 @@
 <?php
 
-namespace App\Controllers;
+declare(strict_types=1);
 
-use App\Repositories\PaymentRepository;
-use App\Repositories\CustomerRepository;
-use App\Services\PaymentService;
-use App\Services\AuthService;
-use Exception;
+namespace IndoWater\Api\Controllers;
+
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Psr\Log\LoggerInterface;
-use PDO;
+use IndoWater\Api\Models\Payment;
+use IndoWater\Api\Services\PaymentService;
+use Respect\Validation\Validator as v;
 
-/**
- * PaymentController
- * 
- * Controller for handling payment operations
- */
 class PaymentController
 {
-    /**
-     * @var PDO
-     */
-    private $db;
-    
-    /**
-     * @var LoggerInterface
-     */
-    private $logger;
-    
-    /**
-     * @var PaymentRepository
-     */
-    private $paymentRepository;
-    
-    /**
-     * @var CustomerRepository
-     */
-    private $customerRepository;
-    
-    /**
-     * @var PaymentService
-     */
-    private $paymentService;
-    
-    /**
-     * @var AuthService
-     */
-    private $authService;
-    
-    /**
-     * Constructor
-     * 
-     * @param PDO $db
-     * @param LoggerInterface $logger
-     * @param PaymentRepository $paymentRepository
-     * @param CustomerRepository $customerRepository
-     * @param PaymentService $paymentService
-     * @param AuthService $authService
-     */
-    public function __construct(
-        PDO $db,
-        LoggerInterface $logger,
-        PaymentRepository $paymentRepository,
-        CustomerRepository $customerRepository,
-        PaymentService $paymentService,
-        AuthService $authService
-    ) {
-        $this->db = $db;
-        $this->logger = $logger;
-        $this->paymentRepository = $paymentRepository;
-        $this->customerRepository = $customerRepository;
+    private Payment $paymentModel;
+    private PaymentService $paymentService;
+
+    public function __construct(Payment $paymentModel, PaymentService $paymentService)
+    {
+        $this->paymentModel = $paymentModel;
         $this->paymentService = $paymentService;
-        $this->authService = $authService;
     }
-    
-    /**
-     * Get all payments
-     * 
-     * @param Request $request
-     * @param Response $response
-     * @param array $args
-     * @return Response
-     */
-    public function getAll(Request $request, Response $response, array $args): Response
+
+    public function index(Request $request, Response $response): Response
     {
         try {
-            // Get user from token
-            $user = $this->authService->getUserFromRequest($request);
-            
-            // Check permissions
-            $role = $user['role'];
-            $userId = $user['id'];
-            
-            $filters = [];
-            $page = (int)($request->getQueryParams()['page'] ?? 1);
-            $limit = (int)($request->getQueryParams()['limit'] ?? 20);
-            
-            // Apply filters based on role
-            if ($role === 'superadmin') {
-                // Superadmin can see all payments
-                if (isset($request->getQueryParams()['client_id'])) {
-                    $filters['client_id'] = $request->getQueryParams()['client_id'];
-                }
-            } elseif ($role === 'client') {
-                // Get client ID for this user
-                $stmt = $this->db->prepare("SELECT id FROM clients WHERE user_id = ?");
-                $stmt->execute([$userId]);
-                $client = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                if (!$client) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Client not found for this user'
-                    ], 404);
-                }
-                
-                // Client can only see payments for their customers
-                $filters['client_id'] = $client['id'];
-            } elseif ($role === 'customer') {
-                // Get customer ID for this user
-                $stmt = $this->db->prepare("SELECT id FROM customers WHERE user_id = ?");
-                $stmt->execute([$userId]);
-                $customer = $stmt->fetch(PDO::FETCH_ASSOC);
-                
+            $user = $request->getAttribute('user');
+            $queryParams = $request->getQueryParams();
+            $limit = (int) ($queryParams['limit'] ?? 20);
+            $offset = (int) ($queryParams['offset'] ?? 0);
+
+            // Get payments based on user role
+            if ($user['role'] === 'customer') {
+                // Customer can only see their own payments
+                $customer = $this->getCustomerByUserId($user['id']);
                 if (!$customer) {
                     return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Customer not found for this user'
+                        'status' => 'error',
+                        'message' => 'Customer profile not found'
                     ], 404);
                 }
-                
-                // Customer can only see their own payments
-                $filters['customer_id'] = $customer['id'];
+                $payments = $this->paymentModel->findByCustomerId($customer['id'], $limit);
+                $total = $this->paymentModel->count(['customer_id' => $customer['id']]);
             } else {
-                return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Unauthorized'
-                ], 403);
+                // Admin/Client can see all payments
+                $payments = $this->paymentModel->findAll([], $limit, $offset);
+                $total = $this->paymentModel->count();
             }
-            
-            // Apply additional filters
-            if (isset($request->getQueryParams()['payment_gateway'])) {
-                $filters['payment_gateway'] = $request->getQueryParams()['payment_gateway'];
-            }
-            
-            if (isset($request->getQueryParams()['status'])) {
-                $filters['status'] = $request->getQueryParams()['status'];
-            }
-            
-            if (isset($request->getQueryParams()['date_from'])) {
-                $filters['date_from'] = $request->getQueryParams()['date_from'];
-            }
-            
-            if (isset($request->getQueryParams()['date_to'])) {
-                $filters['date_to'] = $request->getQueryParams()['date_to'];
-            }
-            
-            // Get payments
-            $payments = $this->paymentRepository->findAll($filters, $page, $limit);
-            $total = $this->paymentRepository->count($filters);
-            
-            // Format response
-            $result = [];
-            foreach ($payments as $payment) {
-                $result[] = $payment->toArray(false); // Don't include payment details
-            }
-            
+
             return $this->jsonResponse($response, [
-                'success' => true,
-                'data' => $result,
-                'pagination' => [
-                    'page' => $page,
-                    'limit' => $limit,
-                    'total' => $total,
-                    'pages' => ceil($total / $limit)
+                'status' => 'success',
+                'data' => [
+                    'payments' => $payments,
+                    'pagination' => [
+                        'total' => $total,
+                        'limit' => $limit,
+                        'offset' => $offset,
+                        'has_more' => ($offset + $limit) < $total
+                    ]
                 ]
             ]);
-        } catch (Exception $e) {
-            $this->logger->error('Failed to get payments', [
-                'error' => $e->getMessage()
-            ]);
-            
+
+        } catch (\Exception $e) {
             return $this->jsonResponse($response, [
-                'success' => false,
-                'message' => 'Failed to get payments: ' . $e->getMessage()
+                'status' => 'error',
+                'message' => $e->getMessage()
             ], 500);
         }
     }
-    
-    /**
-     * Get a payment by ID
-     * 
-     * @param Request $request
-     * @param Response $response
-     * @param array $args
-     * @return Response
-     */
-    public function getById(Request $request, Response $response, array $args): Response
+
+    public function show(Request $request, Response $response, array $args): Response
     {
         try {
-            $id = $args['id'] ?? null;
-            
-            if (!$id) {
-                return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Payment ID is required'
-                ], 400);
-            }
-            
-            // Get user from token
-            $user = $this->authService->getUserFromRequest($request);
-            
-            // Check permissions
-            $role = $user['role'];
-            $userId = $user['id'];
-            
-            // Get payment
-            $payment = $this->paymentRepository->findById($id);
-            
+            $id = $args['id'];
+            $payment = $this->paymentModel->find($id);
+
             if (!$payment) {
                 return $this->jsonResponse($response, [
-                    'success' => false,
+                    'status' => 'error',
                     'message' => 'Payment not found'
                 ], 404);
             }
-            
-            // Check if user has permission to view this payment
-            if ($role === 'client') {
-                // Get client ID for this user
-                $stmt = $this->db->prepare("SELECT id FROM clients WHERE user_id = ?");
-                $stmt->execute([$userId]);
-                $client = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                if (!$client) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Client not found for this user'
-                    ], 404);
-                }
-                
-                // Get customer
-                $customer = $this->customerRepository->findById($payment->getCustomerId());
-                
-                // Client can only view payments for their customers
-                if (!$customer || $customer->getClientId() !== $client['id']) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Unauthorized'
-                    ], 403);
-                }
-            } elseif ($role === 'customer') {
-                // Get customer ID for this user
-                $stmt = $this->db->prepare("SELECT id FROM customers WHERE user_id = ?");
-                $stmt->execute([$userId]);
-                $customer = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                if (!$customer) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Customer not found for this user'
-                    ], 404);
-                }
-                
-                // Customer can only view their own payments
-                if ($payment->getCustomerId() !== $customer['id']) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Unauthorized'
-                    ], 403);
-                }
-            } elseif ($role !== 'superadmin') {
-                return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Unauthorized'
-                ], 403);
-            }
-            
-            // Include payment details only for superadmin and client
-            $includeDetails = $role === 'superadmin' || $role === 'client';
-            
+
             return $this->jsonResponse($response, [
-                'success' => true,
-                'data' => $payment->toArray($includeDetails)
+                'status' => 'success',
+                'data' => $payment
             ]);
-        } catch (Exception $e) {
-            $this->logger->error('Failed to get payment', [
-                'error' => $e->getMessage(),
-                'id' => $args['id'] ?? null
-            ]);
-            
+
+        } catch (\Exception $e) {
             return $this->jsonResponse($response, [
-                'success' => false,
-                'message' => 'Failed to get payment: ' . $e->getMessage()
+                'status' => 'error',
+                'message' => $e->getMessage()
             ], 500);
         }
     }
-    
-    /**
-     * Create a payment transaction
-     * 
-     * @param Request $request
-     * @param Response $response
-     * @param array $args
-     * @return Response
-     */
-    public function createTransaction(Request $request, Response $response, array $args): Response
+
+    public function create(Request $request, Response $response): Response
     {
         try {
+            $user = $request->getAttribute('user');
             $data = $request->getParsedBody();
-            
-            // Validate required fields
-            if (empty($data['customer_id'])) {
+
+            // Validate input
+            $validator = v::key('amount', v::numericVal()->positive())
+                        ->key('method', v::in(['midtrans', 'doku']))
+                        ->key('description', v::stringType()->notEmpty()->optional());
+
+            if (!$validator->validate($data)) {
                 return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Customer ID is required'
+                    'status' => 'error',
+                    'message' => 'Invalid input data'
                 ], 400);
             }
-            
-            if (empty($data['amount']) || !is_numeric($data['amount'])) {
-                return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Valid amount is required'
-                ], 400);
-            }
-            
-            if (empty($data['payment_gateway'])) {
-                return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Payment gateway is required'
-                ], 400);
-            }
-            
-            // Get user from token
-            $user = $this->authService->getUserFromRequest($request);
-            
-            // Check permissions
-            $role = $user['role'];
-            $userId = $user['id'];
-            
-            // Verify customer
-            $customer = $this->customerRepository->findById($data['customer_id']);
-            
+
+            // Get customer info
+            $customer = $this->getCustomerByUserId($user['id']);
             if (!$customer) {
                 return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Customer not found'
+                    'status' => 'error',
+                    'message' => 'Customer profile not found'
                 ], 404);
             }
-            
-            // Check if user has permission to create payment for this customer
-            if ($role === 'client') {
-                // Get client ID for this user
-                $stmt = $this->db->prepare("SELECT id FROM clients WHERE user_id = ?");
-                $stmt->execute([$userId]);
-                $client = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                if (!$client) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Client not found for this user'
-                    ], 404);
-                }
-                
-                // Client can only create payments for their customers
-                if ($customer->getClientId() !== $client['id']) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Unauthorized'
-                    ], 403);
-                }
-            } elseif ($role === 'customer') {
-                // Get customer ID for this user
-                $stmt = $this->db->prepare("SELECT id FROM customers WHERE user_id = ?");
-                $stmt->execute([$userId]);
-                $customerData = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                if (!$customerData) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Customer not found for this user'
-                    ], 404);
-                }
-                
-                // Customer can only create payments for themselves
-                if ($data['customer_id'] !== $customerData['id']) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Unauthorized'
-                    ], 403);
-                }
-            } elseif ($role !== 'superadmin') {
-                return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Unauthorized'
-                ], 403);
-            }
-            
-            // Create payment transaction
-            $result = $this->paymentService->createTransaction($data);
-            
+
+            // Add customer data to payment
+            $data['customer_id'] = $customer['id'];
+            $data['customer_name'] = $customer['first_name'] . ' ' . $customer['last_name'];
+            $data['customer_email'] = $customer['email'];
+            $data['customer_phone'] = $customer['phone'];
+            $data['return_url'] = $data['return_url'] ?? $_ENV['APP_URL'] . '/dashboard/payments';
+
+            $payment = $this->paymentService->createPayment($data);
+
             return $this->jsonResponse($response, [
-                'success' => true,
-                'message' => 'Payment transaction created successfully',
-                'data' => $result
+                'status' => 'success',
+                'message' => 'Payment created successfully',
+                'data' => $payment
             ], 201);
-        } catch (Exception $e) {
-            $this->logger->error('Failed to create payment transaction', [
-                'error' => $e->getMessage(),
-                'data' => $request->getParsedBody()
-            ]);
-            
+
+        } catch (\Exception $e) {
             return $this->jsonResponse($response, [
-                'success' => false,
-                'message' => 'Failed to create payment transaction: ' . $e->getMessage()
+                'status' => 'error',
+                'message' => $e->getMessage()
             ], 500);
         }
     }
-    
-    /**
-     * Handle payment notification
-     * 
-     * @param Request $request
-     * @param Response $response
-     * @param array $args
-     * @return Response
-     */
-    public function handleNotification(Request $request, Response $response, array $args): Response
+
+    public function status(Request $request, Response $response, array $args): Response
     {
         try {
-            $gateway = $args['gateway'] ?? null;
+            $id = $args['id'];
+            $payment = $this->paymentService->checkPaymentStatus($id);
+
+            return $this->jsonResponse($response, [
+                'status' => 'success',
+                'data' => $payment
+            ]);
+
+        } catch (\Exception $e) {
+            return $this->jsonResponse($response, [
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], $e->getCode() ?: 500);
+        }
+    }
+
+    public function webhook(Request $request, Response $response, array $args): Response
+    {
+        try {
+            $method = $args['method'] ?? '';
             $data = $request->getParsedBody();
-            
-            if (!$gateway) {
+
+            if (empty($method) || !in_array($method, ['midtrans', 'doku'])) {
                 return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Payment gateway is required'
+                    'status' => 'error',
+                    'message' => 'Invalid payment method'
                 ], 400);
             }
-            
-            // Process notification
-            $result = $this->paymentService->handleNotification($gateway, $data);
-            
+
+            $result = $this->paymentService->handleWebhook($method, $data);
+
             return $this->jsonResponse($response, [
-                'success' => true,
-                'message' => 'Notification processed successfully',
+                'status' => 'success',
+                'message' => 'Webhook processed successfully',
                 'data' => $result
             ]);
-        } catch (Exception $e) {
-            $this->logger->error('Failed to handle payment notification', [
-                'error' => $e->getMessage(),
-                'gateway' => $args['gateway'] ?? null,
-                'data' => $request->getParsedBody()
-            ]);
-            
+
+        } catch (\Exception $e) {
             return $this->jsonResponse($response, [
-                'success' => false,
-                'message' => 'Failed to handle payment notification: ' . $e->getMessage()
+                'status' => 'error',
+                'message' => $e->getMessage()
             ], 500);
         }
     }
-    
-    /**
-     * Get payment status
-     * 
-     * @param Request $request
-     * @param Response $response
-     * @param array $args
-     * @return Response
-     */
-    public function getStatus(Request $request, Response $response, array $args): Response
+
+    public function summary(Request $request, Response $response): Response
     {
         try {
-            $id = $args['id'] ?? null;
-            
-            if (!$id) {
+            $user = $request->getAttribute('user');
+            $customer = $this->getCustomerByUserId($user['id']);
+
+            if (!$customer) {
                 return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Payment ID is required'
-                ], 400);
-            }
-            
-            // Get user from token
-            $user = $this->authService->getUserFromRequest($request);
-            
-            // Check permissions
-            $role = $user['role'];
-            $userId = $user['id'];
-            
-            // Get payment
-            $payment = $this->paymentRepository->findById($id);
-            
-            if (!$payment) {
-                return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Payment not found'
+                    'status' => 'error',
+                    'message' => 'Customer profile not found'
                 ], 404);
             }
-            
-            // Check if user has permission to view this payment
-            if ($role === 'client') {
-                // Get client ID for this user
-                $stmt = $this->db->prepare("SELECT id FROM clients WHERE user_id = ?");
-                $stmt->execute([$userId]);
-                $client = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                if (!$client) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Client not found for this user'
-                    ], 404);
-                }
-                
-                // Get customer
-                $customer = $this->customerRepository->findById($payment->getCustomerId());
-                
-                // Client can only view payments for their customers
-                if (!$customer || $customer->getClientId() !== $client['id']) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Unauthorized'
-                    ], 403);
-                }
-            } elseif ($role === 'customer') {
-                // Get customer ID for this user
-                $stmt = $this->db->prepare("SELECT id FROM customers WHERE user_id = ?");
-                $stmt->execute([$userId]);
-                $customer = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                if (!$customer) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Customer not found for this user'
-                    ], 404);
-                }
-                
-                // Customer can only view their own payments
-                if ($payment->getCustomerId() !== $customer['id']) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Unauthorized'
-                    ], 403);
-                }
-            } elseif ($role !== 'superadmin') {
-                return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Unauthorized'
-                ], 403);
-            }
-            
-            // Get payment status
-            $result = $this->paymentService->getPaymentStatus($id);
-            
+
+            $totalPaid = $this->paymentModel->getTotalAmount($customer['id'], 'success');
+            $totalPending = $this->paymentModel->getTotalAmount($customer['id'], 'pending');
+            $recentPayments = $this->paymentModel->findByCustomerId($customer['id'], 5);
+
             return $this->jsonResponse($response, [
-                'success' => true,
-                'data' => $result
+                'status' => 'success',
+                'data' => [
+                    'total_paid' => $totalPaid,
+                    'total_pending' => $totalPending,
+                    'recent_payments' => $recentPayments
+                ]
             ]);
-        } catch (Exception $e) {
-            $this->logger->error('Failed to get payment status', [
-                'error' => $e->getMessage(),
-                'id' => $args['id'] ?? null
-            ]);
-            
+
+        } catch (\Exception $e) {
             return $this->jsonResponse($response, [
-                'success' => false,
-                'message' => 'Failed to get payment status: ' . $e->getMessage()
+                'status' => 'error',
+                'message' => $e->getMessage()
             ], 500);
         }
     }
-    
-    /**
-     * Cancel payment
-     * 
-     * @param Request $request
-     * @param Response $response
-     * @param array $args
-     * @return Response
-     */
-    public function cancelPayment(Request $request, Response $response, array $args): Response
+
+    private function getCustomerByUserId(string $userId): ?array
     {
-        try {
-            $id = $args['id'] ?? null;
-            
-            if (!$id) {
-                return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Payment ID is required'
-                ], 400);
-            }
-            
-            // Get user from token
-            $user = $this->authService->getUserFromRequest($request);
-            
-            // Check permissions
-            $role = $user['role'];
-            $userId = $user['id'];
-            
-            // Get payment
-            $payment = $this->paymentRepository->findById($id);
-            
-            if (!$payment) {
-                return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Payment not found'
-                ], 404);
-            }
-            
-            // Check if payment can be cancelled
-            if ($payment->getStatus() !== 'pending') {
-                return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Only pending payments can be cancelled'
-                ], 400);
-            }
-            
-            // Check if user has permission to cancel this payment
-            if ($role === 'client') {
-                // Get client ID for this user
-                $stmt = $this->db->prepare("SELECT id FROM clients WHERE user_id = ?");
-                $stmt->execute([$userId]);
-                $client = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                if (!$client) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Client not found for this user'
-                    ], 404);
-                }
-                
-                // Get customer
-                $customer = $this->customerRepository->findById($payment->getCustomerId());
-                
-                // Client can only cancel payments for their customers
-                if (!$customer || $customer->getClientId() !== $client['id']) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Unauthorized'
-                    ], 403);
-                }
-            } elseif ($role === 'customer') {
-                // Get customer ID for this user
-                $stmt = $this->db->prepare("SELECT id FROM customers WHERE user_id = ?");
-                $stmt->execute([$userId]);
-                $customer = $stmt->fetch(PDO::FETCH_ASSOC);
-                
-                if (!$customer) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Customer not found for this user'
-                    ], 404);
-                }
-                
-                // Customer can only cancel their own payments
-                if ($payment->getCustomerId() !== $customer['id']) {
-                    return $this->jsonResponse($response, [
-                        'success' => false,
-                        'message' => 'Unauthorized'
-                    ], 403);
-                }
-            } elseif ($role !== 'superadmin') {
-                return $this->jsonResponse($response, [
-                    'success' => false,
-                    'message' => 'Unauthorized'
-                ], 403);
-            }
-            
-            // Cancel payment
-            $result = $this->paymentService->cancelPayment($id);
-            
-            return $this->jsonResponse($response, [
-                'success' => true,
-                'message' => 'Payment cancelled successfully',
-                'data' => $result
-            ]);
-        } catch (Exception $e) {
-            $this->logger->error('Failed to cancel payment', [
-                'error' => $e->getMessage(),
-                'id' => $args['id'] ?? null
-            ]);
-            
-            return $this->jsonResponse($response, [
-                'success' => false,
-                'message' => 'Failed to cancel payment: ' . $e->getMessage()
-            ], 500);
-        }
+        // This would use the Customer model
+        // For now, return a placeholder
+        return [
+            'id' => 'customer-' . $userId,
+            'first_name' => 'John',
+            'last_name' => 'Doe',
+            'email' => 'john.doe@example.com',
+            'phone' => '+6281234567890'
+        ];
     }
-    
-    /**
-     * JSON response helper
-     * 
-     * @param Response $response
-     * @param array $data
-     * @param int $status
-     * @return Response
-     */
+
     private function jsonResponse(Response $response, array $data, int $status = 200): Response
     {
         $response->getBody()->write(json_encode($data));
-        
         return $response
             ->withHeader('Content-Type', 'application/json')
             ->withStatus($status);

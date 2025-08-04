@@ -53,6 +53,11 @@ return function (ContainerBuilder $containerBuilder) {
             'doku' => [
                 'client_id' => $_ENV['DOKU_CLIENT_ID'] ?? null,
                 'secret_key' => $_ENV['DOKU_SECRET_KEY'] ?? null,
+                'private_key' => $_ENV['DOKU_PRIVATE_KEY'] ?? null,
+                'public_key' => $_ENV['DOKU_PUBLIC_KEY'] ?? null,
+                'doku_public_key' => $_ENV['DOKU_PUBLIC_KEY_DOKU'] ?? null,
+                'issuer' => $_ENV['DOKU_ISSUER'] ?? 'IndoWater',
+                'partner_service_id' => $_ENV['DOKU_PARTNER_SERVICE_ID'] ?? '8129014',
                 'environment' => $_ENV['DOKU_ENVIRONMENT'] ?? 'sandbox',
             ],
             'whatsapp' => [
@@ -69,9 +74,18 @@ return function (ContainerBuilder $containerBuilder) {
                 'rate_limit_requests' => (int) ($_ENV['RATE_LIMIT_REQUESTS'] ?? 60),
                 'rate_limit_per_minute' => (int) ($_ENV['RATE_LIMIT_PER_MINUTE'] ?? 1),
             ],
+            'redis' => [
+                'scheme' => $_ENV['REDIS_SCHEME'] ?? 'tcp',
+                'host' => $_ENV['REDIS_HOST'] ?? '127.0.0.1',
+                'port' => (int) ($_ENV['REDIS_PORT'] ?? 6379),
+                'database' => (int) ($_ENV['REDIS_DATABASE'] ?? 0),
+                'password' => $_ENV['REDIS_PASSWORD'] ?? null,
+            ],
             'cache' => [
-                'driver' => $_ENV['CACHE_DRIVER'] ?? 'file',
-                'prefix' => $_ENV['CACHE_PREFIX'] ?? 'indowater_',
+                'driver' => $_ENV['CACHE_DRIVER'] ?? 'redis',
+                'prefix' => $_ENV['CACHE_PREFIX'] ?? 'indowater:',
+                'default_ttl' => (int) ($_ENV['CACHE_DEFAULT_TTL'] ?? 3600),
+                'enabled' => $_ENV['CACHE_ENABLED'] !== 'false',
             ],
             'session' => [
                 'driver' => $_ENV['SESSION_DRIVER'] ?? 'file',

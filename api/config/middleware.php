@@ -5,7 +5,7 @@ declare(strict_types=1);
 use Slim\App;
 use Slim\Views\TwigMiddleware;
 use Slim\Middleware\ContentLengthMiddleware;
-use Tuupola\Middleware\JwtAuthentication;
+use IndoWater\Api\Middleware\SimpleJwtMiddleware;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Server\RequestHandlerInterface as RequestHandler;
@@ -15,6 +15,7 @@ use IndoWater\Api\Middleware\SessionMiddleware;
 use IndoWater\Api\Middleware\RateLimitMiddleware;
 use IndoWater\Api\Middleware\LoggerMiddleware;
 use IndoWater\Api\Middleware\SecurityHeadersMiddleware;
+use IndoWater\Api\Middleware\CacheMiddleware;
 
 return function (App $app) {
     $container = $app->getContainer();
@@ -32,6 +33,11 @@ return function (App $app) {
     // Add JSON body parser middleware
     $app->add(JsonBodyParserMiddleware::class);
 
+    // Add cache middleware (before authentication)
+    if ($settings['cache']['enabled']) {
+        $app->add(CacheMiddleware::class);
+    }
+
     // Add session middleware
     $app->add(SessionMiddleware::class);
 
@@ -48,30 +54,20 @@ return function (App $app) {
     $app->add(TwigMiddleware::class);
 
     // Add JWT authentication middleware
-    $app->add(new JwtAuthentication([
+    $app->add(new SimpleJwtMiddleware([
         'path' => '/api',
         'ignore' => [
             '/api/auth/login',
             '/api/auth/register',
             '/api/auth/forgot-password',
             '/api/auth/reset-password',
+            '/api/device/register_device.php',
+            '/api/device/credit.php',
+            '/api/device/MeterReading.php',
+            '/api/device/get_commands.php',
+            '/api/device/ack_command.php',
         ],
         'secret' => $settings['jwt']['secret'],
         'algorithm' => 'HS256',
-        'secure' => $settings['app']['env'] !== 'development',
-        'relaxed' => ['localhost', '127.0.0.1'],
-        'error' => function (Response $response, array $arguments) {
-            $data = [
-                'status' => 'error',
-                'message' => $arguments['message'],
-            ];
-            $response->getBody()->write(json_encode($data, JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
-            return $response
-                ->withHeader('Content-Type', 'application/json')
-                ->withStatus(401);
-        },
-        'before' => function (Request $request, $arguments) {
-            return $request->withAttribute('jwt', $arguments['decoded']);
-        },
     ]));
 };

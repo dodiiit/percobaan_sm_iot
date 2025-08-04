@@ -1,0 +1,6 @@
+meter_id,amount,description,customer_name,customer_phone
+MTR001,150000,Monthly top-up,John Doe,+62812345678
+MTR002,200000,Monthly top-up,Jane Smith,+62812345679
+MTR003,100000,Monthly top-up,Bob Johnson,+62812345680
+MTR004,175000,Monthly top-up,Alice Brown,+62812345681
+MTR005,125000,Monthly top-up,Charlie Wilson,+62812345682

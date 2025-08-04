@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+// import 'package:google_fonts/google_fonts.dart'; // Removed - not in pubspec.yaml
 
 class AppTheme {
   // Light Theme Colors
@@ -134,8 +134,7 @@ class AppTheme {
       hintStyle: const TextStyle(color: Colors.grey),
       errorStyle: const TextStyle(color: _lightErrorColor),
     ),
-    textTheme: GoogleFonts.poppinsTextTheme(
-      const TextTheme(
+    textTheme: const TextTheme(
         displayLarge: TextStyle(color: _lightTextColor),
         displayMedium: TextStyle(color: _lightTextColor),
         displaySmall: TextStyle(color: _lightTextColor),
@@ -152,7 +151,6 @@ class AppTheme {
         labelMedium: TextStyle(color: _lightTextColor),
         labelSmall: TextStyle(color: _lightTextColor),
       ),
-    ),
     iconTheme: const IconThemeData(color: _lightTextColor),
     dividerTheme: const DividerThemeData(
       color: _lightDisabledColor,
@@ -349,8 +347,7 @@ class AppTheme {
       hintStyle: const TextStyle(color: Colors.grey),
       errorStyle: const TextStyle(color: _darkErrorColor),
     ),
-    textTheme: GoogleFonts.poppinsTextTheme(
-      const TextTheme(
+    textTheme: const TextTheme(
         displayLarge: TextStyle(color: _darkTextColor),
         displayMedium: TextStyle(color: _darkTextColor),
         displaySmall: TextStyle(color: _darkTextColor),
@@ -367,7 +364,6 @@ class AppTheme {
         labelMedium: TextStyle(color: _darkTextColor),
         labelSmall: TextStyle(color: _darkTextColor),
       ),
-    ),
     iconTheme: const IconThemeData(color: _darkTextColor),
     dividerTheme: const DividerThemeData(
       color: _darkDisabledColor,

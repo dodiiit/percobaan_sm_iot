@@ -1,235 +1,166 @@
-import React, { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { useTheme } from './contexts/ThemeContext';
-import { useAuth } from './contexts/AuthContext';
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { CssBaseline, CircularProgress } from '@mui/material';
+
+// Contexts
+import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { LanguageProvider } from './contexts/LanguageContext';
+import { UserRole } from './contexts/AuthContext';
 
 // Layouts
-import AuthLayout from './components/layouts/AuthLayout';
-import DashboardLayout from './components/layouts/DashboardLayout';
+import MainLayout from './components/Layout/MainLayout';
+import AuthLayout from './components/Layout/AuthLayout';
+import ProtectedRoute from './components/Layout/ProtectedRoute';
+import RoleBasedRoute from './components/Layout/RoleBasedRoute';
 
-// Auth Pages
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import ResetPassword from './pages/auth/ResetPassword';
-import VerifyEmail from './pages/auth/VerifyEmail';
+// Loading Component
+const LoadingFallback = () => (
+  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+    <CircularProgress />
+  </div>
+);
 
-// Dashboard Pages
-import SuperadminDashboard from './pages/dashboard/superadmin/Dashboard';
-import ClientDashboard from './pages/dashboard/client/Dashboard';
-import CustomerDashboard from './pages/dashboard/customer/Dashboard';
+// Lazy-loaded Auth Pages
+const Login = lazy(() => import('./components/Auth/Login'));
+const Register = lazy(() => import('./components/Auth/Register'));
+const ForgotPassword = lazy(() => import('./components/Auth/ForgotPassword'));
+const ResetPassword = lazy(() => import('./components/Auth/ResetPassword'));
 
-// Superadmin Pages
-import ClientsManagement from './pages/dashboard/superadmin/ClientsManagement';
-import PropertiesManagement from './pages/dashboard/superadmin/PropertiesManagement';
-import CustomersManagement from './pages/dashboard/superadmin/CustomersManagement';
-import MetersManagement from './pages/dashboard/superadmin/MetersManagement';
-import PaymentsManagement from './pages/dashboard/superadmin/PaymentsManagement';
-import ReportsManagement from './pages/dashboard/superadmin/ReportsManagement';
-import ServiceFeesManagement from './pages/dashboard/superadmin/ServiceFeesManagement';
-import SystemSettings from './pages/dashboard/superadmin/SystemSettings';
+// Lazy-loaded Common Pages
+const Profile = lazy(() => import('./components/Profile/Profile'));
+const Settings = lazy(() => import('./components/Settings/Settings'));
 
-// Client Pages
-import ClientProperties from './pages/dashboard/client/Properties';
-import ClientCustomers from './pages/dashboard/client/Customers';
-import ClientMeters from './pages/dashboard/client/Meters';
-import ClientPayments from './pages/dashboard/client/Payments';
-import ClientReports from './pages/dashboard/client/Reports';
-import ClientSettings from './pages/dashboard/client/Settings';
+// Lazy-loaded Customer Pages
+const Dashboard = lazy(() => import('./pages/dashboard/customer/Dashboard'));
+const CustomerDashboard = lazy(() => import('./pages/dashboard/customer/CustomerDashboard'));
+const Consumption = lazy(() => import('./pages/dashboard/customer/Consumption'));
+const CustomerMeters = lazy(() => import('./pages/dashboard/customer/Meters'));
+const CustomerPayments = lazy(() => import('./pages/dashboard/customer/Payments'));
+const Topup = lazy(() => import('./pages/dashboard/customer/Topup'));
 
-// Customer Pages
-import CustomerMeters from './pages/dashboard/customer/Meters';
-import CustomerConsumption from './pages/dashboard/customer/Consumption';
-import CustomerPayments from './pages/dashboard/customer/Payments';
-import CustomerTopup from './pages/dashboard/customer/Topup';
-import CustomerProfile from './pages/dashboard/customer/Profile';
+// Lazy-loaded Client Pages
+const ClientDashboard = lazy(() => import('./pages/dashboard/client/ClientDashboard'));
+const ClientMeters = lazy(() => import('./pages/dashboard/client/Meters'));
+const Customers = lazy(() => import('./pages/dashboard/client/Customers'));
+const Properties = lazy(() => import('./pages/dashboard/client/Properties'));
+const ConsumptionAnalytics = lazy(() => import('./pages/dashboard/client/ConsumptionAnalytics'));
+const ClientPayments = lazy(() => import('./pages/dashboard/client/Payments'));
+const Reports = lazy(() => import('./pages/dashboard/client/Reports'));
+const ClientSettings = lazy(() => import('./pages/dashboard/client/Settings'));
 
-// Error Pages
-import NotFound from './pages/errors/NotFound';
-import Unauthorized from './pages/errors/Unauthorized';
-import ServerError from './pages/errors/ServerError';
+// Lazy-loaded Superadmin Pages
+const SuperadminDashboard = lazy(() => import('./pages/dashboard/superadmin/SuperadminDashboard'));
+const ClientsManagement = lazy(() => import('./pages/dashboard/superadmin/ClientsManagement'));
+const CustomersManagement = lazy(() => import('./pages/dashboard/superadmin/CustomersManagement'));
+const MetersManagement = lazy(() => import('./pages/dashboard/superadmin/MetersManagement'));
+const PropertiesManagement = lazy(() => import('./pages/dashboard/superadmin/PropertiesManagement'));
+const PaymentsManagement = lazy(() => import('./pages/dashboard/superadmin/PaymentsManagement'));
+const ReportsManagement = lazy(() => import('./pages/dashboard/superadmin/ReportsManagement'));
+const TariffsManagement = lazy(() => import('./pages/dashboard/superadmin/TariffsManagement'));
+const SystemSettings = lazy(() => import('./pages/dashboard/superadmin/SystemSettings'));
 
-// Protected Route Component
-const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles: string[] }) => {
-  const { isAuthenticated, user } = useAuth();
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-  
-  if (user && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/unauthorized" replace />;
-  }
-  
-  return <>{children}</>;
-};
+// Lazy-loaded Error Pages
+const NotFound = lazy(() => import('./pages/errors/NotFound'));
 
-function App() {
-  const { t } = useTranslation();
-  const { theme } = useTheme();
-  
-  useEffect(() => {
-    // Apply theme class to body
-    document.body.className = theme;
-    
-    // Set page title
-    document.title = t('app.title');
-  }, [theme, t]);
-  
+// Lazy-loaded Landing Page
+const LandingPage = lazy(() => import('./pages/LandingPage'));
+
+// Lazy-loaded Legacy Components
+const MeterList = lazy(() => import('./components/Meters/MeterList'));
+const MeterDetails = lazy(() => import('./components/Meters/MeterDetails'));
+const MeterTopUp = lazy(() => import('./components/Meters/MeterTopUp'));
+const PaymentHistory = lazy(() => import('./components/Payments/PaymentHistory'));
+
+const App: React.FC = () => {
   return (
-    <div className={`App ${theme}`}>
-      <Routes>
-        {/* Auth Routes */}
-        <Route path="/" element={<AuthLayout />}>
-          <Route index element={<Navigate to="/login" replace />} />
-          <Route path="login" element={<Login />} />
-          <Route path="register" element={<Register />} />
-          <Route path="forgot-password" element={<ForgotPassword />} />
-          <Route path="reset-password" element={<ResetPassword />} />
-          <Route path="verify-email" element={<VerifyEmail />} />
-        </Route>
-        
-        {/* Dashboard Routes */}
-        <Route path="/dashboard" element={
-          <ProtectedRoute allowedRoles={['superadmin', 'client', 'customer']}>
-            <DashboardLayout />
-          </ProtectedRoute>
-        }>
-          <Route index element={<Navigate to="/dashboard/home" replace />} />
-          
-          {/* Dynamic Dashboard Home based on user role */}
-          <Route path="home" element={
-            <ProtectedRoute allowedRoles={['superadmin', 'client', 'customer']}>
-              {/* This will be replaced with the appropriate dashboard based on user role */}
-              <div>Dashboard Home</div>
-            </ProtectedRoute>
-          } />
-          
-          {/* Superadmin Routes */}
-          <Route path="superadmin" element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <SuperadminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="clients" element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <ClientsManagement />
-            </ProtectedRoute>
-          } />
-          <Route path="properties" element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <PropertiesManagement />
-            </ProtectedRoute>
-          } />
-          <Route path="customers" element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <CustomersManagement />
-            </ProtectedRoute>
-          } />
-          <Route path="meters" element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <MetersManagement />
-            </ProtectedRoute>
-          } />
-          <Route path="payments" element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <PaymentsManagement />
-            </ProtectedRoute>
-          } />
-          <Route path="reports" element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <ReportsManagement />
-            </ProtectedRoute>
-          } />
-          <Route path="service-fees" element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <ServiceFeesManagement />
-            </ProtectedRoute>
-          } />
-          <Route path="settings" element={
-            <ProtectedRoute allowedRoles={['superadmin']}>
-              <SystemSettings />
-            </ProtectedRoute>
-          } />
-          
-          {/* Client Routes */}
-          <Route path="client" element={
-            <ProtectedRoute allowedRoles={['client']}>
-              <ClientDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="client/properties" element={
-            <ProtectedRoute allowedRoles={['client']}>
-              <ClientProperties />
-            </ProtectedRoute>
-          } />
-          <Route path="client/customers" element={
-            <ProtectedRoute allowedRoles={['client']}>
-              <ClientCustomers />
-            </ProtectedRoute>
-          } />
-          <Route path="client/meters" element={
-            <ProtectedRoute allowedRoles={['client']}>
-              <ClientMeters />
-            </ProtectedRoute>
-          } />
-          <Route path="client/payments" element={
-            <ProtectedRoute allowedRoles={['client']}>
-              <ClientPayments />
-            </ProtectedRoute>
-          } />
-          <Route path="client/reports" element={
-            <ProtectedRoute allowedRoles={['client']}>
-              <ClientReports />
-            </ProtectedRoute>
-          } />
-          <Route path="client/settings" element={
-            <ProtectedRoute allowedRoles={['client']}>
-              <ClientSettings />
-            </ProtectedRoute>
-          } />
-          
-          {/* Customer Routes */}
-          <Route path="customer" element={
-            <ProtectedRoute allowedRoles={['customer']}>
-              <CustomerDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="customer/meters" element={
-            <ProtectedRoute allowedRoles={['customer']}>
-              <CustomerMeters />
-            </ProtectedRoute>
-          } />
-          <Route path="customer/consumption" element={
-            <ProtectedRoute allowedRoles={['customer']}>
-              <CustomerConsumption />
-            </ProtectedRoute>
-          } />
-          <Route path="customer/payments" element={
-            <ProtectedRoute allowedRoles={['customer']}>
-              <CustomerPayments />
-            </ProtectedRoute>
-          } />
-          <Route path="customer/topup" element={
-            <ProtectedRoute allowedRoles={['customer']}>
-              <CustomerTopup />
-            </ProtectedRoute>
-          } />
-          <Route path="customer/profile" element={
-            <ProtectedRoute allowedRoles={['customer']}>
-              <CustomerProfile />
-            </ProtectedRoute>
-          } />
-        </Route>
-        
-        {/* Error Routes */}
-        <Route path="/unauthorized" element={<Unauthorized />} />
-        <Route path="/server-error" element={<ServerError />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </div>
+    <ThemeProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <CssBaseline />
+          <Router>
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                {/* Auth Routes */}
+                <Route element={<AuthLayout />}>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/forgot-password" element={<ForgotPassword />} />
+                  <Route path="/reset-password/:token" element={<ResetPassword />} />
+                </Route>
+
+                {/* Customer Routes */}
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<RoleBasedRoute allowedRoles={[UserRole.CUSTOMER]} />}>
+                    <Route element={<MainLayout />}>
+                      <Route path="/dashboard" element={<CustomerDashboard />} />
+                      <Route path="/meters" element={<CustomerMeters />} />
+                      <Route path="/meters/:id" element={<MeterDetails />} />
+                      <Route path="/meters/:id/topup" element={<MeterTopUp />} />
+                      <Route path="/consumption" element={<Consumption />} />
+                      <Route path="/payments" element={<CustomerPayments />} />
+                      <Route path="/topup" element={<Topup />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/settings" element={<Settings />} />
+                    </Route>
+                  </Route>
+                </Route>
+
+                {/* Client Routes */}
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<RoleBasedRoute allowedRoles={[UserRole.CLIENT]} />}>
+                    <Route element={<MainLayout />}>
+                      <Route path="/dashboard" element={<ClientDashboard />} />
+                      <Route path="/customers" element={<Customers />} />
+                      <Route path="/meters" element={<ClientMeters />} />
+                      <Route path="/properties" element={<Properties />} />
+                      <Route path="/analytics" element={<ConsumptionAnalytics />} />
+                      <Route path="/payments" element={<ClientPayments />} />
+                      <Route path="/reports" element={<Reports />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/settings" element={<ClientSettings />} />
+                    </Route>
+                  </Route>
+                </Route>
+
+                {/* Superadmin Routes */}
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<RoleBasedRoute allowedRoles={[UserRole.SUPERADMIN]} />}>
+                    <Route element={<MainLayout />}>
+                      <Route path="/dashboard" element={<SuperadminDashboard />} />
+                      <Route path="/clients" element={<ClientsManagement />} />
+                      <Route path="/customers" element={<CustomersManagement />} />
+                      <Route path="/meters" element={<MetersManagement />} />
+                      <Route path="/properties" element={<PropertiesManagement />} />
+                      <Route path="/payments" element={<PaymentsManagement />} />
+                      <Route path="/reports" element={<ReportsManagement />} />
+                      <Route path="/tariffs" element={<TariffsManagement />} />
+                      <Route path="/system" element={<SystemSettings />} />
+                      <Route path="/profile" element={<Profile />} />
+                      <Route path="/settings" element={<Settings />} />
+                    </Route>
+                  </Route>
+                </Route>
+
+                {/* Fallback Protected Route (for backward compatibility) */}
+                <Route element={<ProtectedRoute />}>
+                  <Route element={<MainLayout />}>
+                    <Route path="/legacy-dashboard" element={<Dashboard />} />
+                  </Route>
+                </Route>
+
+                {/* Landing Page */}
+                <Route path="/" element={<LandingPage />} />
+                
+                {/* 404 Page */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </Router>
+        </AuthProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   );
-}
+};
 
 export default App;
