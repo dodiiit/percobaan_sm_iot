@@ -7,6 +7,7 @@ namespace IndoWater\Api\Services;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use IndoWater\Api\Models\User;
+use IndoWater\Api\Services\EncryptionService;
 use Ramsey\Uuid\Uuid;
 
 class AuthService
@@ -15,20 +16,27 @@ class AuthService
     private string $jwtSecret;
     private int $jwtTtl;
     private int $jwtRefreshTtl;
+    private EncryptionService $encryptionService;
 
-    public function __construct(User $userModel, string $jwtSecret, int $jwtTtl = 3600, int $jwtRefreshTtl = 604800)
-    {
+    public function __construct(
+        User $userModel, 
+        string $jwtSecret, 
+        int $jwtTtl = 3600, 
+        int $jwtRefreshTtl = 604800,
+        EncryptionService $encryptionService
+    ) {
         $this->userModel = $userModel;
         $this->jwtSecret = $jwtSecret;
         $this->jwtTtl = $jwtTtl;
         $this->jwtRefreshTtl = $jwtRefreshTtl;
+        $this->encryptionService = $encryptionService;
     }
 
     public function login(string $email, string $password): array
     {
         $user = $this->userModel->findByEmail($email);
         
-        if (!$user || !password_verify($password, $user['password'])) {
+        if (!$user || !$this->encryptionService->verifyPassword($password, $user['password'])) {
             throw new \Exception('Invalid credentials', 401);
         }
 
@@ -59,8 +67,8 @@ class AuthService
             throw new \Exception('Email already exists', 409);
         }
 
-        // Hash password
-        $userData['password'] = password_hash($userData['password'], PASSWORD_DEFAULT);
+        // Hash password with secure algorithm
+        $userData['password'] = $this->encryptionService->hashPassword($userData['password']);
         
         // Set default values
         $userData['role'] = $userData['role'] ?? 'customer';
@@ -170,7 +178,7 @@ class AuthService
                 throw new \Exception('Invalid token type', 401);
             }
 
-            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            $hashedPassword = $this->encryptionService->hashPassword($newPassword);
             return $this->userModel->updatePassword($decoded->user_id, $hashedPassword);
         } catch (\Exception $e) {
             throw new \Exception('Invalid reset token', 401);
@@ -179,13 +187,20 @@ class AuthService
 
     private function generateAccessToken(array $user): string
     {
+        // Generate a unique token ID
+        $jti = $this->encryptionService->generateToken(16);
+        
         $payload = [
+            'jti' => $jti, // JWT ID for token revocation
             'user_id' => $user['id'],
             'email' => $user['email'],
             'role' => $user['role'],
             'type' => 'access',
             'iat' => time(),
-            'exp' => time() + $this->jwtTtl
+            'nbf' => time(), // Not before
+            'exp' => time() + $this->jwtTtl,
+            'iss' => 'indowater-api', // Issuer
+            'aud' => 'indowater-client' // Audience
         ];
 
         return JWT::encode($payload, $this->jwtSecret, 'HS256');
@@ -193,11 +208,18 @@ class AuthService
 
     private function generateRefreshToken(array $user): string
     {
+        // Generate a unique token ID
+        $jti = $this->encryptionService->generateToken(16);
+        
         $payload = [
+            'jti' => $jti, // JWT ID for token revocation
             'user_id' => $user['id'],
             'type' => 'refresh',
             'iat' => time(),
-            'exp' => time() + $this->jwtRefreshTtl
+            'nbf' => time(), // Not before
+            'exp' => time() + $this->jwtRefreshTtl,
+            'iss' => 'indowater-api', // Issuer
+            'aud' => 'indowater-client' // Audience
         ];
 
         return JWT::encode($payload, $this->jwtSecret, 'HS256');
@@ -205,13 +227,42 @@ class AuthService
 
     private function generateEmailVerificationToken(string $userId): string
     {
+        // Generate a unique token ID
+        $jti = $this->encryptionService->generateToken(16);
+        
         $payload = [
+            'jti' => $jti, // JWT ID for token revocation
             'user_id' => $userId,
             'type' => 'email_verification',
             'iat' => time(),
-            'exp' => time() + 86400 // 24 hours
+            'nbf' => time(), // Not before
+            'exp' => time() + 86400, // 24 hours
+            'iss' => 'indowater-api', // Issuer
+            'aud' => 'indowater-client' // Audience
         ];
 
         return JWT::encode($payload, $this->jwtSecret, 'HS256');
+    }
+    
+    /**
+     * Encrypt sensitive data before storing
+     *
+     * @param mixed $data The data to encrypt
+     * @return string The encrypted data
+     */
+    public function encryptData($data): string
+    {
+        return $this->encryptionService->encrypt($data);
+    }
+    
+    /**
+     * Decrypt sensitive data
+     *
+     * @param string $encryptedData The encrypted data
+     * @return mixed The decrypted data
+     */
+    public function decryptData(string $encryptedData)
+    {
+        return $this->encryptionService->decrypt($encryptedData);
     }
 }

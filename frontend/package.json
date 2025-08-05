@@ -17,7 +17,11 @@
     "optimize": "node scripts/optimize-images.js",
     "optimize:images": "node scripts/optimize-images.js",
     "check-translations": "node scripts/check-translations.js",
-    "i18n:extract": "i18next-scanner --config i18next-scanner.config.js"
+    "i18n:extract": "i18next-scanner --config i18next-scanner.config.js",
+    "analyze:bundle": "node scripts/analyze-bundle.js",
+    "analyze:deps": "node scripts/check-unused-deps.js",
+    "serve:production": "npx serve -s dist -l 12000",
+    "deploy": "npm run build:prod && npm run serve:production"
   },
   "dependencies": {
     "@emotion/react": "^11.11.1",
@@ -46,6 +50,18 @@
     "web-vitals": "^5.1.0",
     "yup": "^1.2.0",
     "zustand": "^4.3.9"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   },
   "devDependencies": {
     "@tailwindcss/forms": "^0.5.10",

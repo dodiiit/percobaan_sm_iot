@@ -1,0 +1,218 @@
+/* Responsive design utilities */
+
+/* Hide elements on specific screen sizes */
+@media (max-width: 640px) {
+  .hide-xs {
+    display: none !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  .hide-sm {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .hide-md {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1280px) {
+  .hide-lg {
+    display: none !important;
+  }
+}
+
+@media (min-width: 1281px) {
+  .hide-xl {
+    display: none !important;
+  }
+}
+
+/* Show elements only on specific screen sizes */
+.show-xs {
+  display: none !important;
+}
+
+.show-sm {
+  display: none !important;
+}
+
+.show-md {
+  display: none !important;
+}
+
+.show-lg {
+  display: none !important;
+}
+
+.show-xl {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  .show-xs {
+    display: block !important;
+  }
+  .show-xs-flex {
+    display: flex !important;
+  }
+  .show-xs-inline {
+    display: inline !important;
+  }
+  .show-xs-inline-block {
+    display: inline-block !important;
+  }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+  .show-sm {
+    display: block !important;
+  }
+  .show-sm-flex {
+    display: flex !important;
+  }
+  .show-sm-inline {
+    display: inline !important;
+  }
+  .show-sm-inline-block {
+    display: inline-block !important;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  .show-md {
+    display: block !important;
+  }
+  .show-md-flex {
+    display: flex !important;
+  }
+  .show-md-inline {
+    display: inline !important;
+  }
+  .show-md-inline-block {
+    display: inline-block !important;
+  }
+}
+
+@media (min-width: 1025px) and (max-width: 1280px) {
+  .show-lg {
+    display: block !important;
+  }
+  .show-lg-flex {
+    display: flex !important;
+  }
+  .show-lg-inline {
+    display: inline !important;
+  }
+  .show-lg-inline-block {
+    display: inline-block !important;
+  }
+}
+
+@media (min-width: 1281px) {
+  .show-xl {
+    display: block !important;
+  }
+  .show-xl-flex {
+    display: flex !important;
+  }
+  .show-xl-inline {
+    display: inline !important;
+  }
+  .show-xl-inline-block {
+    display: inline-block !important;
+  }
+}
+
+/* Responsive text sizes */
+.text-responsive {
+  font-size: clamp(1rem, 2vw, 1.5rem);
+}
+
+.text-responsive-lg {
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.text-responsive-xl {
+  font-size: clamp(2rem, 5vw, 4rem);
+}
+
+/* Responsive spacing */
+.margin-responsive {
+  margin: clamp(0.5rem, 2vw, 2rem);
+}
+
+.padding-responsive {
+  padding: clamp(0.5rem, 2vw, 2rem);
+}
+
+/* Responsive grid layouts */
+.grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+}
+
+.grid-responsive-sm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+}
+
+.grid-responsive-lg {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Responsive flex layouts */
+.flex-responsive {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .flex-responsive {
+    flex-direction: column;
+  }
+}
+
+/* Touch-friendly targets for mobile */
+@media (max-width: 768px) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  button.touch-friendly,
+  a.touch-friendly {
+    padding: 0.75rem 1rem;
+    margin: 0.25rem;
+  }
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  body {
+    font-size: 12pt;
+    line-height: 1.5;
+    color: #000;
+    background: #fff;
+  }
+  
+  a {
+    text-decoration: underline;
+    color: #000;
+  }
+}

@@ -4,30 +4,28 @@ declare(strict_types=1);
 
 use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
-use Psr\Http\Message\ResponseInterface as Response;
-use Psr\Http\Message\ServerRequestInterface as Request;
 use IndoWater\Api\Controllers\AuthController;
 use IndoWater\Api\Controllers\UserController;
 use IndoWater\Api\Controllers\ClientController;
 use IndoWater\Api\Controllers\CustomerController;
 use IndoWater\Api\Controllers\PropertyController;
 use IndoWater\Api\Controllers\MeterController;
-use IndoWater\Api\Controllers\ValveController;
 use IndoWater\Api\Controllers\PaymentController;
-use IndoWater\Api\Controllers\WebhookController;
 use IndoWater\Api\Controllers\CreditController;
 use IndoWater\Api\Controllers\ReportController;
 use IndoWater\Api\Controllers\NotificationController;
 use IndoWater\Api\Controllers\DashboardController;
 use IndoWater\Api\Controllers\SettingController;
+use IndoWater\Api\Controllers\WebhookController;
 use IndoWater\Api\Controllers\HealthController;
-use IndoWater\Api\Controllers\CacheController;
-use IndoWater\Api\Controllers\DeviceController;
-use IndoWater\Api\Middleware\WebhookMiddleware;
+use IndoWater\Api\Controllers\SecurityReportController;
 
 return function (App $app) {
     // Health Check
     $app->get('/health', [HealthController::class, 'check']);
+    
+    // Security Reports
+    $app->post('/api/security/reports/csp', [SecurityReportController::class, 'handleCspReport']);
 
     // API Routes
     $app->group('/api', function (RouteCollectorProxy $group) {
@@ -112,55 +110,18 @@ return function (App $app) {
             $group->post('/{id}/ota', [MeterController::class, 'ota']);
             $group->post('/{id}/control', [MeterController::class, 'control']);
             $group->get('/{id}/status', [MeterController::class, 'status']);
-            $group->get('/{id}/balance', [MeterController::class, 'balance']);
-        });
-
-        // Valve Control Routes
-        $group->group('/valves', function (RouteCollectorProxy $group) {
-            // Valve management
-            $group->get('', [ValveController::class, 'index']);
-            $group->get('/overview', [ValveController::class, 'overview']);
-            $group->get('/statistics', [ValveController::class, 'statistics']);
-            $group->get('/failed-commands', [ValveController::class, 'failedCommands']);
-            $group->get('/{id}', [ValveController::class, 'show']);
-            $group->post('', [ValveController::class, 'store']);
-            $group->put('/{id}', [ValveController::class, 'update']);
-            $group->delete('/{id}', [ValveController::class, 'delete']);
-            
-            // Valve control operations
-            $group->post('/{id}/open', [ValveController::class, 'open']);
-            $group->post('/{id}/close', [ValveController::class, 'close']);
-            $group->post('/{id}/partial-open', [ValveController::class, 'partialOpen']);
-            $group->post('/{id}/emergency-close', [ValveController::class, 'emergencyClose']);
-            $group->post('/{id}/status-check', [ValveController::class, 'status']);
-            
-            // Valve monitoring
-            $group->get('/{id}/commands', [ValveController::class, 'commands']);
-            $group->get('/{id}/history', [ValveController::class, 'history']);
-            $group->get('/{id}/alerts', [ValveController::class, 'alerts']);
-            
-            // Manual override
-            $group->post('/{id}/enable-override', [ValveController::class, 'enableOverride']);
-            $group->post('/{id}/disable-override', [ValveController::class, 'disableOverride']);
-            
-            // Alert management
-            $group->post('/alerts/{alert_id}/acknowledge', [ValveController::class, 'acknowledgeAlert']);
-            $group->post('/alerts/{alert_id}/resolve', [ValveController::class, 'resolveAlert']);
-            
-            // Bulk operations
-            $group->post('/bulk-operation', [ValveController::class, 'bulkOperation']);
-            
-            // Device response webhook (for IoT devices)
-            $group->post('/device-response', [ValveController::class, 'deviceResponse']);
         });
 
         // Payment Routes
         $group->group('/payments', function (RouteCollectorProxy $group) {
             $group->get('', [PaymentController::class, 'index']);
             $group->get('/{id}', [PaymentController::class, 'show']);
-            $group->post('', [PaymentController::class, 'create']);
-            $group->get('/{id}/status', [PaymentController::class, 'status']);
-            $group->get('/summary', [PaymentController::class, 'summary']);
+            $group->post('', [PaymentController::class, 'store']);
+            $group->put('/{id}', [PaymentController::class, 'update']);
+            $group->delete('/{id}', [PaymentController::class, 'delete']);
+            $group->post('/midtrans', [PaymentController::class, 'midtrans']);
+            $group->post('/doku', [PaymentController::class, 'doku']);
+            $group->get('/{id}/receipt', [PaymentController::class, 'receipt']);
         });
 
         // Credit Routes
@@ -215,57 +176,13 @@ return function (App $app) {
             $group->get('/notifications', [SettingController::class, 'notifications']);
             $group->put('/notifications', [SettingController::class, 'updateNotifications']);
         });
-
-        // Cache Management Routes (Admin only)
-        $group->group('/cache', function (RouteCollectorProxy $group) {
-            $group->get('/stats', [CacheController::class, 'stats']);
-            $group->get('/health', [CacheController::class, 'health']);
-            $group->post('/clear', [CacheController::class, 'clear']);
-            $group->post('/clear-pattern', [CacheController::class, 'clearPattern']);
-            $group->post('/warmup', [CacheController::class, 'warmup']);
-            $group->post('/invalidate', [CacheController::class, 'invalidate']);
-            $group->get('/key/{key}', [CacheController::class, 'keyInfo']);
-        });
-
-        // Device API Routes (Legacy endpoints for Arduino/NodeMCU firmware)
-        $group->group('/device', function (RouteCollectorProxy $group) {
-            // Device registration (provisioning)
-            $group->post('/register_device.php', [DeviceController::class, 'registerDevice']);
-            
-            // Get device credit/balance
-            $group->get('/credit.php', [DeviceController::class, 'getCredit']);
-            
-            // Submit meter reading
-            $group->post('/MeterReading.php', [DeviceController::class, 'submitReading']);
-            
-            // Get pending commands
-            $group->get('/get_commands.php', [DeviceController::class, 'getCommands']);
-            
-            // Acknowledge command execution
-            $group->post('/ack_command.php', [DeviceController::class, 'acknowledgeCommand']);
-        });
     });
 
-    // Webhook Routes (No authentication required)
+    // Webhook Routes
     $app->group('/webhooks', function (RouteCollectorProxy $group) {
-        // Webhook status endpoint
-        $group->get('/status', [WebhookController::class, 'status']);
-        
-        // Payment gateway webhooks
-        $group->post('/payment/{method}', [WebhookController::class, 'handlePayment']);
-        
-        // Legacy webhook route for backward compatibility
-        $group->post('/{method}', [PaymentController::class, 'webhook']);
-    })->add(WebhookMiddleware::class);
-
-    // OTA Update endpoint
-    $app->get('/ota/firmware.bin', function (Request $request, Response $response) {
-        // Serve firmware binary for OTA updates
-        // This should be implemented based on your OTA update strategy
-        return $response->withJson([
-            'status' => 'error',
-            'message' => 'OTA endpoint not implemented yet'
-        ], 501);
+        $group->post('/midtrans', [WebhookController::class, 'midtrans']);
+        $group->post('/doku', [WebhookController::class, 'doku']);
+        $group->post('/meter', [WebhookController::class, 'meter']);
     });
 
     // Fallback for undefined routes
