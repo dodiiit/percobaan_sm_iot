@@ -227,12 +227,22 @@ class AuthProvider extends ChangeNotifier {
     }
   }
   
-  Future<bool> updateProfile(Map<String, dynamic> userData) async {
+  Future<bool> updateProfile({
+    required String name,
+    required String email,
+    String? phone,
+  }) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
     
     try {
+      final userData = {
+        'name': name,
+        'email': email,
+        if (phone != null) 'phone': phone,
+      };
+      
       final result = await _authService.updateProfile(userData);
       
       if (result['success']) {

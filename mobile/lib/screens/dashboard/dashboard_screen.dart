@@ -7,6 +7,8 @@ import '../../services/notification_service.dart';
 import '../../services/offline_service.dart';
 import '../payment/payment_screen.dart';
 import '../notifications/notification_center_screen.dart';
+import '../profile/profile_screen.dart';
+import '../meter/meter_details_screen.dart';
 import 'widgets/meter_card.dart';
 import 'widgets/usage_chart.dart';
 import 'widgets/quick_actions.dart';
@@ -162,6 +164,17 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   ),
                 ),
             ],
+          ),
+          IconButton(
+            icon: const Icon(Icons.person),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+              );
+            },
           ),
           if (_offlineService.isOffline)
             const Padding(
@@ -560,7 +573,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => PaymentScreen(selectedMeterId: meter.id),
+                                builder: (context) => PaymentScreen(selectedMeter: meter),
                               ),
                             );
                           },

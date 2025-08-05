@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 class Constants {
   // API Constants
-  static const String baseUrl = 'https://api.indowater.example.com';
+  static const String baseUrl = 'http://localhost:8000';
   static const String apiVersion = 'v1';
   static const String apiUrl = '$baseUrl/api/$apiVersion';
   

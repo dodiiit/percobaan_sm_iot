@@ -7,6 +7,9 @@ import 'services/offline_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/language_provider.dart';
+import 'providers/meter_provider.dart';
+import 'providers/payment_provider.dart';
+import 'providers/notification_provider.dart';
 import 'screens/dashboard/dashboard_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/splash_screen.dart';
@@ -52,6 +55,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => LanguageProvider()),
+        ChangeNotifierProvider(create: (_) => MeterProvider()),
+        ChangeNotifierProvider(create: (_) => PaymentProvider()),
+        ChangeNotifierProvider(create: (_) => NotificationProvider()),
         Provider.value(value: apiService),
         Provider.value(value: notificationService),
         Provider.value(value: offlineService),
