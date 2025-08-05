@@ -5,25 +5,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 import CustomerDetailView from './CustomerDetailView';
-
-interface Customer {
-  id?: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  status: 'active' | 'inactive' | 'pending';
-  client_id: string;
-  client_name?: string;
-  created_at?: string;
-  meters_count?: number;
-  properties_count?: number;
-  total_consumption?: number;
-  last_payment_date?: string;
-  last_payment_amount?: number;
-  profile_image?: string;
-}
+import { Customer } from '../../types';
 
 interface Client {
   id: string;
@@ -49,13 +31,16 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const [formData, setFormData] = useState<Customer>({
+    id: '',
     name: '',
     email: '',
     phone: '',
     address: '',
     city: '',
     status: 'active',
-    client_id: ''
+    client_id: '',
+    client_name: '',
+    created_at: new Date().toISOString()
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -68,13 +53,16 @@ const CustomerModal: React.FC<CustomerModalProps> = ({
     } else {
       // Reset form for add mode
       setFormData({
+        id: '',
         name: '',
         email: '',
         phone: '',
         address: '',
         city: '',
         status: 'active',
-        client_id: ''
+        client_id: '',
+        client_name: '',
+        created_at: new Date().toISOString()
       });
     }
   }, [customer, mode, isOpen]);

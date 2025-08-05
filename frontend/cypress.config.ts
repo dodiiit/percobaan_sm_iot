@@ -16,7 +16,21 @@ export default defineConfig({
       apiUrl: 'http://localhost:8000/api',
       testUser: {
         email: 'test@example.com',
-        password: 'password123'
+        password: 'password123',
+        name: 'Test User',
+        role: 'customer'
+      },
+      adminUser: {
+        email: 'admin@example.com',
+        password: 'admin123',
+        name: 'Admin User',
+        role: 'admin'
+      },
+      clientUser: {
+        email: 'client@example.com',
+        password: 'client123',
+        name: 'Client User',
+        role: 'client'
       }
     },
     setupNodeEvents(on, config) {

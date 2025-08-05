@@ -24,25 +24,7 @@ import api from '../../../services/api';
 import { mockApi, shouldUseMockApi } from '../../../services/mockApi';
 import usePolling from '../../../hooks/usePolling';
 import { downloadCSV, generateFilename } from '../../../utils/exportUtils';
-
-interface Customer {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  status: 'active' | 'inactive' | 'pending';
-  client_name: string;
-  client_id: string;
-  created_at: string;
-  meters_count: number;
-  properties_count: number;
-  total_consumption: number;
-  last_payment_date: string;
-  last_payment_amount: number;
-  profile_image?: string;
-}
+import { Customer } from '../../../types';
 
 const CustomerStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   let bgColor = '';
@@ -101,6 +83,72 @@ const CustomersManagement: React.FC = () => {
   const [paginatedCustomers, setPaginatedCustomers] = useState<Customer[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   
+  // Define fetchCustomers function before using it
+  const fetchCustomers = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      let response;
+      
+      if (shouldUseMockApi()) {
+        // Use mock data
+        const mockCustomers: Customer[] = [
+          {
+            id: 'cust-001',
+            name: 'John Doe',
+            email: 'john.doe@example.com',
+            phone: '+62 812-3456-7890',
+            address: 'Jl. Sudirman No. 123, Jakarta',
+            client_id: 'client-001',
+            client_name: 'PT. Water Solutions',
+            status: 'active',
+            balance: 150000,
+            created_at: '2024-01-15T08:00:00Z',
+            updated_at: '2024-01-20T10:30:00Z'
+          },
+          {
+            id: 'cust-002',
+            name: 'Jane Smith',
+            email: 'jane.smith@example.com',
+            phone: '+62 813-7890-1234',
+            address: 'Jl. Thamrin No. 456, Jakarta',
+            client_id: 'client-002',
+            client_name: 'CV. Aqua Tech',
+            status: 'inactive',
+            balance: 75000,
+            created_at: '2024-01-10T09:15:00Z',
+            updated_at: '2024-01-18T14:45:00Z'
+          },
+          {
+            id: 'cust-003',
+            name: 'Ahmad Rahman',
+            email: 'ahmad.rahman@example.com',
+            phone: '+62 814-5678-9012',
+            address: 'Jl. Gatot Subroto No. 789, Jakarta',
+            client_id: 'client-001',
+            client_name: 'PT. Water Solutions',
+            status: 'active',
+            balance: 200000,
+            created_at: '2024-01-05T11:20:00Z',
+            updated_at: '2024-01-22T16:10:00Z'
+          }
+        ];
+        
+        response = { data: mockCustomers };
+      } else {
+        response = await api.get('/superadmin/customers');
+      }
+      
+      setCustomers(response.data);
+    } catch (err) {
+      console.error('Error fetching customers:', err);
+      setError('Failed to fetch customers');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   // Real-time updates using polling
   const { isPolling, startPolling, stopPolling } = usePolling({
     fetchFn: fetchCustomers,
@@ -138,128 +186,7 @@ const CustomersManagement: React.FC = () => {
     }
   }, [filteredCustomers, currentPage, pageSize]);
 
-  const fetchCustomers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      let response;
-      
-      if (shouldUseMockApi()) {
-        // Use mock data
-        const mockCustomers: Customer[] = [
-          {
-            id: 'cust-001',
-            name: 'John Doe',
-            email: 'john.doe@example.com',
-            phone: '+62 812-3456-7890',
-            address: 'Jl. Sudirman No. 123',
-            city: 'Jakarta',
-            status: 'active',
-            client_name: 'PT Water Jakarta',
-            client_id: 'client-001',
-            created_at: '2025-01-15',
-            meters_count: 2,
-            properties_count: 1,
-            total_consumption: 1250,
-            last_payment_date: '2025-07-25',
-            last_payment_amount: 150000,
-            profile_image: 'https://randomuser.me/api/portraits/men/1.jpg'
-          },
-          {
-            id: 'cust-002',
-            name: 'Jane Smith',
-            email: 'jane.smith@example.com',
-            phone: '+62 813-9876-5432',
-            address: 'Jl. Gatot Subroto No. 45',
-            city: 'Jakarta',
-            status: 'active',
-            client_name: 'PT Water Jakarta',
-            client_id: 'client-001',
-            created_at: '2025-02-10',
-            meters_count: 1,
-            properties_count: 1,
-            total_consumption: 980,
-            last_payment_date: '2025-07-28',
-            last_payment_amount: 120000,
-            profile_image: 'https://randomuser.me/api/portraits/women/2.jpg'
-          },
-          {
-            id: 'cust-003',
-            name: 'Ahmad Rahman',
-            email: 'ahmad.rahman@example.com',
-            phone: '+62 815-1234-5678',
-            address: 'Jl. Asia Afrika No. 78',
-            city: 'Bandung',
-            status: 'pending',
-            client_name: 'Bandung Water Authority',
-            client_id: 'client-002',
-            created_at: '2025-03-05',
-            meters_count: 1,
-            properties_count: 1,
-            total_consumption: 1560,
-            last_payment_date: '2025-07-15',
-            last_payment_amount: 180000,
-            profile_image: 'https://randomuser.me/api/portraits/men/3.jpg'
-          },
-          {
-            id: 'cust-004',
-            name: 'Siti Nurhayati',
-            email: 'siti.nurhayati@example.com',
-            phone: '+62 817-8765-4321',
-            address: 'Jl. Diponegoro No. 56',
-            city: 'Bandung',
-            status: 'active',
-            client_name: 'Bandung Water Authority',
-            client_id: 'client-002',
-            created_at: '2025-03-20',
-            meters_count: 1,
-            properties_count: 1,
-            total_consumption: 2100,
-            last_payment_date: '2025-07-30',
-            last_payment_amount: 200000,
-            profile_image: 'https://randomuser.me/api/portraits/women/4.jpg'
-          },
-          {
-            id: 'cust-005',
-            name: 'Budi Santoso',
-            email: 'budi.santoso@example.com',
-            phone: '+62 819-8765-1234',
-            address: 'Jl. Pemuda No. 89',
-            city: 'Surabaya',
-            status: 'inactive',
-            client_name: 'Surabaya Clean Water',
-            client_id: 'client-003',
-            created_at: '2025-04-10',
-            meters_count: 1,
-            properties_count: 1,
-            total_consumption: 3450,
-            last_payment_date: '2025-06-25',
-            last_payment_amount: 250000,
-            profile_image: 'https://randomuser.me/api/portraits/men/5.jpg'
-          }
-        ];
-        
-        setCustomers(mockCustomers);
-        setFilteredCustomers(mockCustomers);
-      } else {
-        // Use real API
-        response = await api.get('/customers');
-        
-        if (response.data.status === 'success') {
-          setCustomers(response.data.data);
-          setFilteredCustomers(response.data.data);
-        } else {
-          throw new Error('Failed to fetch customers');
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching customers:', error);
-      setError('Failed to load customers. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
+
 
   const fetchClients = async () => {
     try {
@@ -314,7 +241,7 @@ const CustomersManagement: React.FC = () => {
         customer.name.toLowerCase().includes(query) ||
         customer.email.toLowerCase().includes(query) ||
         customer.phone.includes(query) ||
-        customer.city.toLowerCase().includes(query)
+        (customer.city && customer.city.toLowerCase().includes(query))
       );
     }
     
@@ -682,10 +609,10 @@ const CustomersManagement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900 dark:text-white">
-                        {formatCurrency(customer.last_payment_amount)}
+                        {customer.last_payment_amount ? formatCurrency(customer.last_payment_amount) : '-'}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">
-                        {formatDate(customer.last_payment_date)}
+                        {customer.last_payment_date ? formatDate(customer.last_payment_date) : '-'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
@@ -771,7 +698,7 @@ const CustomersManagement: React.FC = () => {
                 Cancel
               </Button>
               <Button
-                variant="destructive"
+                variant="danger"
                 onClick={handleConfirmDelete}
                 loading={loading}
               >

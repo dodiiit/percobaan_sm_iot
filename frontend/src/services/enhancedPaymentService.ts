@@ -1,31 +1,7 @@
 import { enhancedApi, ApiResponse, ApiError } from './enhancedApi';
+import { Payment, QueryParams, PaginatedResponse } from '../types';
 
-export interface Payment {
-  id: string;
-  customer_id: string;
-  meter_id?: string;
-  amount: number;
-  type: 'topup' | 'bill' | 'service_fee';
-  status: 'pending' | 'completed' | 'failed' | 'cancelled';
-  payment_method: 'credit_card' | 'bank_transfer' | 'e_wallet' | 'cash';
-  payment_gateway: 'midtrans' | 'doku' | 'manual';
-  transaction_id?: string;
-  gateway_transaction_id?: string;
-  description: string;
-  created_at: string;
-  updated_at: string;
-  customer?: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  meter?: {
-    id: string;
-    meter_number: string;
-  };
-}
-
-export interface PaymentRequest {
+export interface PaymentCreateRequest {
   customer_id?: string;
   meter_id?: string;
   amount: number;
@@ -34,7 +10,7 @@ export interface PaymentRequest {
   description: string;
 }
 
-export interface PaymentResponse {
+export interface PaymentCreateResponse {
   payment: Payment;
   payment_url?: string;
   redirect_url?: string;
@@ -55,7 +31,7 @@ class EnhancedPaymentService {
   private readonly baseUrl = '/payments';
 
   // Get all payments with enhanced filtering and pagination
-  async getPayments(params: any = {}): Promise<ApiResponse<{ data: Payment[]; total: number }>> {
+  async getPayments(params: QueryParams = {}): Promise<ApiResponse<PaginatedResponse<Payment>>> {
     return enhancedApi.get(`${this.baseUrl}`, {
       params,
       cacheKey: `payments_list_${JSON.stringify(params)}`,
@@ -67,7 +43,7 @@ class EnhancedPaymentService {
   }
 
   // Get customer's payments
-  async getMyPayments(params: any = {}): Promise<ApiResponse<Payment[]>> {
+  async getMyPayments(params: QueryParams = {}): Promise<ApiResponse<Payment[]>> {
     return enhancedApi.get(`${this.baseUrl}/my-payments`, {
       params,
       cacheKey: `my_payments_${JSON.stringify(params)}`,
@@ -101,10 +77,10 @@ class EnhancedPaymentService {
   }
 
   // Create new payment with comprehensive validation
-  async createPayment(paymentData: PaymentRequest): Promise<ApiResponse<PaymentResponse>> {
+  async createPayment(paymentData: PaymentCreateRequest): Promise<ApiResponse<PaymentCreateResponse>> {
     // Validate required fields
     const requiredFields = ['amount', 'type', 'payment_method', 'description'];
-    const missingFields = requiredFields.filter(field => !(paymentData as any)[field]);
+    const missingFields = requiredFields.filter(field => !(paymentData as unknown as Record<string, unknown>)[field]);
     
     if (missingFields.length > 0) {
       throw {
@@ -265,7 +241,7 @@ class EnhancedPaymentService {
   }
 
   // Process webhook (internal use)
-  async processWebhook(gateway: string, payload: any): Promise<ApiResponse<void>> {
+  async processWebhook(gateway: string, payload: Record<string, unknown>): Promise<ApiResponse<void>> {
     if (!gateway) {
       throw {
         message: 'Gateway is required',
@@ -308,7 +284,7 @@ class EnhancedPaymentService {
   }
 
   // Retry failed payment
-  async retryPayment(id: string): Promise<ApiResponse<PaymentResponse>> {
+  async retryPayment(id: string): Promise<ApiResponse<PaymentCreateResponse>> {
     if (!id) {
       throw {
         message: 'Payment ID is required',
@@ -353,7 +329,7 @@ class EnhancedPaymentService {
   async bulkUpdatePayments(
     paymentIds: string[], 
     updateData: { status?: Payment['status']; notes?: string }
-  ): Promise<ApiResponse<{ updated: number; failed: number; errors: any[] }>> {
+  ): Promise<ApiResponse<{ updated: number; failed: number; errors: ApiError[] }>> {
     if (!paymentIds || paymentIds.length === 0) {
       throw {
         message: 'At least one payment ID is required',
@@ -377,7 +353,7 @@ class EnhancedPaymentService {
 
   // Export payments
   async exportPayments(
-    params: any = {}, 
+    params: QueryParams = {}, 
     format: 'csv' | 'excel' | 'pdf' = 'csv'
   ): Promise<Blob> {
     const response = await enhancedApi.request({
@@ -401,7 +377,7 @@ class EnhancedPaymentService {
     meterId: string, 
     amount: number, 
     paymentMethod: string
-  ): Promise<ApiResponse<PaymentResponse>> {
+  ): Promise<ApiResponse<PaymentCreateResponse>> {
     if (!meterId) {
       throw {
         message: 'Meter ID is required',
@@ -413,7 +389,7 @@ class EnhancedPaymentService {
       meter_id: meterId,
       amount,
       type: 'topup',
-      payment_method: paymentMethod as any,
+      payment_method: paymentMethod as 'credit_card' | 'bank_transfer' | 'e_wallet',
       description: `Credit top-up for meter ${meterId}`
     });
   }
@@ -424,7 +400,15 @@ class EnhancedPaymentService {
   }
 
   // Payment verification and reconciliation
-  async verifyPayment(id: string): Promise<ApiResponse<{ verified: boolean; discrepancies: any[] }>> {
+  async verifyPayment(id: string): Promise<ApiResponse<{ 
+    verified: boolean; 
+    discrepancies: Array<{
+      field: string;
+      expected: unknown;
+      actual: unknown;
+      severity: 'low' | 'medium' | 'high';
+    }>;
+  }>> {
     if (!id) {
       throw {
         message: 'Payment ID is required',
@@ -491,7 +475,7 @@ class EnhancedPaymentService {
     }
 
     const requiredFields = ['reason', 'description'];
-    const missingFields = requiredFields.filter(field => !(disputeData as any)[field]);
+    const missingFields = requiredFields.filter(field => !(disputeData as Record<string, unknown>)[field]);
     
     if (missingFields.length > 0) {
       throw {
@@ -511,7 +495,17 @@ class EnhancedPaymentService {
   }
 
   // Payment notifications
-  async getPaymentNotifications(paymentId?: string): Promise<ApiResponse<any[]>> {
+  async getPaymentNotifications(paymentId?: string): Promise<ApiResponse<Array<{
+    id: string;
+    payment_id: string;
+    type: 'email' | 'sms' | 'push' | 'webhook';
+    status: 'pending' | 'sent' | 'delivered' | 'failed';
+    recipient: string;
+    content: string;
+    sent_at?: string;
+    delivered_at?: string;
+    error_message?: string;
+  }>>> {
     const url = paymentId ? `${this.baseUrl}/${paymentId}/notifications` : `${this.baseUrl}/notifications`;
     
     return enhancedApi.get(url, {
@@ -535,8 +529,17 @@ class EnhancedPaymentService {
     } = {}
   ): Promise<ApiResponse<{
     summary: PaymentStats;
-    trends: any[];
-    breakdown: any;
+    trends: Array<{
+      date: string;
+      amount: number;
+      transactions: number;
+      success_rate: number;
+    }>;
+    breakdown: {
+      by_method: Record<string, { amount: number; count: number }>;
+      by_type: Record<string, { amount: number; count: number }>;
+      by_status: Record<string, { amount: number; count: number }>;
+    };
   }>> {
     return enhancedApi.get(`${this.baseUrl}/analytics`, {
       params: filters,
@@ -550,7 +553,7 @@ class EnhancedPaymentService {
 
   // Recurring payments
   async createRecurringPayment(
-    paymentData: PaymentRequest & {
+    paymentData: PaymentCreateRequest & {
       frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
       start_date: string;
       end_date?: string;
@@ -558,7 +561,7 @@ class EnhancedPaymentService {
     }
   ): Promise<ApiResponse<{ recurring_payment_id: string }>> {
     const requiredFields = ['amount', 'type', 'payment_method', 'frequency', 'start_date'];
-    const missingFields = requiredFields.filter(field => !(paymentData as any)[field]);
+    const missingFields = requiredFields.filter(field => !(paymentData as unknown as Record<string, unknown>)[field]);
     
     if (missingFields.length > 0) {
       throw {
@@ -577,7 +580,19 @@ class EnhancedPaymentService {
     });
   }
 
-  async getRecurringPayments(): Promise<ApiResponse<any[]>> {
+  async getRecurringPayments(): Promise<ApiResponse<Array<{
+    id: string;
+    payment_data: PaymentCreateRequest;
+    frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
+    start_date: string;
+    end_date?: string;
+    max_occurrences?: number;
+    current_occurrences: number;
+    status: 'active' | 'paused' | 'completed' | 'cancelled';
+    next_payment_date?: string;
+    last_payment_date?: string;
+    created_at: string;
+  }>>> {
     return enhancedApi.get(`${this.baseUrl}/recurring`, {
       cacheKey: 'recurring_payments',
       retry: {

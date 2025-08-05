@@ -10,28 +10,11 @@ import {
   ClockIcon,
   CreditCardIcon,
   DocumentTextIcon,
-  ReceiptRefundIcon
+  ReceiptRefundIcon,
+  BeakerIcon
 } from '@heroicons/react/24/outline';
 import { useTranslation } from 'react-i18next';
-
-interface Payment {
-  id: string;
-  invoice_number: string;
-  customer_name: string;
-  customer_id: string;
-  meter_id: string;
-  amount: number;
-  status: 'paid' | 'pending' | 'failed' | 'refunded';
-  payment_date: string;
-  due_date: string;
-  payment_method: string;
-  transaction_id: string;
-  description: string;
-  consumption: number;
-  period_start: string;
-  period_end: string;
-  created_at: string;
-}
+import { Payment } from '../../types';
 
 interface PaymentDetailViewProps {
   payment: Payment;
@@ -150,7 +133,7 @@ const PaymentDetailView: React.FC<PaymentDetailViewProps> = ({ payment }) => {
               {t('payments.paymentDate')}
             </dt>
             <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-              {formatDate(payment.payment_date)}
+              {payment.payment_date ? formatDate(payment.payment_date) : '-'}
             </dd>
           </div>
           <div className="bg-white dark:bg-gray-800 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -186,7 +169,10 @@ const PaymentDetailView: React.FC<PaymentDetailViewProps> = ({ payment }) => {
               {t('payments.billingPeriod')}
             </dt>
             <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-              {formatDate(payment.period_start)} - {formatDate(payment.period_end)}
+              {payment.period_start && payment.period_end 
+                ? `${formatDate(payment.period_start)} - ${formatDate(payment.period_end)}`
+                : '-'
+              }
             </dd>
           </div>
           <div className="bg-white dark:bg-gray-800 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
