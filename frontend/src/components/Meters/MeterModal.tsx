@@ -5,25 +5,7 @@ import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useTranslation } from 'react-i18next';
 import Button from '../ui/Button';
 import MeterDetailView from './MeterDetailView';
-
-interface Meter {
-  id?: string;
-  meter_id: string;
-  customer_name?: string;
-  customer_id: string;
-  property_name?: string;
-  property_id: string;
-  client_name?: string;
-  client_id: string;
-  status: 'active' | 'inactive' | 'offline' | 'maintenance';
-  credit_balance?: number;
-  last_reading?: number;
-  last_reading_date?: string;
-  installation_date: string;
-  firmware_version: string;
-  model: string;
-  valve_status?: 'open' | 'closed';
-}
+import { Meter } from '../../types';
 
 interface Client {
   id: string;
@@ -62,14 +44,19 @@ const MeterModal: React.FC<MeterModalProps> = ({
 }) => {
   const { t } = useTranslation();
   const [formData, setFormData] = useState<Meter>({
+    id: '',
     meter_id: '',
     customer_id: '',
     property_id: '',
     client_id: '',
+    customer_name: '',
+    client_name: '',
     status: 'active',
     installation_date: new Date().toISOString().split('T')[0],
     firmware_version: '',
-    model: ''
+    model: '',
+    last_reading: 0,
+    last_reading_date: new Date().toISOString()
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -86,14 +73,19 @@ const MeterModal: React.FC<MeterModalProps> = ({
     } else {
       // Reset form for add mode
       setFormData({
+        id: '',
         meter_id: '',
         customer_id: '',
         property_id: '',
         client_id: '',
+        customer_name: '',
+        client_name: '',
         status: 'active',
         installation_date: new Date().toISOString().split('T')[0],
         firmware_version: '',
-        model: ''
+        model: '',
+        last_reading: 0,
+        last_reading_date: new Date().toISOString()
       });
     }
   }, [meter, mode, isOpen]);

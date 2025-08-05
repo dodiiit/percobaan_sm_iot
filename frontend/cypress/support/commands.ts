@@ -1,4 +1,5 @@
 /// <reference types="cypress" />
+import { ApiResponse } from './types';
 
 // Custom command for login
 Cypress.Commands.add('login', (email?: string, password?: string) => {
@@ -36,7 +37,7 @@ Cypress.Commands.add('clearCache', () => {
 
 // Custom command for checking cache headers
 Cypress.Commands.add('checkCacheHeaders', (expectedMaxAge?: number) => {
-  cy.get('@apiRequest').then((interception: any) => {
+  cy.get('@apiRequest').then((interception: Cypress.Interception) => {
     const response = interception.response;
     expect(response.headers).to.have.property('cache-control');
     
@@ -52,7 +53,7 @@ Cypress.Commands.add('checkCacheHeaders', (expectedMaxAge?: number) => {
 });
 
 // Custom command for intercepting API calls
-Cypress.Commands.add('interceptApiCall', (method: string, url: string, response?: any) => {
+Cypress.Commands.add('interceptApiCall', <T = unknown>(method: string, url: string, response?: ApiResponse<T>) => {
   const apiUrl = Cypress.env('apiUrl');
   const fullUrl = `${apiUrl}${url}`;
   
@@ -76,7 +77,7 @@ Cypress.Commands.add('waitForCacheWarmup', () => {
 Cypress.Commands.add('verifyCacheHit', () => {
   cy.window().then((win) => {
     // Access the cache service from window object (if exposed for testing)
-    const cacheService = (win as any).cacheService;
+    const cacheService = (win as Window & { cacheService?: { getStats(): { hits: number; misses: number } } }).cacheService;
     if (cacheService) {
       const stats = cacheService.getStats();
       expect(stats.hits).to.be.greaterThan(0);
@@ -86,7 +87,7 @@ Cypress.Commands.add('verifyCacheHit', () => {
 
 Cypress.Commands.add('verifyCacheMiss', () => {
   cy.window().then((win) => {
-    const cacheService = (win as any).cacheService;
+    const cacheService = (win as Window & { cacheService?: { getStats(): { hits: number; misses: number } } }).cacheService;
     if (cacheService) {
       const stats = cacheService.getStats();
       expect(stats.misses).to.be.greaterThan(0);
@@ -132,6 +133,58 @@ Cypress.Commands.add('simulateOnline', () => {
   });
 });
 
+// Additional commands to match types.ts interface
+Cypress.Commands.add('getByTestId', (testId: string) => {
+  return cy.get(`[data-testid="${testId}"]`);
+});
+
+Cypress.Commands.add('loginAsAdmin', () => {
+  const adminUser = Cypress.env('adminUser') || { email: 'admin@example.com', password: 'admin123' };
+  cy.login(adminUser.email, adminUser.password);
+});
+
+Cypress.Commands.add('loginAsClient', () => {
+  const clientUser = Cypress.env('clientUser') || { email: 'client@example.com', password: 'client123' };
+  cy.login(clientUser.email, clientUser.password);
+});
+
+Cypress.Commands.add('loginAsCustomer', () => {
+  const customerUser = Cypress.env('customerUser') || Cypress.env('testUser');
+  cy.login(customerUser.email, customerUser.password);
+});
+
+Cypress.Commands.add('createTestData', <T = unknown>(type: string, data: T) => {
+  const apiUrl = Cypress.env('apiUrl');
+  
+  return cy.request({
+    method: 'POST',
+    url: `${apiUrl}/${type}`,
+    body: data,
+    headers: {
+      'Authorization': `Bearer ${window.localStorage.getItem('auth_token')}`,
+      'Content-Type': 'application/json'
+    }
+  }).then((response) => {
+    expect(response.status).to.eq(201);
+    return cy.wrap(response.body);
+  });
+});
+
+Cypress.Commands.add('cleanupTestData', (type: string, id?: string) => {
+  const apiUrl = Cypress.env('apiUrl');
+  const url = id ? `${apiUrl}/${type}/${id}` : `${apiUrl}/${type}/cleanup`;
+  
+  cy.request({
+    method: 'DELETE',
+    url,
+    headers: {
+      'Authorization': `Bearer ${window.localStorage.getItem('auth_token')}`
+    },
+    failOnStatusCode: false // Don't fail if resource doesn't exist
+  });
+});
+
+// Additional command declarations (main types are in types.ts)
 declare global {
   namespace Cypress {
     interface Chainable {

@@ -14,25 +14,7 @@ import {
   ExclamationTriangleIcon
 } from '@heroicons/react/24/outline';
 import { useTranslation } from 'react-i18next';
-
-interface Customer {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  city: string;
-  status: 'active' | 'inactive' | 'pending';
-  client_name: string;
-  client_id: string;
-  created_at: string;
-  meters_count: number;
-  properties_count: number;
-  total_consumption: number;
-  last_payment_date: string;
-  last_payment_amount: number;
-  profile_image?: string;
-}
+import { Customer } from '../../types';
 
 interface CustomerDetailViewProps {
   customer: Customer;
@@ -156,7 +138,7 @@ const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({ customer }) => 
               {t('customers.metersCount')}
             </dt>
             <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-              {customer.meters_count}
+              {customer.meters_count ?? 0}
             </dd>
           </div>
           <div className="bg-gray-50 dark:bg-gray-700 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -165,7 +147,7 @@ const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({ customer }) => 
               {t('customers.propertiesCount')}
             </dt>
             <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-              {customer.properties_count}
+              {customer.properties_count ?? 0}
             </dd>
           </div>
           <div className="bg-white dark:bg-gray-800 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -174,7 +156,7 @@ const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({ customer }) => 
               {t('customers.totalConsumption')}
             </dt>
             <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-              {customer.total_consumption} L
+              {customer.total_consumption ?? 0} L
             </dd>
           </div>
           <div className="bg-gray-50 dark:bg-gray-700 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -183,7 +165,10 @@ const CustomerDetailView: React.FC<CustomerDetailViewProps> = ({ customer }) => 
               {t('customers.lastPayment')}
             </dt>
             <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-              {formatCurrency(customer.last_payment_amount)} ({formatDate(customer.last_payment_date)})
+              {customer.last_payment_amount && customer.last_payment_date 
+                ? `${formatCurrency(customer.last_payment_amount)} (${formatDate(customer.last_payment_date)})`
+                : '-'
+              }
             </dd>
           </div>
           <div className="bg-white dark:bg-gray-800 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">

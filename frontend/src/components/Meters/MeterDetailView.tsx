@@ -13,25 +13,7 @@ import {
   XCircleIcon
 } from '@heroicons/react/24/outline';
 import { useTranslation } from 'react-i18next';
-
-interface Meter {
-  id: string;
-  meter_id: string;
-  customer_name: string;
-  customer_id: string;
-  property_name: string;
-  property_id: string;
-  client_name: string;
-  client_id: string;
-  status: 'active' | 'inactive' | 'offline' | 'maintenance';
-  credit_balance: number;
-  last_reading: number;
-  last_reading_date: string;
-  installation_date: string;
-  firmware_version: string;
-  model: string;
-  valve_status: 'open' | 'closed';
-}
+import { Meter } from '../../types';
 
 interface MeterDetailViewProps {
   meter: Meter;
@@ -128,7 +110,7 @@ const MeterDetailView: React.FC<MeterDetailViewProps> = ({ meter }) => {
               {t('meters.customer')}
             </dt>
             <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-              {meter.customer_name}
+              {meter.customer_name || '-'}
             </dd>
           </div>
           <div className="bg-gray-50 dark:bg-gray-700 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -137,7 +119,7 @@ const MeterDetailView: React.FC<MeterDetailViewProps> = ({ meter }) => {
               {t('meters.property')}
             </dt>
             <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-              {meter.property_name}
+              {meter.property_name || '-'}
             </dd>
           </div>
           <div className="bg-white dark:bg-gray-800 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -146,7 +128,7 @@ const MeterDetailView: React.FC<MeterDetailViewProps> = ({ meter }) => {
               {t('meters.client')}
             </dt>
             <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-              {meter.client_name}
+              {meter.client_name || '-'}
             </dd>
           </div>
           <div className="bg-gray-50 dark:bg-gray-700 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -155,7 +137,7 @@ const MeterDetailView: React.FC<MeterDetailViewProps> = ({ meter }) => {
               {t('meters.creditBalance')}
             </dt>
             <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-              {formatCurrency(meter.credit_balance)}
+              {meter.credit_balance ? formatCurrency(meter.credit_balance) : '-'}
             </dd>
           </div>
           <div className="bg-white dark:bg-gray-800 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -164,7 +146,10 @@ const MeterDetailView: React.FC<MeterDetailViewProps> = ({ meter }) => {
               {t('meters.lastReading')}
             </dt>
             <dd className="mt-1 text-sm text-gray-900 dark:text-white sm:mt-0 sm:col-span-2">
-              {meter.last_reading} L ({formatDateTime(meter.last_reading_date)})
+              {meter.last_reading && meter.last_reading_date 
+                ? `${meter.last_reading} L (${formatDateTime(meter.last_reading_date)})`
+                : '-'
+              }
             </dd>
           </div>
           <div className="bg-gray-50 dark:bg-gray-700 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
@@ -196,11 +181,11 @@ const MeterDetailView: React.FC<MeterDetailViewProps> = ({ meter }) => {
           </div>
           <div className="bg-white dark:bg-gray-800 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
             <dt className="text-sm font-medium text-gray-500 dark:text-gray-300 flex items-center">
-              {getValveStatusIcon(meter.valve_status)}
+              {meter.valve_status ? getValveStatusIcon(meter.valve_status) : null}
               {t('meters.valveStatus')}
             </dt>
-            <dd className={`mt-1 text-sm font-medium sm:mt-0 sm:col-span-2 ${getValveStatusColor(meter.valve_status)}`}>
-              {meter.valve_status.charAt(0).toUpperCase() + meter.valve_status.slice(1)}
+            <dd className={`mt-1 text-sm font-medium sm:mt-0 sm:col-span-2 ${meter.valve_status ? getValveStatusColor(meter.valve_status) : ''}`}>
+              {meter.valve_status ? meter.valve_status.charAt(0).toUpperCase() + meter.valve_status.slice(1) : '-'}
             </dd>
           </div>
         </dl>

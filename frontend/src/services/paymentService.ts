@@ -1,31 +1,7 @@
 import api from './api';
+import { Payment, QueryParams, PaginatedResponse } from '../types';
 
-export interface Payment {
-  id: string;
-  customer_id: string;
-  meter_id?: string;
-  amount: number;
-  type: 'topup' | 'bill' | 'service_fee';
-  status: 'pending' | 'completed' | 'failed' | 'cancelled';
-  payment_method: 'credit_card' | 'bank_transfer' | 'e_wallet' | 'cash';
-  payment_gateway: 'midtrans' | 'doku' | 'manual';
-  transaction_id?: string;
-  gateway_transaction_id?: string;
-  description: string;
-  created_at: string;
-  updated_at: string;
-  customer?: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  meter?: {
-    id: string;
-    meter_number: string;
-  };
-}
-
-export interface PaymentRequest {
+export interface PaymentCreateRequest {
   customer_id?: string;
   meter_id?: string;
   amount: number;
@@ -34,7 +10,7 @@ export interface PaymentRequest {
   description: string;
 }
 
-export interface PaymentResponse {
+export interface PaymentCreateResponse {
   payment: Payment;
   payment_url?: string;
   redirect_url?: string;
@@ -43,13 +19,13 @@ export interface PaymentResponse {
 
 class PaymentService {
   // Get all payments (admin/client)
-  async getPayments(params?: any): Promise<{ data: Payment[]; total: number }> {
+  async getPayments(params?: QueryParams): Promise<PaginatedResponse<Payment>> {
     const response = await api.get('/payments', { params });
     return response.data;
   }
 
   // Get customer's payments
-  async getMyPayments(params?: any): Promise<Payment[]> {
+  async getMyPayments(params?: QueryParams): Promise<Payment[]> {
     const response = await api.get('/payments/my-payments', { params });
     return response.data.data;
   }
@@ -61,7 +37,7 @@ class PaymentService {
   }
 
   // Create new payment
-  async createPayment(paymentData: PaymentRequest): Promise<PaymentResponse> {
+  async createPayment(paymentData: PaymentCreateRequest): Promise<PaymentCreateResponse> {
     const response = await api.post('/payments', paymentData);
     return response.data.data;
   }
@@ -85,7 +61,7 @@ class PaymentService {
   }
 
   // Process webhook (internal use)
-  async processWebhook(gateway: string, payload: any): Promise<void> {
+  async processWebhook(gateway: string, payload: Record<string, unknown>): Promise<void> {
     await api.post(`/payments/webhook/${gateway}`, payload);
   }
 
@@ -96,13 +72,23 @@ class PaymentService {
   }
 
   // Get payment statistics
-  async getPaymentStats(period: 'day' | 'week' | 'month' | 'year' = 'month'): Promise<any> {
+  async getPaymentStats(period: 'day' | 'week' | 'month' | 'year' = 'month'): Promise<{
+    total_amount: number;
+    total_transactions: number;
+    success_rate: number;
+    average_amount: number;
+    period_data: Array<{
+      date: string;
+      amount: number;
+      transactions: number;
+    }>;
+  }> {
     const response = await api.get('/payments/stats', { params: { period } });
     return response.data.data;
   }
 
   // Retry failed payment
-  async retryPayment(id: string): Promise<PaymentResponse> {
+  async retryPayment(id: string): Promise<PaymentCreateResponse> {
     const response = await api.post(`/payments/${id}/retry`);
     return response.data.data;
   }
@@ -121,7 +107,7 @@ class PaymentService {
   }
 
   // Export payments
-  async exportPayments(params?: any): Promise<Blob> {
+  async exportPayments(params?: QueryParams): Promise<Blob> {
     const response = await api.get('/payments/export', {
       params,
       responseType: 'blob'
@@ -130,12 +116,12 @@ class PaymentService {
   }
 
   // Customer-specific methods
-  async createTopUpPayment(meterId: string, amount: number, paymentMethod: string): Promise<PaymentResponse> {
+  async createTopUpPayment(meterId: string, amount: number, paymentMethod: string): Promise<PaymentCreateResponse> {
     return this.createPayment({
       meter_id: meterId,
       amount,
       type: 'topup',
-      payment_method: paymentMethod as any,
+      payment_method: paymentMethod as 'credit_card' | 'bank_transfer' | 'e_wallet',
       description: `Credit top-up for meter ${meterId}`
     });
   }

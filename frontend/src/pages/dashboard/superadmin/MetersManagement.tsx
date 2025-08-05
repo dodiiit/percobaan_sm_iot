@@ -24,25 +24,7 @@ import { mockApi, shouldUseMockApi } from '../../../services/mockApi';
 import MeterModal from '../../../components/Meters/MeterModal';
 import usePolling from '../../../hooks/usePolling';
 import { downloadCSV, generateFilename } from '../../../utils/exportUtils';
-
-interface Meter {
-  id: string;
-  meter_id: string;
-  customer_name: string;
-  customer_id: string;
-  property_name: string;
-  property_id: string;
-  client_name: string;
-  client_id: string;
-  status: 'active' | 'inactive' | 'offline' | 'maintenance';
-  credit_balance: number;
-  last_reading: number;
-  last_reading_date: string;
-  installation_date: string;
-  firmware_version: string;
-  model: string;
-  valve_status: 'open' | 'closed';
-}
+import { Meter } from '../../../types';
 
 const MeterStatusBadge: React.FC<{ status: string }> = ({ status }) => {
   let bgColor = '';
@@ -127,6 +109,63 @@ const MetersManagement: React.FC = () => {
   const [paginatedMeters, setPaginatedMeters] = useState<Meter[]>([]);
   const [totalPages, setTotalPages] = useState(1);
   
+  // Define fetchMeters function before using it
+  const fetchMeters = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      let response;
+      
+      if (shouldUseMockApi()) {
+        // Use mock data
+        const mockMeters: Meter[] = [
+          {
+            id: '1',
+            meter_id: 'WM-001234',
+            customer_name: 'John Doe',
+            customer_id: 'cust-001',
+            location: 'Jl. Sudirman No. 123, Jakarta',
+            status: 'active',
+            last_reading: 1250.5,
+            last_reading_date: '2024-01-20T10:30:00Z',
+            installation_date: '2024-01-15T08:00:00Z',
+            client_name: 'PT. Water Solutions',
+            client_id: 'client-001',
+            battery_level: 85,
+            signal_strength: 'strong'
+          },
+          {
+            id: '2',
+            meter_id: 'WM-001235',
+            customer_name: 'Jane Smith',
+            customer_id: 'cust-002',
+            location: 'Jl. Thamrin No. 456, Jakarta',
+            status: 'maintenance',
+            last_reading: 980.2,
+            last_reading_date: '2024-01-18T14:45:00Z',
+            installation_date: '2024-01-10T09:15:00Z',
+            client_name: 'CV. Aqua Tech',
+            client_id: 'client-002',
+            battery_level: 45,
+            signal_strength: 'weak'
+          }
+        ];
+        
+        response = { data: mockMeters };
+      } else {
+        response = await api.get('/superadmin/meters');
+      }
+      
+      setMeters(response.data);
+    } catch (err) {
+      console.error('Error fetching meters:', err);
+      setError('Failed to fetch meters');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   // Real-time updates using polling
   const { isPolling, startPolling, stopPolling } = usePolling({
     fetchFn: fetchMeters,
@@ -164,128 +203,6 @@ const MetersManagement: React.FC = () => {
     }
   }, [filteredMeters, currentPage, pageSize]);
 
-  const fetchMeters = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      let response;
-      
-      if (shouldUseMockApi()) {
-        // Use mock data
-        const mockMeters: Meter[] = [
-          {
-            id: '1',
-            meter_id: 'WM-001234',
-            customer_name: 'John Doe',
-            customer_id: 'CUST-001',
-            property_name: 'Green Residence A-12',
-            property_id: 'PROP-001',
-            client_name: 'PT Water Jakarta',
-            client_id: 'CLIENT-001',
-            status: 'active',
-            credit_balance: 150000,
-            last_reading: 1250,
-            last_reading_date: '2025-08-01T08:30:00Z',
-            installation_date: '2025-01-15T08:30:00Z',
-            firmware_version: '1.2.5',
-            model: 'IndoWater Smart Meter v2',
-            valve_status: 'open'
-          },
-          {
-            id: '2',
-            meter_id: 'WM-001235',
-            customer_name: 'Jane Smith',
-            customer_id: 'CUST-002',
-            property_name: 'Blue Apartment B-08',
-            property_id: 'PROP-002',
-            client_name: 'PT Water Jakarta',
-            client_id: 'CLIENT-001',
-            status: 'active',
-            credit_balance: 75000,
-            last_reading: 980,
-            last_reading_date: '2025-08-02T10:15:00Z',
-            installation_date: '2025-02-10T10:15:00Z',
-            firmware_version: '1.2.5',
-            model: 'IndoWater Smart Meter v2',
-            valve_status: 'open'
-          },
-          {
-            id: '3',
-            meter_id: 'WM-001236',
-            customer_name: 'Ahmad Rahman',
-            customer_id: 'CUST-003',
-            property_name: 'Sunset Villa C-15',
-            property_id: 'PROP-003',
-            client_name: 'Bandung Water Authority',
-            client_id: 'CLIENT-002',
-            status: 'offline',
-            credit_balance: 50000,
-            last_reading: 1560,
-            last_reading_date: '2025-07-30T09:45:00Z',
-            installation_date: '2025-03-05T09:45:00Z',
-            firmware_version: '1.2.4',
-            model: 'IndoWater Smart Meter v2',
-            valve_status: 'closed'
-          },
-          {
-            id: '4',
-            meter_id: 'WM-001237',
-            customer_name: 'Siti Nurhayati',
-            customer_id: 'CUST-004',
-            property_name: 'Mountain View D-22',
-            property_id: 'PROP-004',
-            client_name: 'Bandung Water Authority',
-            client_id: 'CLIENT-002',
-            status: 'maintenance',
-            credit_balance: 200000,
-            last_reading: 2100,
-            last_reading_date: '2025-08-01T14:20:00Z',
-            installation_date: '2025-04-20T14:20:00Z',
-            firmware_version: '1.2.5',
-            model: 'IndoWater Smart Meter v3',
-            valve_status: 'closed'
-          },
-          {
-            id: '5',
-            meter_id: 'WM-001238',
-            customer_name: 'Budi Santoso',
-            customer_id: 'CUST-005',
-            property_name: 'River Residence E-05',
-            property_id: 'PROP-005',
-            client_name: 'Surabaya Clean Water',
-            client_id: 'CLIENT-003',
-            status: 'inactive',
-            credit_balance: 0,
-            last_reading: 3450,
-            last_reading_date: '2025-07-25T11:30:00Z',
-            installation_date: '2025-05-12T11:30:00Z',
-            firmware_version: '1.2.3',
-            model: 'IndoWater Smart Meter v1',
-            valve_status: 'closed'
-          }
-        ];
-        
-        setMeters(mockMeters);
-        setFilteredMeters(mockMeters);
-      } else {
-        // Use real API
-        response = await api.get('/meters');
-        
-        if (response.data.status === 'success') {
-          setMeters(response.data.data);
-          setFilteredMeters(response.data.data);
-        } else {
-          throw new Error('Failed to fetch meters');
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching meters:', error);
-      setError('Failed to load meters. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
   
   const fetchClients = async () => {
     try {
@@ -334,7 +251,7 @@ const MetersManagement: React.FC = () => {
       filtered = filtered.filter(meter => 
         meter.meter_id.toLowerCase().includes(query) ||
         meter.customer_name.toLowerCase().includes(query) ||
-        meter.property_name.toLowerCase().includes(query) ||
+        (meter.property_name && meter.property_name.toLowerCase().includes(query)) ||
         meter.client_name.toLowerCase().includes(query)
       );
     }
@@ -586,7 +503,7 @@ const MetersManagement: React.FC = () => {
                 Cancel
               </Button>
               <Button
-                variant="destructive"
+                variant="danger"
                 onClick={handleConfirmDelete}
                 loading={loading}
               >
@@ -715,18 +632,18 @@ const MetersManagement: React.FC = () => {
                       <MeterStatusBadge status={meter.status} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                      {formatCurrency(meter.credit_balance)}
+                      {meter.credit_balance ? formatCurrency(meter.credit_balance) : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-300">
                       <div className="flex flex-col">
-                        <span>{meter.last_reading} L</span>
+                        <span>{meter.last_reading ? `${meter.last_reading} L` : '-'}</span>
                         <span className="text-xs text-gray-400 dark:text-gray-500">
-                          {formatDate(meter.last_reading_date)}
+                          {meter.last_reading_date ? formatDate(meter.last_reading_date) : '-'}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <ValveStatusBadge status={meter.valve_status} />
+                      {meter.valve_status ? <ValveStatusBadge status={meter.valve_status} /> : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">

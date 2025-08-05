@@ -15,6 +15,7 @@
 
 // Import commands.js using ES2015 syntax:
 import './commands';
+import './types';
 
 // Alternatively you can use CommonJS syntax:
 // require('./commands')
@@ -41,15 +42,4 @@ Cypress.on('uncaught:exception', (err, runnable) => {
   return true;
 });
 
-// Custom commands for cache testing
-declare global {
-  namespace Cypress {
-    interface Chainable {
-      login(email?: string, password?: string): Chainable<void>;
-      clearCache(): Chainable<void>;
-      checkCacheHeaders(expectedMaxAge?: number): Chainable<void>;
-      interceptApiCall(method: string, url: string, response?: any): Chainable<void>;
-      waitForCacheWarmup(): Chainable<void>;
-    }
-  }
-}
+// Global types are now defined in types.ts
