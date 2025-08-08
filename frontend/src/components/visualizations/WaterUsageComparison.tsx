@@ -75,7 +75,7 @@ const WaterUsageComparison: React.FC<WaterUsageComparisonProps> = ({ data, class
     maintainAspectRatio: false,
     animation: {
       duration: 1000,
-      easing: 'easeOutQuart'
+      easing: 'easeOutQuart' as const
     },
     plugins: {
       legend: {
@@ -116,7 +116,7 @@ const WaterUsageComparison: React.FC<WaterUsageComparisonProps> = ({ data, class
         color: document.documentElement.classList.contains('dark') ? '#e5e7eb' : '#111827',
         font: {
           size: 16,
-          weight: 'bold'
+          weight: 'bold' as const
         },
         padding: {
           top: 10,

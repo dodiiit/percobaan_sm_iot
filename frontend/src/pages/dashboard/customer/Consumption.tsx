@@ -35,6 +35,7 @@ import {
 import { fadeIn, fadeInUp, staggerContainer } from '../../../utils/animations';
 import { useBreakpoint } from '../../../utils/responsive';
 import { useAnnounce } from '../../../utils/accessibility';
+import { AnnouncementRegion } from '../../../components/accessibility';
 
 // Register ChartJS components
 ChartJS.register(
@@ -131,12 +132,13 @@ const ConsumptionChart: React.FC<{
   data: ConsumptionData;
   timeRange: string;
 }> = ({ data, timeRange }) => {
+  const timeRangeData = data[timeRange as keyof ConsumptionData] || { labels: [], values: [] };
   const chartData = {
-    labels: data[timeRange as keyof ConsumptionData].labels,
+    labels: timeRangeData.labels,
     datasets: [
       {
         label: 'Water Consumption (Liters)',
-        data: data[timeRange as keyof ConsumptionData].values,
+        data: timeRangeData.values,
         borderColor: 'rgb(59, 130, 246)',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         tension: 0.4,
@@ -155,7 +157,7 @@ const ConsumptionChart: React.FC<{
     maintainAspectRatio: false,
     animation: {
       duration: 1000,
-      easing: 'easeOutQuart'
+      easing: 'easeOutQuart' as const
     },
     plugins: {
       legend: {
@@ -296,7 +298,7 @@ const Consumption: React.FC = () => {
   });
   
   const breakpoint = useBreakpoint();
-  const { announce, AnnouncementRegion } = useAnnounce();
+  const { announce, politeAnnouncementText, assertiveAnnouncementText } = useAnnounce();
 
   useEffect(() => {
     fetchMeters();
@@ -504,7 +506,7 @@ const Consumption: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Accessibility announcement region */}
-      <AnnouncementRegion />
+      <AnnouncementRegion politeText={politeAnnouncementText} assertiveText={assertiveAnnouncementText} />
       
       <motion.div 
         initial="hidden"
@@ -713,10 +715,10 @@ const Consumption: React.FC = () => {
                   <h4 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Water Efficiency
                   </h4>
-                  <div className="bg-gray-100 dark:bg-gray-700 rounded-full h-4 overflow-hidden" role="progressbar" aria-valuenow={Math.min(100, 100 - stats?.change_percentage || 0)} aria-valuemin={0} aria-valuemax={100}>
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-full h-4 overflow-hidden" role="progressbar" aria-valuenow={Math.min(100, 100 - (stats?.change_percentage ?? 0))} aria-valuemin={0} aria-valuemax={100}>
                     <div 
                       className="bg-blue-600 h-4 rounded-full transition-all duration-1000 ease-out" 
-                      style={{ width: `${Math.min(100, 100 - stats?.change_percentage || 0)}%` }}
+                      style={{ width: `${Math.min(100, 100 - (stats?.change_percentage ?? 0))}%` }}
                     ></div>
                   </div>
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">

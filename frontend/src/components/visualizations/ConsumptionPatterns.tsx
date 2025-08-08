@@ -95,8 +95,9 @@ const ConsumptionPatterns: React.FC<ConsumptionPatternsProps> = ({ data, timeRan
     const primaryGradient = createGradient(ctx, 'rgba(59, 130, 246, 0.8)', 'rgba(59, 130, 246, 0.1)');
     const secondaryGradient = createGradient(ctx, 'rgba(16, 185, 129, 0.8)', 'rgba(16, 185, 129, 0.1)');
 
-    const labels = data[timeRange as keyof ConsumptionData].labels;
-    const values = data[timeRange as keyof ConsumptionData].values;
+    const timeRangeData = data[timeRange as keyof ConsumptionData];
+    const labels = timeRangeData?.labels || [];
+    const values = timeRangeData?.values || [];
 
     // Calculate average consumption
     const average = values.reduce((sum, val) => sum + val, 0) / values.length;
@@ -192,7 +193,7 @@ const ConsumptionPatterns: React.FC<ConsumptionPatternsProps> = ({ data, timeRan
     maintainAspectRatio: false,
     animation: {
       duration: 1000,
-      easing: 'easeOutQuart'
+      easing: 'easeOutQuart' as const
     },
     plugins: {
       legend: {
@@ -235,7 +236,7 @@ const ConsumptionPatterns: React.FC<ConsumptionPatternsProps> = ({ data, timeRan
         color: isDarkMode() ? '#e5e7eb' : '#111827',
         font: {
           size: 16,
-          weight: 'bold'
+          weight: 'bold' as const
         },
         padding: {
           top: 10,

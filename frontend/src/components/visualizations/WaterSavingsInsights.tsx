@@ -1,11 +1,11 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { 
-  DropletIcon, 
   BanknotesIcon, 
-  LeafIcon, 
   ClockIcon,
-  LightBulbIcon
+  LightBulbIcon,
+  BeakerIcon as DropletIcon,
+  SparklesIcon as LeafIcon
 } from '@heroicons/react/24/outline';
 
 interface SavingsData {
