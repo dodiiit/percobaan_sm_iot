@@ -1,4 +1,9 @@
-import { Variants } from 'framer-motion';
+// Define a type for variants that matches framer-motion's Variants
+type Variants = {
+  [key: string]: {
+    [key: string]: any;
+  };
+};
 
 // Fade in animation
 export const fadeIn: Variants = {
