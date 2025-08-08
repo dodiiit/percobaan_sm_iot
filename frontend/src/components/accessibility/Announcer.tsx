@@ -4,6 +4,7 @@ interface AnnouncerProps {
   message?: string;
   assertive?: boolean;
   clearDelay?: number;
+  role?: 'status' | 'alert';
 }
 
 /**
@@ -16,13 +17,18 @@ interface AnnouncerProps {
  * @param message - The message to announce
  * @param assertive - Whether to use an assertive (true) or polite (false) live region
  * @param clearDelay - Time in milliseconds after which the message is cleared
+ * @param role - ARIA role for the live region ('status' for polite, 'alert' for assertive)
  */
 const Announcer: React.FC<AnnouncerProps> = ({
   message = '',
   assertive = false,
   clearDelay = 3000,
+  role,
 }) => {
   const [announcement, setAnnouncement] = useState(message);
+
+  // Determine the appropriate role if not explicitly provided
+  const ariaRole = role || (assertive ? 'alert' : 'status');
 
   useEffect(() => {
     if (message) {
@@ -41,6 +47,7 @@ const Announcer: React.FC<AnnouncerProps> = ({
       aria-live={assertive ? 'assertive' : 'polite'}
       aria-atomic="true"
       className="sr-only"
+      role={ariaRole}
       data-testid="announcer"
     >
       {announcement}

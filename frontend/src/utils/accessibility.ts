@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, KeyboardEvent } from 'react';
+import { useEffect, useRef, useState, KeyboardEvent as ReactKeyboardEvent } from 'react';
 
 /**
  * Hook to manage focus trap within a container
@@ -12,14 +12,14 @@ export const useFocusTrap = (active: boolean = true) => {
     if (!active || !containerRef.current) return;
 
     const container = containerRef.current;
-    const focusableElements = container.querySelectorAll(
+    const focusableElements = container.querySelectorAll<HTMLElement>(
       'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
     );
 
     if (focusableElements.length === 0) return;
 
-    const firstElement = focusableElements[0] as HTMLElement;
-    const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
@@ -37,11 +37,11 @@ export const useFocusTrap = (active: boolean = true) => {
       }
     };
 
-    container.addEventListener('keydown', handleKeyDown as any);
+    container.addEventListener('keydown', handleKeyDown);
     firstElement.focus();
 
     return () => {
-      container.removeEventListener('keydown', handleKeyDown as any);
+      container.removeEventListener('keydown', handleKeyDown);
     };
   }, [active]);
 
@@ -60,7 +60,7 @@ export const useKeyboardNavigation = (
 ) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = (e: ReactKeyboardEvent) => {
     switch (e.key) {
       case 'ArrowDown':
       case 'ArrowRight':
@@ -95,48 +95,47 @@ export const useKeyboardNavigation = (
 
 /**
  * Hook to announce messages to screen readers
- * @returns Function to announce messages
+ * @returns Function to announce messages and announcement data
  */
 export const useAnnounce = () => {
-  const [announcements, setAnnouncements] = useState<string[]>([]);
+  const [politeAnnouncements, setPoliteAnnouncements] = useState<string[]>([]);
+  const [assertiveAnnouncements, setAssertiveAnnouncements] = useState<string[]>([]);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
-      if (announcements.length > 0) {
-        setAnnouncements([]);
+      if (politeAnnouncements.length > 0) {
+        setPoliteAnnouncements([]);
       }
     }, 3000);
 
     return () => clearTimeout(timeout);
-  }, [announcements]);
+  }, [politeAnnouncements]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (assertiveAnnouncements.length > 0) {
+        setAssertiveAnnouncements([]);
+      }
+    }, 3000);
+
+    return () => clearTimeout(timeout);
+  }, [assertiveAnnouncements]);
 
   const announce = (message: string, assertive: boolean = false) => {
-    setAnnouncements((prev) => [...prev, message]);
+    if (assertive) {
+      setAssertiveAnnouncements((prev) => [...prev, message]);
+    } else {
+      setPoliteAnnouncements((prev) => [...prev, message]);
+    }
   };
 
   return {
     announce,
-    announcements,
-    AnnouncementRegion: () => (
-      <>
-        <div
-          aria-live="polite"
-          aria-atomic="true"
-          className="sr-only"
-          role="status"
-        >
-          {announcements.filter((_, i) => i % 2 === 0).join(' ')}
-        </div>
-        <div
-          aria-live="assertive"
-          aria-atomic="true"
-          className="sr-only"
-          role="alert"
-        >
-          {announcements.filter((_, i) => i % 2 === 1).join(' ')}
-        </div>
-      </>
-    ),
+    politeAnnouncements,
+    assertiveAnnouncements,
+    // Return the announcement data instead of a JSX component
+    politeAnnouncementText: politeAnnouncements.join(' '),
+    assertiveAnnouncementText: assertiveAnnouncements.join(' ')
   };
 };
 
@@ -195,11 +194,126 @@ export interface SkipToContentProps {
 /**
  * Function to create aria attributes for elements
  * @param id Base ID for the element
+ * @param options Optional configuration for additional attributes
  * @returns Object with aria attributes
  */
-export const createAriaAttributes = (id: string) => {
-  return {
+export const createAriaAttributes = (
+  id: string,
+  options?: {
+    hasControls?: boolean;
+    hasOwns?: boolean;
+    hasDetails?: boolean;
+    hasErrorMessage?: boolean;
+  }
+) => {
+  const attributes: Record<string, string> = {
     labelledby: `${id}-label`,
     describedby: `${id}-description`,
   };
+
+  if (options?.hasControls) {
+    attributes.controls = `${id}-controls`;
+  }
+
+  if (options?.hasOwns) {
+    attributes.owns = `${id}-owned`;
+  }
+
+  if (options?.hasDetails) {
+    attributes.describedby = `${attributes.describedby} ${id}-details`;
+  }
+
+  if (options?.hasErrorMessage) {
+    attributes.describedby = `${attributes.describedby} ${id}-error`;
+  }
+
+  return attributes;
+};
+
+/**
+ * Helper function to handle keyboard events for interactive elements
+ * @param event Keyboard event
+ * @param actions Object with callback functions for different key actions
+ */
+export const handleKeyboardEvent = (
+  event: ReactKeyboardEvent,
+  actions: {
+    enter?: () => void;
+    space?: () => void;
+    escape?: () => void;
+    arrowUp?: () => void;
+    arrowDown?: () => void;
+    arrowLeft?: () => void;
+    arrowRight?: () => void;
+    tab?: () => void;
+    shiftTab?: () => void;
+    home?: () => void;
+    end?: () => void;
+  }
+) => {
+  switch (event.key) {
+    case 'Enter':
+      if (actions.enter) {
+        event.preventDefault();
+        actions.enter();
+      }
+      break;
+    case ' ':
+      if (actions.space) {
+        event.preventDefault();
+        actions.space();
+      }
+      break;
+    case 'Escape':
+      if (actions.escape) {
+        event.preventDefault();
+        actions.escape();
+      }
+      break;
+    case 'ArrowUp':
+      if (actions.arrowUp) {
+        event.preventDefault();
+        actions.arrowUp();
+      }
+      break;
+    case 'ArrowDown':
+      if (actions.arrowDown) {
+        event.preventDefault();
+        actions.arrowDown();
+      }
+      break;
+    case 'ArrowLeft':
+      if (actions.arrowLeft) {
+        event.preventDefault();
+        actions.arrowLeft();
+      }
+      break;
+    case 'ArrowRight':
+      if (actions.arrowRight) {
+        event.preventDefault();
+        actions.arrowRight();
+      }
+      break;
+    case 'Tab':
+      if (event.shiftKey && actions.shiftTab) {
+        actions.shiftTab();
+      } else if (actions.tab) {
+        actions.tab();
+      }
+      break;
+    case 'Home':
+      if (actions.home) {
+        event.preventDefault();
+        actions.home();
+      }
+      break;
+    case 'End':
+      if (actions.end) {
+        event.preventDefault();
+        actions.end();
+      }
+      break;
+    default:
+      break;
+  }
 };
