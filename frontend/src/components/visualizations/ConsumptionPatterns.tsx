@@ -301,7 +301,7 @@ const ConsumptionPatterns: React.FC<ConsumptionPatternsProps> = ({ data, timeRan
         </div>
       </div>
       
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         <motion.div 
           key={chartType}
           initial={{ opacity: 0, y: 20 }}
