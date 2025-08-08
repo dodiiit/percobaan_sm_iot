@@ -1,11 +1,11 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Import custom styles */
 @import './styles/animations.css';
 @import './styles/responsive.css';
 @import './styles/accessibility.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Base styles */
 * {
