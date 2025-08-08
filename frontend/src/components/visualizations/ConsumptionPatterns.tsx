@@ -17,7 +17,7 @@ import {
   Filler
 } from 'chart.js';
 import { Line, Bar, Doughnut, Radar } from 'react-chartjs-2';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '../../utils/motion';
 
 // Register ChartJS components
 ChartJS.register(

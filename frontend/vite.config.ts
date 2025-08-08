@@ -118,6 +118,11 @@ export default defineConfig({
             return 'ui-vendor';
           }
           
+          // Animation libraries
+          if (id.includes('node_modules/framer-motion')) {
+            return 'animation-vendor';
+          }
+          
           // Other utilities
           if (id.includes('node_modules/')) {
             return 'vendor';

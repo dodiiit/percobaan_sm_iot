@@ -25,7 +25,8 @@ import {
   Legend,
   Filler
 } from 'chart.js';
-import { motion } from 'framer-motion';
+// Import motion components from our utility that handles fallbacks
+import { motion } from '../../../utils/motion';
 import { 
   ConsumptionPatterns, 
   HourlyConsumptionHeatmap, 

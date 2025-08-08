@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from '../../utils/motion';
 
 interface HourlyData {
   day: number; // 0-6 (Sunday-Saturday)

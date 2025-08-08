@@ -9,7 +9,7 @@ import {
   Legend
 } from 'chart.js';
 import { Bar } from 'react-chartjs-2';
-import { motion } from 'framer-motion';
+import { motion } from '../../utils/motion';
 
 // Register ChartJS components
 ChartJS.register(

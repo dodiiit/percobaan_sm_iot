@@ -154,8 +154,15 @@ export const useHighContrastMode = () => {
       setIsHighContrast(e.matches);
     };
 
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    // Use the modern API if available, fallback to the deprecated one
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } else {
+      // Fallback for older browsers
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
   }, []);
 
   return isHighContrast;
@@ -176,8 +183,15 @@ export const usePrefersReducedMotion = () => {
       setPrefersReducedMotion(e.matches);
     };
 
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    // Use the modern API if available, fallback to the deprecated one
+    if (typeof mediaQuery.addEventListener === 'function') {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } else {
+      // Fallback for older browsers
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
   }, []);
 
   return prefersReducedMotion;
@@ -219,13 +233,19 @@ export const createAriaAttributes = (
     attributes.owns = `${id}-owned`;
   }
 
+  // Create an array to collect all describedby IDs
+  const describedbyIds = [attributes.describedby];
+  
   if (options?.hasDetails) {
-    attributes.describedby = `${attributes.describedby} ${id}-details`;
+    describedbyIds.push(`${id}-details`);
   }
 
   if (options?.hasErrorMessage) {
-    attributes.describedby = `${attributes.describedby} ${id}-error`;
+    describedbyIds.push(`${id}-error`);
   }
+  
+  // Join all IDs with spaces and trim any extra spaces
+  attributes.describedby = describedbyIds.join(' ').trim();
 
   return attributes;
 };
@@ -316,4 +336,23 @@ export const handleKeyboardEvent = (
     default:
       break;
   }
+};
+
+/**
+ * Helper function to create ARIA live region attributes
+ * @param politeness The politeness level of the live region
+ * @param atomic Whether the entire region should be presented as a whole
+ * @param relevant What types of changes are relevant
+ * @returns Object with ARIA live region attributes
+ */
+export const createLiveRegionAttributes = (
+  politeness: 'off' | 'polite' | 'assertive' = 'polite',
+  atomic: boolean = false,
+  relevant: 'additions' | 'removals' | 'text' | 'all' = 'additions'
+) => {
+  return {
+    'aria-live': politeness,
+    'aria-atomic': atomic.toString(),
+    'aria-relevant': relevant
+  };
 };
