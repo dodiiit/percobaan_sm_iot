@@ -72,6 +72,12 @@ const MeterDetails = lazy(() => import('./components/Meters/MeterDetails'));
 const MeterTopUp = lazy(() => import('./components/Meters/MeterTopUp'));
 const PaymentHistory = lazy(() => import('./components/Payments/PaymentHistory'));
 
+// Lazy-loaded IoT Components
+const RealtimeDashboard = lazy(() => import('./components/Dashboard/RealtimeDashboard'));
+const DeviceManagement = lazy(() => import('./components/IoT/DeviceManagement'));
+const ValveControl = lazy(() => import('./components/IoT/ValveControl'));
+const RealtimeAnalytics = lazy(() => import('./components/Analytics/RealtimeAnalytics'));
+
 const App: React.FC = () => {
   return (
     <ThemeProvider>
@@ -111,10 +117,14 @@ const App: React.FC = () => {
                   <Route element={<RoleBasedRoute allowedRoles={[UserRole.CLIENT]} />}>
                     <Route element={<MainLayout />}>
                       <Route path="/dashboard" element={<ClientDashboard />} />
+                      <Route path="/realtime-dashboard" element={<RealtimeDashboard />} />
                       <Route path="/customers" element={<Customers />} />
                       <Route path="/meters" element={<ClientMeters />} />
+                      <Route path="/devices" element={<DeviceManagement />} />
+                      <Route path="/valves" element={<ValveControl />} />
                       <Route path="/properties" element={<Properties />} />
                       <Route path="/analytics" element={<ConsumptionAnalytics />} />
+                      <Route path="/realtime-analytics" element={<RealtimeAnalytics />} />
                       <Route path="/payments" element={<ClientPayments />} />
                       <Route path="/reports" element={<Reports />} />
                       <Route path="/profile" element={<Profile />} />
@@ -128,12 +138,16 @@ const App: React.FC = () => {
                   <Route element={<RoleBasedRoute allowedRoles={[UserRole.SUPERADMIN]} />}>
                     <Route element={<MainLayout />}>
                       <Route path="/dashboard" element={<SuperadminDashboard />} />
+                      <Route path="/realtime-dashboard" element={<RealtimeDashboard />} />
                       <Route path="/clients" element={<ClientsManagement />} />
                       <Route path="/customers" element={<CustomersManagement />} />
                       <Route path="/meters" element={<MetersManagement />} />
+                      <Route path="/devices" element={<DeviceManagement />} />
+                      <Route path="/valves" element={<ValveControl />} />
                       <Route path="/properties" element={<PropertiesManagement />} />
                       <Route path="/payments" element={<PaymentsManagement />} />
                       <Route path="/reports" element={<ReportsManagement />} />
+                      <Route path="/realtime-analytics" element={<RealtimeAnalytics />} />
                       <Route path="/tariffs" element={<TariffsManagement />} />
                       <Route path="/system" element={<SystemSettings />} />
                       <Route path="/profile" element={<Profile />} />
