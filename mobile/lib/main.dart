@@ -1,101 +1,64 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'services/api_service.dart';
-import 'services/notification_service.dart';
-import 'services/offline_service.dart';
-import 'providers/auth_provider.dart';
-import 'providers/theme_provider.dart';
-import 'providers/language_provider.dart';
-import 'providers/meter_provider.dart';
-import 'providers/payment_provider.dart';
-import 'providers/notification_provider.dart';
-import 'screens/dashboard/dashboard_screen.dart';
-import 'screens/auth/login_screen.dart';
-import 'screens/auth/splash_screen.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Firebase
-  await Firebase.initializeApp();
-  
-  // Initialize services
-  final apiService = ApiService();
-  final notificationService = NotificationService();
-  final offlineService = OfflineService();
-  
-  apiService.initialize();
-  await notificationService.initialize();
-  await offlineService.initialize();
-  
-  runApp(MyApp(
-    apiService: apiService,
-    notificationService: notificationService,
-    offlineService: offlineService,
-  ));
+void main() {
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  final ApiService apiService;
-  final NotificationService notificationService;
-  final OfflineService offlineService;
-
-  const MyApp({
-    Key? key,
-    required this.apiService,
-    required this.notificationService,
-    required this.offlineService,
-  }) : super(key: key);
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
-        ChangeNotifierProvider(create: (_) => LanguageProvider()),
-        ChangeNotifierProvider(create: (_) => MeterProvider()),
-        ChangeNotifierProvider(create: (_) => PaymentProvider()),
-        ChangeNotifierProvider(create: (_) => NotificationProvider()),
-        Provider.value(value: apiService),
-        Provider.value(value: notificationService),
-        Provider.value(value: offlineService),
-      ],
-      child: Consumer2<ThemeProvider, LanguageProvider>(
-        builder: (context, themeProvider, languageProvider, child) {
-          return MaterialApp(
-            title: 'IndoWater Mobile',
-            debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              primarySwatch: Colors.blue,
-              useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.blue,
-                brightness: themeProvider.isDarkMode ? Brightness.dark : Brightness.light,
-              ),
-              fontFamily: 'Roboto',
-            ),
-            darkTheme: ThemeData(
-              primarySwatch: Colors.blue,
-              useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.blue,
-                brightness: Brightness.dark,
-              ),
-              fontFamily: 'Roboto',
-            ),
-            themeMode: themeProvider.themeMode,
-            locale: languageProvider.locale,
-            home: const SplashScreen(),
-            routes: {
-              '/login': (context) => const LoginScreen(),
-              '/dashboard': (context) => const DashboardScreen(),
-            },
-          );
-        },
+    return MaterialApp(
+      title: 'IndoWater Mobile',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
       ),
+      home: const MyHomePage(),
     );
   }
 }
 
+class MyHomePage extends StatelessWidget {
+  const MyHomePage({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('IndoWater Mobile'),
+        backgroundColor: Colors.blue,
+        foregroundColor: Colors.white,
+      ),
+      body: const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.water_drop,
+              size: 100,
+              color: Colors.blue,
+            ),
+            SizedBox(height: 20),
+            Text(
+              'IndoWater Mobile App',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 10),
+            Text(
+              'Prepaid Water Meter Management System',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

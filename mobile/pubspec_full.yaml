@@ -1,0 +1,74 @@
+name: indowater_mobile
+description: IndoWater Prepaid Water Meter Management System Mobile App
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=2.17.0 <4.0.0"
+  flutter: ">=2.5.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.6
+  
+  # State Management
+  provider: ^6.0.5
+  
+  # HTTP & API
+  dio: ^4.0.6
+  connectivity_plus: ^3.0.3
+  
+  # Local Storage
+  shared_preferences: ^2.0.18
+  sqflite: ^2.2.8
+  path: ^1.8.3
+  
+  # Push Notifications
+  firebase_core: ^2.10.0
+  firebase_messaging: ^14.4.0
+  flutter_local_notifications: ^13.0.0
+  
+  # QR Code
+  qr_code_scanner: ^1.0.1
+  qr_flutter: ^4.0.0
+  
+  # UI Components
+  fl_chart: ^0.60.0
+  shimmer: ^2.0.0
+  pull_to_refresh: ^2.0.0
+  cached_network_image: ^3.2.3
+  
+  # Utilities
+  intl: ^0.18.0
+  permission_handler: ^10.2.0
+  url_launcher: ^6.1.10
+  package_info_plus: ^3.1.2
+  
+  # Security
+  crypto: ^3.0.2
+  
+  # Animations
+  lottie: ^2.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
+    - assets/animations/
+    - assets/translations/
+  
+  fonts:
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
+        - asset: assets/fonts/Roboto-Bold.ttf
+          weight: 700

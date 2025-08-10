@@ -33,7 +33,7 @@ return function (ContainerBuilder $containerBuilder) {
 
             $handler = new StreamHandler(
                 __DIR__ . '/../logs/' . $loggerSettings['channel'] . '.log',
-                Logger::getLevelName(strtoupper($loggerSettings['level']))
+                Logger::toMonologLevel(strtoupper($loggerSettings['level']))
             );
             $logger->pushHandler($handler);
 

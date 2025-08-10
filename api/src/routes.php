@@ -1,13 +1,13 @@
 <?php
 
-use App\Controllers\DeviceController;
-use App\Controllers\DeviceCommandController;
-use App\Controllers\HealthController;
-use App\Controllers\OTAController;
-use App\Controllers\ProvisioningController;
-use App\Controllers\PaymentGatewayController;
-use App\Controllers\PaymentController;
-use App\Middleware\AuthMiddleware;
+use IndoWater\Api\Controllers\DeviceController;
+use IndoWater\Api\Controllers\DeviceCommandController;
+use IndoWater\Api\Controllers\HealthController;
+use IndoWater\Api\Controllers\OTAController;
+use IndoWater\Api\Controllers\ProvisioningController;
+use IndoWater\Api\Controllers\PaymentGatewayController;
+use IndoWater\Api\Controllers\PaymentController;
+use IndoWater\Api\Middleware\AuthMiddleware;
 use Slim\App;
 use Slim\Routing\RouteCollectorProxy;
 

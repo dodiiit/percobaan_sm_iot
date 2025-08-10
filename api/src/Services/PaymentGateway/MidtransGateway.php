@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Services\PaymentGateway;
+namespace IndoWater\Api\Services\PaymentGateway;
 
-use App\Models\PaymentGateway;
+use IndoWater\Api\Models\PaymentGateway;
 use Exception;
 use Psr\Log\LoggerInterface;
 

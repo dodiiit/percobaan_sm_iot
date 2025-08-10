@@ -28,6 +28,8 @@
 /mobile/.pub/
 /mobile/.pub-cache/
 /mobile/.env
+/mobile/flutter/
+/mobile/flutter_linux_*.tar.xz*
 
 # IDE
 .idea/

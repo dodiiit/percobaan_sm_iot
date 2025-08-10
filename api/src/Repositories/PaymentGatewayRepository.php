@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Repositories;
+namespace IndoWater\Api\Repositories;
 
-use App\Models\PaymentGateway;
+use IndoWater\Api\Models\PaymentGateway;
 use PDO;
 use Exception;
 

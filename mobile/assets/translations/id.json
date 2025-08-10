@@ -1,15 +1,13 @@
 {
   "app_name": "IndoWater",
-  "welcome": "Selamat datang di IndoWater",
   "login": "Masuk",
-  "register": "Daftar",
-  "email": "Email",
-  "password": "Kata Sandi",
-  "forgot_password": "Lupa Kata Sandi?",
+  "logout": "Keluar",
   "dashboard": "Dasbor",
-  "meters": "Meteran",
-  "consumption": "Konsumsi",
-  "payments": "Pembayaran",
-  "topup": "Isi Ulang",
-  "profile": "Profil"
+  "profile": "Profil",
+  "settings": "Pengaturan",
+  "water_usage": "Penggunaan Air",
+  "balance": "Saldo",
+  "top_up": "Isi Ulang",
+  "history": "Riwayat",
+  "notifications": "Notifikasi"
 }

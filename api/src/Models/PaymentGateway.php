@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Models;
+namespace IndoWater\Api\Models;
 
 /**
  * PaymentGateway Model

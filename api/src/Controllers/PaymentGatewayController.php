@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Controllers;
+namespace IndoWater\Api\Controllers;
 
-use App\Repositories\PaymentGatewayRepository;
-use App\Services\PaymentGateway\PaymentGatewayFactory;
-use App\Services\AuthService;
+use IndoWater\Api\Repositories\PaymentGatewayRepository;
+use IndoWater\Api\Services\PaymentGateway\PaymentGatewayFactory;
+use IndoWater\Api\Services\AuthService;
 use Exception;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
