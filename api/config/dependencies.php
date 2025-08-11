@@ -28,6 +28,7 @@ use IndoWater\Api\Services\ValveControlService;
 use IndoWater\Api\Models\Payment;
 use IndoWater\Api\Models\Valve;
 use IndoWater\Api\Models\ValveCommand;
+use IndoWater\Api\Controllers\SecurityReportController;
 
 return function (ContainerBuilder $containerBuilder) {
     $containerBuilder->addDefinitions([
@@ -332,6 +333,11 @@ return function (ContainerBuilder $containerBuilder) {
                 $cache,
                 $logger
             );
+        },
+        
+        // Security Report Controller
+        SecurityReportController::class => function (ContainerInterface $c) {
+            return new SecurityReportController($c->get(LoggerInterface::class));
         },
     ]);
 };

@@ -24,10 +24,14 @@ use IndoWater\Api\Controllers\HealthController;
 use IndoWater\Api\Controllers\CacheController;
 use IndoWater\Api\Controllers\DeviceController;
 use IndoWater\Api\Middleware\WebhookMiddleware;
+use IndoWater\Api\Controllers\SecurityReportController;
 
 return function (App $app) {
     // Health Check
     $app->get('/health', [HealthController::class, 'check']);
+    
+    // Security Reports
+    $app->post('/api/security/reports/csp', [SecurityReportController::class, 'handleCspReport']);
 
     // API Routes
     $app->group('/api', function (RouteCollectorProxy $group) {

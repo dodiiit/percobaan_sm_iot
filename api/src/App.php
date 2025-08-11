@@ -34,7 +34,11 @@ use IndoWater\Api\Controllers\TariffController;
 use IndoWater\Api\Controllers\ServiceFeeController;
 use IndoWater\Api\Middleware\AuthMiddleware;
 use IndoWater\Api\Middleware\CorsMiddleware;
+use IndoWater\Api\Middleware\CsrfMiddleware;
 use IndoWater\Api\Middleware\RateLimitMiddleware;
+use IndoWater\Api\Middleware\SecurityHeadersMiddleware;
+use IndoWater\Api\Middleware\SessionMiddleware;
+use IndoWater\Api\Services\EncryptionService;
 
 class App
 {
@@ -114,12 +118,17 @@ class App
         });
 
         // Services
+        $this->container->set(EncryptionService::class, function () {
+            return new EncryptionService($this->config['app_key']);
+        });
+        
         $this->container->set(AuthService::class, function ($container) {
             return new AuthService(
                 $container->get(User::class),
                 $this->config['jwt_secret'],
                 (int) $this->config['jwt_ttl'],
-                (int) $this->config['jwt_refresh_ttl']
+                (int) $this->config['jwt_refresh_ttl'],
+                $container->get(EncryptionService::class)
             );
         });
 
@@ -236,11 +245,20 @@ class App
             ]);
         });
 
-        $this->container->set(RateLimitMiddleware::class, function () {
-            return new RateLimitMiddleware(
-                (int) $this->config['rate_limit_requests'],
-                (int) $this->config['rate_limit_per_minute']
-            );
+        $this->container->set(RateLimitMiddleware::class, function ($container) {
+            return new RateLimitMiddleware($container);
+        });
+        
+        $this->container->set(SecurityHeadersMiddleware::class, function ($container) {
+            return new SecurityHeadersMiddleware($container);
+        });
+        
+        $this->container->set(SessionMiddleware::class, function ($container) {
+            return new SessionMiddleware($container);
+        });
+        
+        $this->container->set(CsrfMiddleware::class, function ($container) {
+            return new CsrfMiddleware($container);
         });
     }
 
@@ -253,11 +271,20 @@ class App
             true
         );
 
+        // Add security headers middleware
+        $this->app->add($this->container->get(SecurityHeadersMiddleware::class));
+
         // Add CORS middleware
         $this->app->add($this->container->get(CorsMiddleware::class));
 
         // Add rate limiting middleware
         $this->app->add($this->container->get(RateLimitMiddleware::class));
+        
+        // Add session middleware
+        $this->app->add($this->container->get(SessionMiddleware::class));
+        
+        // Add CSRF protection middleware
+        $this->app->add($this->container->get(CsrfMiddleware::class));
     }
 
     private function setupRoutes(): void
