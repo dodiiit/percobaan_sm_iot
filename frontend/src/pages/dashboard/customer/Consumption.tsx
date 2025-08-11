@@ -9,7 +9,8 @@ import {
   ExclamationTriangleIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
-import { meterAPI } from '../../../services/api';
+import api from '../../../services/api';
+import { mockApi, shouldUseMockApi } from '../../../services/mockApi';
 import { toast } from 'react-toastify';
 import { Line, Bar } from 'react-chartjs-2';
 import {
@@ -24,6 +25,16 @@ import {
   Legend,
   Filler
 } from 'chart.js';
+import { motion } from 'framer-motion';
+import { 
+  ConsumptionPatterns, 
+  HourlyConsumptionHeatmap, 
+  WaterUsageComparison,
+  WaterSavingsInsights 
+} from '../../../components/visualizations';
+import { fadeIn, fadeInUp, staggerContainer } from '../../../utils/animations';
+import { useBreakpoint } from '../../../utils/responsive';
+import { useAnnounce } from '../../../utils/accessibility';
 
 // Register ChartJS components
 ChartJS.register(
@@ -58,6 +69,10 @@ interface ConsumptionData {
     values: number[];
   };
   yearly: {
+    labels: string[];
+    values: number[];
+  };
+  hourly?: {
     labels: string[];
     values: number[];
   };
@@ -96,12 +111,14 @@ const TimeRangeSelector: React.FC<{
       {ranges.map((range) => (
         <button
           key={range.id}
-          className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+          className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors duration-200 ${
             selectedRange === range.id
               ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 shadow-sm'
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
           }`}
           onClick={() => onChange(range.id)}
+          aria-pressed={selectedRange === range.id}
+          aria-label={`View ${range.label} data`}
         >
           {range.label}
         </button>
@@ -136,6 +153,10 @@ const ConsumptionChart: React.FC<{
   const options = {
     responsive: true,
     maintainAspectRatio: false,
+    animation: {
+      duration: 1000,
+      easing: 'easeOutQuart'
+    },
     plugins: {
       legend: {
         position: 'top' as const,
@@ -195,7 +216,7 @@ const StatCard: React.FC<{
   footer?: string;
 }> = ({ title, value, icon, change, footer }) => {
   return (
-    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+    <div className="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg transition-all duration-300 hover:shadow-md">
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-shrink-0">
@@ -227,9 +248,9 @@ const StatCard: React.FC<{
                 } inline-flex items-center`}
               >
                 {change.isPositive ? (
-                  <ArrowUpIcon className="h-4 w-4 mr-1" />
+                  <ArrowUpIcon className="h-4 w-4 mr-1" aria-hidden="true" />
                 ) : (
-                  <ArrowDownIcon className="h-4 w-4 mr-1" />
+                  <ArrowDownIcon className="h-4 w-4 mr-1" aria-hidden="true" />
                 )}
                 {Math.abs(change.value)}%
               </span>
@@ -255,11 +276,28 @@ const Consumption: React.FC = () => {
     daily: { labels: [], values: [] },
     weekly: { labels: [], values: [] },
     monthly: { labels: [], values: [] },
-    yearly: { labels: [], values: [] }
+    yearly: { labels: [], values: [] },
+    hourly: { labels: [], values: [] }
   });
   const [stats, setStats] = useState<ConsumptionStats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [hourlyHeatmapData, setHourlyHeatmapData] = useState<any[]>([]);
+  const [comparisonData, setComparisonData] = useState<any>({
+    labels: [],
+    yourUsage: [],
+    averageUsage: [],
+    efficientUsage: []
+  });
+  const [savingsData, setSavingsData] = useState<any>({
+    waterSaved: 0,
+    moneySaved: 0,
+    co2Reduced: 0,
+    timeSpan: 30
+  });
+  
+  const breakpoint = useBreakpoint();
+  const { announce, AnnouncementRegion } = useAnnounce();
 
   useEffect(() => {
     fetchMeters();
@@ -274,46 +312,47 @@ const Consumption: React.FC = () => {
   const fetchMeters = async () => {
     try {
       setLoading(true);
-      setError(null);
       
-      // Use real API
-      const response = await meterAPI.getCustomerMeters();
+      let response;
       
-      if (response.data && response.data.status === 'success') {
-        const metersData = response.data.data || [];
-        setMeters(metersData);
-        
-        if (metersData.length > 0) {
-          setSelectedMeter(metersData[0].id);
-        } else {
-          setError('No meters found for your account. Please contact customer support.');
-        }
+      if (shouldUseMockApi()) {
+        // Use mock data
+        response = {
+          data: {
+            status: 'success',
+            data: [
+              {
+                id: 'meter-001',
+                meter_number: 'M-001',
+                location: 'Main House'
+              },
+              {
+                id: 'meter-002',
+                meter_number: 'M-002',
+                location: 'Garden'
+              },
+              {
+                id: 'meter-003',
+                meter_number: 'M-003',
+                location: 'Pool House'
+              }
+            ]
+          }
+        };
       } else {
-        throw new Error(response.data?.message || 'Failed to fetch meters data');
+        // Use real API
+        response = await api.get('/meters/my-meters');
       }
-    } catch (error: any) {
-      console.error('Error fetching meters:', error);
       
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to load meters. Please try again.';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      
-      // Fallback data for development/testing
-      const fallbackMeters = [
-        {
-          id: 'meter-001',
-          meter_number: 'WM-001234',
-          location: 'Main House'
-        },
-        {
-          id: 'meter-002',
-          meter_number: 'WM-005678',
-          location: 'Garden'
+      if (response.data.status === 'success') {
+        setMeters(response.data.data);
+        if (response.data.data.length > 0) {
+          setSelectedMeter(response.data.data[0].id);
         }
-      ];
-      
-      setMeters(fallbackMeters);
-      setSelectedMeter(fallbackMeters[0].id);
+      }
+    } catch (error) {
+      console.error('Error fetching meters:', error);
+      toast.error('Failed to load meters. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -322,61 +361,59 @@ const Consumption: React.FC = () => {
   const fetchConsumptionData = async (meterId: string) => {
     try {
       setLoading(true);
-      setError(null);
       
-      // Use real API
-      const response = await meterAPI.getConsumption(meterId, { range: timeRange });
+      let response;
       
-      if (response.data && response.data.status === 'success') {
-        const consumptionData = response.data.data.consumption || {
-          daily: { labels: [], values: [] },
-          weekly: { labels: [], values: [] },
-          monthly: { labels: [], values: [] },
-          yearly: { labels: [], values: [] }
+      if (shouldUseMockApi()) {
+        // Generate mock data
+        const mockData = generateMockConsumptionData();
+        response = {
+          data: {
+            status: 'success',
+            data: {
+              consumption: mockData,
+              stats: {
+                total_consumption: 12560,
+                average_daily: 42,
+                peak_usage: {
+                  value: 78,
+                  date: '2025-07-25'
+                },
+                lowest_usage: {
+                  value: 22,
+                  date: '2025-07-19'
+                },
+                change_percentage: -8.5,
+                estimated_monthly: 1260,
+                water_saved: 120,
+                carbon_footprint: 3.2
+              }
+            }
+          }
         };
-        
-        const statsData = response.data.data.stats || null;
-        
-        setConsumptionData(consumptionData);
-        setStats(statsData);
       } else {
-        throw new Error(response.data?.message || 'Failed to fetch consumption data');
+        // Use real API
+        response = await api.get(`/meters/${meterId}/consumption?range=${timeRange}`);
       }
-    } catch (error: any) {
+      
+      if (response.data.status === 'success') {
+        setConsumptionData(response.data.data.consumption);
+        setStats(response.data.data.stats);
+      }
+    } catch (error) {
       console.error('Error fetching consumption data:', error);
-      
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to load consumption data. Please try again.';
-      setError(errorMessage);
-      toast.error(errorMessage);
-      
-      // Generate fallback data for development/testing
-      const fallbackData = generateMockConsumptionData();
-      setConsumptionData(fallbackData);
-      
-      // Fallback stats
-      setStats({
-        total_consumption: 12560,
-        average_daily: 42,
-        peak_usage: {
-          value: 78,
-          date: '2025-07-25'
-        },
-        lowest_usage: {
-          value: 22,
-          date: '2025-07-19'
-        },
-        change_percentage: -8.5,
-        estimated_monthly: 1260,
-        water_saved: 120,
-        carbon_footprint: 3.2
-      });
+      toast.error('Failed to load consumption data. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   const generateMockConsumptionData = (): ConsumptionData => {
-    // Generate daily data (last 7 days)
+    // Generate hourly data (24 hours)
+    const hourlyLabels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+    const hourlyValues = Array.from({ length: 24 }, () => Math.floor(Math.random() * 30) + 10);
+    
+    // Generate daily data (last 24 hours)
     const dailyLabels = Array.from({ length: 24 }, (_, i) => `${i}:00`);
     const dailyValues = Array.from({ length: 24 }, () => Math.floor(Math.random() * 30) + 10);
     
@@ -392,7 +429,63 @@ const Consumption: React.FC = () => {
     const yearlyLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const yearlyValues = Array.from({ length: 12 }, () => Math.floor(Math.random() * 1500) + 500);
     
+    // Generate hourly heatmap data
+    const heatmapData = [];
+    for (let day = 0; day < 7; day++) {
+      for (let hour = 0; hour < 24; hour++) {
+        // Create a pattern where mornings and evenings have higher usage
+        let baseValue = 10;
+        if ((hour >= 6 && hour <= 9) || (hour >= 18 && hour <= 22)) {
+          baseValue = 30; // Higher usage during morning and evening routines
+        } else if (hour >= 23 || hour <= 5) {
+          baseValue = 5; // Lower usage during night
+        }
+        
+        // Add some randomness
+        const value = baseValue + Math.floor(Math.random() * 15);
+        
+        heatmapData.push({
+          day,
+          hour,
+          value
+        });
+      }
+    }
+    setHourlyHeatmapData(heatmapData);
+    
+    // Generate comparison data
+    const comparisonLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const yourUsage = weeklyValues;
+    const averageUsage = Array.from({ length: 7 }, (_, i) => {
+      // Make average usage slightly higher than user's usage for most days
+      return yourUsage[i] * (Math.random() * 0.4 + 0.9);
+    });
+    const efficientUsage = Array.from({ length: 7 }, (_, i) => {
+      // Make efficient usage lower than user's usage
+      return yourUsage[i] * (Math.random() * 0.2 + 0.6);
+    });
+    
+    setComparisonData({
+      labels: comparisonLabels,
+      yourUsage,
+      averageUsage,
+      efficientUsage
+    });
+    
+    // Generate savings data
+    const waterSaved = Math.floor(Math.random() * 1000) + 500; // 500-1500 liters
+    const moneySaved = Math.floor(waterSaved * 0.01 * 100) / 100; // Approximate cost savings
+    const co2Reduced = Math.floor(waterSaved * 0.0005 * 100) / 100; // Approximate CO2 reduction
+    
+    setSavingsData({
+      waterSaved,
+      moneySaved,
+      co2Reduced,
+      timeSpan: 30
+    });
+    
     return {
+      hourly: { labels: hourlyLabels, values: hourlyValues },
       daily: { labels: dailyLabels, values: dailyValues },
       weekly: { labels: weeklyLabels, values: weeklyValues },
       monthly: { labels: monthlyLabels, values: monthlyValues },
@@ -411,37 +504,89 @@ const Consumption: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="md:flex md:items-center md:justify-between mb-6">
-        <div className="flex-1 min-w-0">
+      {/* Accessibility announcement region */}
+      <AnnouncementRegion />
+      
+      <motion.div 
+        initial="hidden"
+        animate="visible"
+        variants={staggerContainer}
+        className="md:flex md:items-center md:justify-between mb-6"
+      >
+        <motion.div variants={fadeInUp} className="flex-1 min-w-0">
           <h2 className="text-2xl font-bold leading-7 text-gray-900 dark:text-white sm:text-3xl sm:truncate">
             Water Consumption
           </h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             Monitor and analyze your water usage patterns
           </p>
-        </div>
-        <div className="mt-4 flex md:mt-0 md:ml-4">
+        </motion.div>
+        <motion.div variants={fadeInUp} className="mt-4 flex md:mt-0 md:ml-4">
           <button
             type="button"
-            onClick={() => selectedMeter && fetchConsumptionData(selectedMeter)}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600"
-            disabled={loading}
+            onClick={() => {
+              if (selectedMeter) {
+                fetchConsumptionData(selectedMeter);
+                announce("Refreshing consumption data");
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:hover:bg-gray-600 transition-colors duration-200"
+            aria-label="Refresh data"
           >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-500 mr-2"></div>
-                Refreshing...
-              </>
-            ) : (
-              <>
-                <ArrowPathIcon className="-ml-1 mr-2 h-5 w-5 text-gray-500 dark:text-gray-400" />
-                Refresh
-              </>
-            )}
+            <ArrowPathIcon className="-ml-1 mr-2 h-5 w-5 text-gray-500 dark:text-gray-400" />
+            Refresh
           </button>
+        </motion.div>
+      </motion.div>
+
+      <motion.div 
+        variants={fadeInUp}
+        initial="hidden"
+        animate="visible"
+        className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg mb-6"
+      >
+        <div className="px-4 py-5 sm:p-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="sm:col-span-1">
+              <label htmlFor="meter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Select Meter
+              </label>
+              <select
+                id="meter"
+                name="meter"
+                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                value={selectedMeter}
+                onChange={(e) => {
+                  setSelectedMeter(e.target.value);
+                  if (e.target.value) {
+                    const selectedOption = e.target.options[e.target.selectedIndex];
+                    announce(`Selected meter: ${selectedOption.text}`);
+                  }
+                }}
+                disabled={loading}
+                aria-label="Select water meter"
+              >
+                <option value="">Select a meter</option>
+                {meters.map((meter) => (
+                  <option key={meter.id} value={meter.id}>
+                    {meter.meter_number} - {meter.location}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-1 flex items-end">
+              <TimeRangeSelector
+                selectedRange={timeRange}
+                onChange={(range) => {
+                  setTimeRange(range);
+                  announce(`Time range changed to ${range}`);
+                }}
+              />
+            </div>
+          </div>
         </div>
-      </div>
-      
+      </motion.div>
+
       {/* Error display */}
       {error && (
         <div className="mb-6 bg-red-50 dark:bg-red-900/20 border-l-4 border-red-500 p-4">
@@ -458,62 +603,44 @@ const Consumption: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg mb-6">
-        <div className="px-4 py-5 sm:p-6">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            <div className="sm:col-span-1">
-              <label htmlFor="meter" className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                Select Meter
-              </label>
-              <select
-                id="meter"
-                name="meter"
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                value={selectedMeter}
-                onChange={(e) => setSelectedMeter(e.target.value)}
-                disabled={loading}
-              >
-                <option value="">Select a meter</option>
-                {meters.map((meter) => (
-                  <option key={meter.id} value={meter.id}>
-                    {meter.meter_number} - {meter.location}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="sm:col-span-1 flex items-end">
-              <TimeRangeSelector
-                selectedRange={timeRange}
-                onChange={setTimeRange}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {loading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-        </div>
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="flex justify-center items-center h-64"
+        >
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500" aria-label="Loading data"></div>
+        </motion.div>
       ) : !selectedMeter ? (
-        <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg"
+        >
           <div className="px-4 py-5 sm:p-6 text-center">
-            <BeakerIcon className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" />
+            <BeakerIcon className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500" aria-hidden="true" />
             <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-white">No meter selected</h3>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Please select a water meter to view consumption data.
             </p>
           </div>
-        </div>
+        </motion.div>
       ) : (
-        <>
+        <motion.div
+          initial="hidden"
+          animate="visible"
+          variants={staggerContainer}
+        >
           {/* Stats Cards */}
           {stats && (
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+            <motion.div 
+              variants={fadeInUp}
+              className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 mb-6"
+            >
               <StatCard
                 title="Total Consumption"
                 value={`${stats.total_consumption.toLocaleString()} L`}
-                icon={<BeakerIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" />}
+                icon={<BeakerIcon className="h-6 w-6 text-blue-600 dark:text-blue-400" aria-hidden="true" />}
                 change={{
                   value: stats.change_percentage,
                   isPositive: stats.change_percentage < 0 // For water consumption, negative change is positive (saving water)
@@ -522,77 +649,127 @@ const Consumption: React.FC = () => {
               <StatCard
                 title="Daily Average"
                 value={`${stats.average_daily.toLocaleString()} L/day`}
-                icon={<ChartBarIcon className="h-6 w-6 text-green-600 dark:text-green-400" />}
+                icon={<ChartBarIcon className="h-6 w-6 text-green-600 dark:text-green-400" aria-hidden="true" />}
                 footer={`Est. Monthly: ${stats.estimated_monthly.toLocaleString()} L`}
               />
               <StatCard
                 title="Peak Usage"
                 value={`${stats.peak_usage.value.toLocaleString()} L`}
-                icon={<ArrowUpIcon className="h-6 w-6 text-red-600 dark:text-red-400" />}
+                icon={<ArrowUpIcon className="h-6 w-6 text-red-600 dark:text-red-400" aria-hidden="true" />}
                 footer={`on ${formatDate(stats.peak_usage.date)}`}
               />
               <StatCard
-                title="Water Saved"
-                value={`${stats.water_saved.toLocaleString()} L`}
-                icon={<CheckCircleIcon className="h-6 w-6 text-green-600 dark:text-green-400" />}
-                footer={`Carbon reduction: ${stats.carbon_footprint} kg CO₂`}
+                title="Lowest Usage"
+                value={`${stats.lowest_usage.value.toLocaleString()} L`}
+                icon={<ArrowDownIcon className="h-6 w-6 text-green-600 dark:text-green-400" aria-hidden="true" />}
+                footer={`on ${formatDate(stats.lowest_usage.date)}`}
               />
-            </div>
+            </motion.div>
           )}
 
-          {/* Consumption Chart */}
-          <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg mb-6">
-            <div className="px-4 py-5 sm:p-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">
-                {timeRange.charAt(0).toUpperCase() + timeRange.slice(1)} Water Consumption
-              </h3>
-              <ConsumptionChart data={consumptionData} timeRange={timeRange} />
-            </div>
+          {/* Enhanced Visualizations */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Consumption Patterns */}
+            <motion.div variants={fadeInUp}>
+              <ConsumptionPatterns 
+                data={consumptionData} 
+                timeRange={timeRange} 
+              />
+            </motion.div>
+            
+            {/* Water Usage Comparison */}
+            <motion.div variants={fadeInUp}>
+              <WaterUsageComparison 
+                data={comparisonData}
+              />
+            </motion.div>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Hourly Consumption Heatmap */}
+            <motion.div variants={fadeInUp}>
+              <HourlyConsumptionHeatmap 
+                data={hourlyHeatmapData}
+              />
+            </motion.div>
+            
+            {/* Water Savings Insights */}
+            <motion.div variants={fadeInUp}>
+              <WaterSavingsInsights 
+                data={savingsData}
+              />
+            </motion.div>
           </div>
 
-          {/* Usage Insights */}
-          <div className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg">
+          {/* Original Consumption Chart (kept for backward compatibility) */}
+          <motion.div 
+            variants={fadeInUp}
+            className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg mb-6"
+          >
             <div className="px-4 py-5 sm:p-6">
               <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">
-                Usage Insights
+                Water Consumption Over Time
               </h3>
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-md">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <CheckCircleIcon className="h-5 w-5 text-blue-400" />
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-blue-800 dark:text-blue-300">Efficiency Tips</h3>
-                      <div className="mt-2 text-sm text-blue-700 dark:text-blue-400">
-                        <ul className="list-disc pl-5 space-y-1">
-                          <li>Your peak usage time is between 6:00 - 8:00 AM</li>
-                          <li>Consider using water-efficient appliances</li>
-                          <li>Fix any leaking taps to save up to 20L per day</li>
-                          <li>Collect rainwater for garden irrigation</li>
-                        </ul>
-                      </div>
-                    </div>
+              <div className="h-80">
+                <ConsumptionChart data={consumptionData} timeRange={timeRange} />
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Usage Breakdown */}
+          <motion.div 
+            variants={fadeInUp}
+            className="bg-white dark:bg-gray-800 shadow overflow-hidden sm:rounded-lg mb-6"
+          >
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900 dark:text-white mb-4">
+                Usage Breakdown
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Water Efficiency
+                  </h4>
+                  <div className="bg-gray-100 dark:bg-gray-700 rounded-full h-4 overflow-hidden" role="progressbar" aria-valuenow={Math.min(100, 100 - stats?.change_percentage || 0)} aria-valuemin={0} aria-valuemax={100}>
+                    <div 
+                      className="bg-blue-600 h-4 rounded-full transition-all duration-1000 ease-out" 
+                      style={{ width: `${Math.min(100, 100 - stats?.change_percentage || 0)}%` }}
+                    ></div>
                   </div>
+                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    {stats?.change_percentage && stats.change_percentage < 0 
+                      ? `You're using ${Math.abs(stats.change_percentage).toFixed(1)}% less water than before.`
+                      : `You're using ${stats?.change_percentage?.toFixed(1) || 0}% more water than before.`
+                    }
+                  </p>
                 </div>
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-md">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <ExclamationTriangleIcon className="h-5 w-5 text-yellow-400" />
+                <div>
+                  <h4 className="text-base font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Environmental Impact
+                  </h4>
+                  <div className="flex items-center">
+                    <div className="flex-1">
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                        {stats?.water_saved?.toLocaleString() || 0} L
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Water saved
+                      </p>
                     </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-yellow-800 dark:text-yellow-300">Anomaly Detection</h3>
-                      <div className="mt-2 text-sm text-yellow-700 dark:text-yellow-400">
-                        <p>Unusual water usage detected on {formatDate(stats?.peak_usage.date || '')}. This could indicate a leak or unattended water source.</p>
-                        <p className="mt-2">We recommend checking your property for any signs of leakage.</p>
-                      </div>
+                    <div className="flex-1">
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                        {stats?.carbon_footprint?.toLocaleString() || 0} kg
+                      </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        CO₂ reduction
+                      </p>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
-        </>
+          </motion.div>
+        </motion.div>
       )}
     </div>
   );
