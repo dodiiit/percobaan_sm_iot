@@ -1,0 +1,28 @@
+# IndoWater Backup Cron Jobs
+
+# Database backups
+# Daily at 1:00 AM
+0 1 * * * /path/to/indowater/scripts/backup/database_backup.sh > /var/backups/indowater/logs/db_backup_daily.log 2>&1
+
+# Weekly on Sundays at 2:00 AM
+0 2 * * 0 /path/to/indowater/scripts/backup/database_backup.sh > /var/backups/indowater/logs/db_backup_weekly.log 2>&1
+
+# Monthly on 1st at 3:00 AM
+0 3 1 * * /path/to/indowater/scripts/backup/database_backup.sh > /var/backups/indowater/logs/db_backup_monthly.log 2>&1
+
+# File backups
+# Daily at 2:00 AM
+0 2 * * * /path/to/indowater/scripts/backup/file_backup.sh > /var/backups/indowater/logs/file_backup_daily.log 2>&1
+
+# Weekly on Sundays at 3:00 AM
+0 3 * * 0 /path/to/indowater/scripts/backup/file_backup.sh > /var/backups/indowater/logs/file_backup_weekly.log 2>&1
+
+# Monthly on 1st at 4:00 AM
+0 4 1 * * /path/to/indowater/scripts/backup/file_backup.sh > /var/backups/indowater/logs/file_backup_monthly.log 2>&1
+
+# Backup verification
+# Daily at 5:00 AM
+0 5 * * * /path/to/indowater/scripts/backup/verify_backup.sh > /var/backups/indowater/logs/verify_backup.log 2>&1
+
+# Cleanup old logs (keep logs for 90 days)
+0 0 * * * find /var/backups/indowater/logs -name "*.log" -type f -mtime +90 -delete
