@@ -1,0 +1,229 @@
+/* Accessibility styles */
+
+/* Focus styles */
+:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Skip to content link */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: #3b82f6;
+  color: white;
+  padding: 8px;
+  z-index: 100;
+  transition: top 0.3s;
+}
+
+.skip-to-content:focus {
+  top: 0;
+}
+
+/* Visually hidden elements (for screen readers) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Improved contrast for text */
+.high-contrast-text {
+  color: #000;
+  background-color: #fff;
+  text-shadow: none;
+}
+
+.high-contrast-text-inverse {
+  color: #fff;
+  background-color: #000;
+  text-shadow: none;
+}
+
+/* Improved focus for interactive elements */
+button:focus,
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Keyboard focus indicator */
+.keyboard-focus-only:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.keyboard-focus-only:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast mode support */
+@media (forced-colors: active) {
+  .adaptive-border {
+    border: 1px solid CanvasText;
+  }
+  
+  .adaptive-icon {
+    forced-color-adjust: none;
+    color: CanvasText;
+  }
+}
+
+/* Improved link underlines for readability */
+.accessible-link {
+  text-decoration-thickness: 0.1em;
+  text-underline-offset: 0.2em;
+}
+
+.accessible-link:hover,
+.accessible-link:focus {
+  text-decoration-thickness: 0.2em;
+}
+
+/* Improved form field accessibility */
+.accessible-field {
+  border: 1px solid #6b7280;
+  border-radius: 0.25rem;
+  padding: 0.5rem;
+}
+
+.accessible-field:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+}
+
+.accessible-field-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+/* Accessible error states */
+.accessible-error {
+  color: #b91c1c;
+  border-color: #b91c1c;
+}
+
+.accessible-error:focus {
+  border-color: #b91c1c;
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.5);
+}
+
+.error-message {
+  color: #b91c1c;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* Accessible tooltips */
+.accessible-tooltip {
+  position: relative;
+  display: inline-block;
+}
+
+.accessible-tooltip-text {
+  visibility: hidden;
+  width: 200px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px;
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -100px;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.accessible-tooltip:hover .accessible-tooltip-text,
+.accessible-tooltip:focus .accessible-tooltip-text,
+.accessible-tooltip:focus-within .accessible-tooltip-text {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* Accessible tables */
+.accessible-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.accessible-table th {
+  background-color: #f3f4f6;
+  text-align: left;
+  padding: 0.75rem;
+  font-weight: 600;
+}
+
+.accessible-table td {
+  padding: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.accessible-table tbody tr:hover {
+  background-color: #f9fafb;
+}
+
+/* Accessible buttons */
+.accessible-button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.5rem 1rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+}
+
+/* Accessible color contrast */
+.text-accessible-black {
+  color: #121212;
+}
+
+.text-accessible-white {
+  color: #f9fafb;
+}
+
+.bg-accessible-blue {
+  background-color: #1d4ed8;
+  color: white;
+}
+
+.bg-accessible-green {
+  background-color: #15803d;
+  color: white;
+}
+
+.bg-accessible-red {
+  background-color: #b91c1c;
+  color: white;
+}
+
+.bg-accessible-yellow {
+  background-color: #92400e;
+  color: white;
+}

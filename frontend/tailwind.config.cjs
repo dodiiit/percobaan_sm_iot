@@ -123,5 +123,34 @@ module.exports = {
   },
   plugins: [
     require('@tailwindcss/forms'),
+    function({ addUtilities }) {
+      const newUtilities = {
+        '.text-shadow': {
+          textShadow: '0px 2px 3px rgba(0, 0, 0, 0.1)',
+        },
+        '.text-shadow-md': {
+          textShadow: '0px 3px 3px rgba(0, 0, 0, 0.15)',
+        },
+        '.text-shadow-lg': {
+          textShadow: '0px 5px 5px rgba(0, 0, 0, 0.2)',
+        },
+        '.text-shadow-none': {
+          textShadow: 'none',
+        },
+        '.transition-all-200': {
+          transition: 'all 200ms ease-in-out',
+        },
+        '.transition-all-300': {
+          transition: 'all 300ms ease-in-out',
+        },
+        '.transition-all-500': {
+          transition: 'all 500ms ease-in-out',
+        },
+      }
+      addUtilities(newUtilities)
+    },
   ],
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
 }
