@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Box,
   Grid,
@@ -113,6 +113,7 @@ const ValveControl: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [valves, setValves] = useState<Valve[]>([]);
   const [selectedValve, setSelectedValve] = useState<Valve | null>(null);
   const [commands, setCommands] = useState<ValveCommand[]>([]);
@@ -140,81 +141,126 @@ const ValveControl: React.FC = () => {
 
   // Real-time subscriptions
   const [subscriptions, setSubscriptions] = useState<string[]>([]);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     loadValves();
     startRealTimeUpdates();
     
     return () => {
+      mountedRef.current = false;
       stopRealTimeUpdates();
     };
   }, []);
 
   useEffect(() => {
-    if (selectedValve) {
+    if (selectedValve && mountedRef.current) {
       loadValveCommands(selectedValve.id);
       loadValveSchedules(selectedValve.id);
     }
   }, [selectedValve]);
 
-  const loadValves = async () => {
+  const loadValves = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
     try {
       setLoading(true);
+      setError(null);
       const response = await enhancedApi.get('/valves', {
         params: { include_realtime: true }
       });
-      setValves(response.data.data);
+      
+      if (mountedRef.current) {
+        setValves(response.data.data);
+      }
     } catch (error) {
       console.error('Failed to load valves:', error);
+      if (mountedRef.current) {
+        setError(t('valves.loadError'));
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [t]);
 
-  const loadValveCommands = async (valveId: string) => {
+  const loadValveCommands = useCallback(async (valveId: string) => {
+    if (!mountedRef.current) return;
+    
     try {
       const response = await enhancedApi.get(`/valves/${valveId}/commands`, {
         params: { limit: 20 }
       });
-      setCommands(response.data.data);
+      
+      if (mountedRef.current) {
+        setCommands(response.data.data);
+      }
     } catch (error) {
       console.error('Failed to load valve commands:', error);
     }
-  };
+  }, []);
 
-  const loadValveSchedules = async (valveId: string) => {
+  const loadValveSchedules = useCallback(async (valveId: string) => {
+    if (!mountedRef.current) return;
+    
     try {
       const response = await enhancedApi.get(`/valves/${valveId}/schedules`);
-      setSchedules(response.data.data);
+      
+      if (mountedRef.current) {
+        setSchedules(response.data.data);
+      }
     } catch (error) {
       console.error('Failed to load valve schedules:', error);
     }
-  };
+  }, []);
 
-  const startRealTimeUpdates = async () => {
+  const startRealTimeUpdates = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
     try {
+      // Stop existing subscriptions first
+      stopRealTimeUpdates();
+      
       // Subscribe to valve updates
       const valveSubscription = await enhancedRealtimeService.subscribeUpdates(
         { type: 'valve_updates' },
         handleValveUpdate,
-        (error) => console.error('Valve subscription error:', error)
+        (error) => {
+          console.error('Valve subscription error:', error);
+          if (mountedRef.current) {
+            setError(t('valves.realtimeError'));
+          }
+        }
       );
       
-      setSubscriptions(prev => [...prev, valveSubscription]);
+      if (mountedRef.current) {
+        setSubscriptions(prev => [...prev, valveSubscription]);
+      }
     } catch (error) {
       console.error('Failed to start real-time updates:', error);
+      if (mountedRef.current) {
+        setError(t('valves.connectionError'));
+      }
     }
-  };
+  }, [t]);
 
-  const stopRealTimeUpdates = () => {
+  const stopRealTimeUpdates = useCallback(() => {
     subscriptions.forEach(id => {
-      enhancedRealtimeService.unsubscribe(id);
+      try {
+        enhancedRealtimeService.unsubscribe(id);
+      } catch (error) {
+        console.error('Error unsubscribing:', error);
+      }
     });
     setSubscriptions([]);
-  };
+  }, [subscriptions]);
 
   const handleValveUpdate = useCallback((data: any) => {
-    if (data.type === 'valve_status_update') {
+    if (!mountedRef.current) return;
+    
+    if (data.type === 'valve_status_update' && data.valve_id && data.data) {
       setValves(prev => prev.map(valve => 
         valve.id === data.valve_id ? { ...valve, ...data.data } : valve
       ));
@@ -225,7 +271,9 @@ const ValveControl: React.FC = () => {
     }
   }, [selectedValve]);
 
-  const handleValveCommand = async (valveId: string, command: any) => {
+  const handleValveCommand = useCallback(async (valveId: string, command: any) => {
+    if (!mountedRef.current) return;
+    
     try {
       const response = await enhancedRealtimeService.sendMeterCommand(valveId, {
         type: 'valve_control',
@@ -239,22 +287,33 @@ const ValveControl: React.FC = () => {
         }
       });
       
-      await loadValveCommands(valveId);
-      await loadValves();
+      if (mountedRef.current) {
+        await loadValveCommands(valveId);
+        await loadValves();
+      }
     } catch (error) {
       console.error('Failed to send valve command:', error);
+      if (mountedRef.current) {
+        setError(t('valves.commandError'));
+      }
       throw error; // Re-throw for proper error handling
     }
-  };
+  }, [loadValveCommands, loadValves, t]);
 
-  const handleQuickAction = async (valveId: string, action: 'open' | 'close' | 'emergency_stop') => {
-    const command = {
-      command_type: action,
-      command_data: action === 'emergency_stop' ? { immediate: true } : {}
-    };
+  const handleQuickAction = useCallback(async (valveId: string, action: 'open' | 'close' | 'emergency_stop') => {
+    if (!mountedRef.current) return;
     
-    await handleValveCommand(valveId, command);
-  };
+    try {
+      const command = {
+        command_type: action,
+        command_data: action === 'emergency_stop' ? { immediate: true } : {}
+      };
+      
+      await handleValveCommand(valveId, command);
+    } catch (error) {
+      // Error already handled in handleValveCommand
+    }
+  }, [handleValveCommand]);
 
   const handleScheduledCommand = async () => {
     if (!selectedValve) return;
@@ -345,6 +404,23 @@ const ValveControl: React.FC = () => {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box p={3}>
+        <Alert 
+          severity="error" 
+          action={
+            <Button color="inherit" size="small" onClick={loadValves}>
+              {t('common.retry')}
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
       </Box>
     );
   }

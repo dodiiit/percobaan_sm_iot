@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Box,
   Grid,
@@ -36,7 +36,7 @@ import {
   DeviceHub,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
-import { Line, Doughnut, Bar } from 'react-chartjs-2';
+import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -46,13 +46,10 @@ import {
   Title,
   Tooltip as ChartTooltip,
   Legend,
-  ArcElement,
-  BarElement,
 } from 'chart.js';
-import { format, subHours, subMinutes } from 'date-fns';
+import { format } from 'date-fns';
 import { enhancedRealtimeService, MeterRealtimeData, NotificationData } from '../../services/enhancedRealtimeService';
 import { enhancedMeterService } from '../../services/enhancedMeterService';
-import { useRealTimeUpdates } from '../../hooks/useRealTimeUpdates';
 
 // Register Chart.js components
 ChartJS.register(
@@ -62,9 +59,7 @@ ChartJS.register(
   LineElement,
   Title,
   ChartTooltip,
-  Legend,
-  ArcElement,
-  BarElement
+  Legend
 );
 
 interface MeterStatus {
@@ -110,13 +105,13 @@ const RealtimeDashboard: React.FC = () => {
   // Real-time data storage
   const realtimeDataRef = useRef<Map<string, MeterRealtimeData[]>>(new Map());
   const subscriptionsRef = useRef<string[]>([]);
-
-  // Custom hook for real-time updates
-  const { isConnected, lastUpdate, subscribe, unsubscribe } = useRealTimeUpdates();
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     loadInitialData();
     return () => {
+      mountedRef.current = false;
       cleanup();
     };
   }, []);
@@ -129,7 +124,9 @@ const RealtimeDashboard: React.FC = () => {
     }
   }, [isRealTimeEnabled, meters]);
 
-  const loadInitialData = async () => {
+  const loadInitialData = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
     try {
       setLoading(true);
       setError(null);
@@ -139,6 +136,8 @@ const RealtimeDashboard: React.FC = () => {
         include_realtime: true,
         limit: 50
       });
+
+      if (!mountedRef.current) return;
 
       const meterData: MeterStatus[] = metersResponse.data.data.map((meter: any) => ({
         id: meter.id,
@@ -157,24 +156,37 @@ const RealtimeDashboard: React.FC = () => {
       await loadNotifications();
 
     } catch (err: any) {
-      setError(t('error.loadingData'));
       console.error('Dashboard loading error:', err);
+      if (mountedRef.current) {
+        setError(t('error.loadingData'));
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [t]);
 
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
     try {
       const response = await enhancedRealtimeService.getNotifications();
-      setNotifications(response.data.slice(0, 10)); // Show latest 10
+      if (mountedRef.current) {
+        setNotifications(response.data.slice(0, 10)); // Show latest 10
+      }
     } catch (err) {
       console.error('Failed to load notifications:', err);
     }
-  };
+  }, []);
 
-  const startRealTimeUpdates = async () => {
+  const startRealTimeUpdates = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
     try {
+      // Stop existing updates first
+      await stopRealTimeUpdates();
+
       // Subscribe to meter updates for all meters
       const meterIds = meters.map(m => m.id);
       
@@ -190,30 +202,44 @@ const RealtimeDashboard: React.FC = () => {
       // Subscribe to notifications
       const notificationSubscription = await enhancedRealtimeService.subscribeNotifications(
         handleNotificationUpdate,
-        (error) => console.error('Notification subscription error:', error)
+        (error) => {
+          console.error('Notification subscription error:', error);
+          if (mountedRef.current) {
+            setError(t('dashboard.notificationError'));
+          }
+        }
       );
       subscriptionsRef.current.push(notificationSubscription);
 
-      setConnectionStatus('connected');
+      if (mountedRef.current) {
+        setConnectionStatus('connected');
+      }
     } catch (err) {
       console.error('Failed to start real-time updates:', err);
-      setConnectionStatus('error');
+      if (mountedRef.current) {
+        setConnectionStatus('error');
+        setError(t('dashboard.connectionError'));
+      }
     }
-  };
+  }, [meters, t]);
 
-  const stopRealTimeUpdates = async () => {
+  const stopRealTimeUpdates = useCallback(async () => {
     try {
       for (const subscriptionId of subscriptionsRef.current) {
         await enhancedRealtimeService.unsubscribe(subscriptionId);
       }
       subscriptionsRef.current = [];
-      setConnectionStatus('disconnected');
+      if (mountedRef.current) {
+        setConnectionStatus('disconnected');
+      }
     } catch (err) {
       console.error('Failed to stop real-time updates:', err);
     }
-  };
+  }, []);
 
   const handleMeterUpdate = useCallback((meterId: string, data: MeterRealtimeData) => {
+    if (!mountedRef.current) return;
+    
     setMeters(prevMeters => {
       const updatedMeters = prevMeters.map(meter => {
         if (meter.id === meterId) {
@@ -235,6 +261,8 @@ const RealtimeDashboard: React.FC = () => {
   }, []);
 
   const handleMeterError = useCallback((meterId: string, error: any) => {
+    if (!mountedRef.current) return;
+    
     setMeters(prevMeters => 
       prevMeters.map(meter => {
         if (meter.id === meterId) {
@@ -250,22 +278,29 @@ const RealtimeDashboard: React.FC = () => {
   }, []);
 
   const handleNotificationUpdate = useCallback((data: NotificationData) => {
+    if (!mountedRef.current) return;
+    
     setNotifications(prev => [data, ...prev.slice(0, 9)]);
   }, []);
 
-  const updateSystemStats = (meterData: MeterStatus[]) => {
+  const updateSystemStats = useCallback((meterData: MeterStatus[]) => {
+    if (!mountedRef.current) return;
+    
     const stats: SystemStats = {
       totalMeters: meterData.length,
       onlineMeters: meterData.filter(m => m.status === 'online').length,
       offlineMeters: meterData.filter(m => m.status === 'offline' || m.status === 'error').length,
       alertCount: meterData.reduce((sum, m) => sum + m.alerts.length, 0),
-      avgFlowRate: meterData.reduce((sum, m) => sum + (m.realtimeData?.flow_rate || 0), 0) / meterData.length,
+      avgFlowRate: meterData.length > 0 ? 
+        meterData.reduce((sum, m) => sum + (m.realtimeData?.flow_rate || 0), 0) / meterData.length : 0,
       totalConsumption: meterData.reduce((sum, m) => sum + (m.realtimeData?.current_reading || 0), 0),
     };
     setSystemStats(stats);
-  };
+  }, []);
 
-  const updateChartData = (meterId: string, data: MeterRealtimeData) => {
+  const updateChartData = useCallback((meterId: string, data: MeterRealtimeData) => {
+    if (!mountedRef.current) return;
+    
     const currentData = realtimeDataRef.current.get(meterId) || [];
     const newData = [...currentData, data].slice(-20); // Keep last 20 points
     realtimeDataRef.current.set(meterId, newData);
@@ -273,9 +308,11 @@ const RealtimeDashboard: React.FC = () => {
     if (selectedMeter === meterId) {
       updateSelectedMeterChart(newData);
     }
-  };
+  }, [selectedMeter]);
 
-  const updateSelectedMeterChart = (data: MeterRealtimeData[]) => {
+  const updateSelectedMeterChart = useCallback((data: MeterRealtimeData[]) => {
+    if (!mountedRef.current) return;
+    
     const labels = data.map(d => format(new Date(d.timestamp), 'HH:mm:ss'));
     
     setChartData({
@@ -297,19 +334,19 @@ const RealtimeDashboard: React.FC = () => {
         },
       ],
     });
-  };
+  }, [t, theme]);
 
-  const cleanup = () => {
+  const cleanup = useCallback(() => {
     stopRealTimeUpdates();
-  };
+  }, [stopRealTimeUpdates]);
 
-  const handleRefresh = () => {
+  const handleRefresh = useCallback(() => {
     loadInitialData();
-  };
+  }, [loadInitialData]);
 
-  const toggleRealTime = () => {
+  const toggleRealTime = useCallback(() => {
     setIsRealTimeEnabled(!isRealTimeEnabled);
-  };
+  }, [isRealTimeEnabled]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {

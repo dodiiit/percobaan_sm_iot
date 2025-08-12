@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   Box,
   Grid,
@@ -114,6 +114,7 @@ const DeviceManagement: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [devices, setDevices] = useState<IoTDevice[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<IoTDevice | null>(null);
   const [commands, setCommands] = useState<DeviceCommand[]>([]);
@@ -133,53 +134,84 @@ const DeviceManagement: React.FC = () => {
     command_data: {},
   });
   const [configForm, setConfigForm] = useState<any>({});
+  const [configFormError, setConfigFormError] = useState<string | null>(null);
+  
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     loadDevices();
     loadFirmwareUpdates();
+    
+    return () => {
+      mountedRef.current = false;
+    };
   }, []);
 
   useEffect(() => {
-    if (selectedDevice) {
+    if (selectedDevice && mountedRef.current) {
       loadDeviceCommands(selectedDevice.id);
     }
   }, [selectedDevice]);
 
-  const loadDevices = async () => {
+  const loadDevices = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
     try {
       setLoading(true);
+      setError(null);
       const response = await enhancedApi.get('/devices', {
         params: { include_stats: true }
       });
-      setDevices(response.data.data);
+      
+      if (mountedRef.current) {
+        setDevices(response.data.data);
+      }
     } catch (error) {
       console.error('Failed to load devices:', error);
+      if (mountedRef.current) {
+        setError(t('devices.loadError'));
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [t]);
 
-  const loadDeviceCommands = async (deviceId: string) => {
+  const loadDeviceCommands = useCallback(async (deviceId: string) => {
+    if (!mountedRef.current) return;
+    
     try {
       const response = await enhancedApi.get(`/devices/${deviceId}/commands`, {
         params: { limit: 50 }
       });
-      setCommands(response.data.data);
+      
+      if (mountedRef.current) {
+        setCommands(response.data.data);
+      }
     } catch (error) {
       console.error('Failed to load device commands:', error);
     }
-  };
+  }, []);
 
-  const loadFirmwareUpdates = async () => {
+  const loadFirmwareUpdates = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
     try {
       const response = await enhancedApi.get('/firmware/updates');
-      setFirmwareUpdates(response.data.data);
+      
+      if (mountedRef.current) {
+        setFirmwareUpdates(response.data.data);
+      }
     } catch (error) {
       console.error('Failed to load firmware updates:', error);
     }
-  };
+  }, []);
 
-  const handleDeviceAction = async (action: string, deviceId: string, data?: any) => {
+  const handleDeviceAction = useCallback(async (action: string, deviceId: string, data?: any) => {
+    if (!mountedRef.current) return;
+    
     try {
       switch (action) {
         case 'reboot':
@@ -199,39 +231,69 @@ const DeviceManagement: React.FC = () => {
           break;
       }
       
-      await loadDevices();
-      if (selectedDevice?.id === deviceId) {
-        await loadDeviceCommands(deviceId);
+      if (mountedRef.current) {
+        await loadDevices();
+        if (selectedDevice?.id === deviceId) {
+          await loadDeviceCommands(deviceId);
+        }
       }
     } catch (error) {
       console.error(`Failed to ${action} device:`, error);
+      if (mountedRef.current) {
+        setError(t('devices.actionError', { action }));
+      }
     }
-  };
+  }, [loadDevices, loadDeviceCommands, selectedDevice, t]);
 
-  const handleSendCommand = async () => {
-    if (!selectedDevice) return;
+  const handleSendCommand = useCallback(async () => {
+    if (!selectedDevice || !mountedRef.current) return;
 
     try {
       await enhancedApi.post(`/devices/${selectedDevice.id}/commands`, commandForm);
-      setCommandDialogOpen(false);
-      setCommandForm({ command_type: 'reboot', command_data: {} });
-      await loadDeviceCommands(selectedDevice.id);
+      
+      if (mountedRef.current) {
+        setCommandDialogOpen(false);
+        setCommandForm({ command_type: 'reboot', command_data: {} });
+        await loadDeviceCommands(selectedDevice.id);
+      }
     } catch (error) {
       console.error('Failed to send command:', error);
+      if (mountedRef.current) {
+        setError(t('devices.commandError'));
+      }
     }
-  };
+  }, [selectedDevice, commandForm, loadDeviceCommands, t]);
 
-  const handleUpdateConfiguration = async () => {
-    if (!selectedDevice) return;
+  const handleUpdateConfiguration = useCallback(async () => {
+    if (!selectedDevice || !mountedRef.current) return;
 
     try {
-      await enhancedApi.put(`/devices/${selectedDevice.id}/configuration`, configForm);
-      setConfigDialogOpen(false);
-      await loadDevices();
+      setConfigFormError(null);
+      
+      // Validate JSON if it's a string
+      let configData = configForm;
+      if (typeof configForm === 'string') {
+        try {
+          configData = JSON.parse(configForm);
+        } catch (parseError) {
+          setConfigFormError(t('devices.invalidJson'));
+          return;
+        }
+      }
+
+      await enhancedApi.put(`/devices/${selectedDevice.id}/configuration`, configData);
+      
+      if (mountedRef.current) {
+        setConfigDialogOpen(false);
+        await loadDevices();
+      }
     } catch (error) {
       console.error('Failed to update configuration:', error);
+      if (mountedRef.current) {
+        setError(t('devices.configError'));
+      }
     }
-  };
+  }, [selectedDevice, configForm, loadDevices, t]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -667,6 +729,19 @@ const DeviceManagement: React.FC = () => {
         <Box display="flex" justifyContent="center" py={4}>
           <CircularProgress />
         </Box>
+      ) : error ? (
+        <Box p={3}>
+          <Alert 
+            severity="error" 
+            action={
+              <Button color="inherit" size="small" onClick={loadDevices}>
+                {t('common.retry')}
+              </Button>
+            }
+          >
+            {error}
+          </Alert>
+        </Box>
       ) : (
         <>
           {activeTab === 0 && <DeviceOverview />}
@@ -677,7 +752,25 @@ const DeviceManagement: React.FC = () => {
                 <Typography variant="h6" gutterBottom>
                   {t('devices.firmwareUpdates')}
                 </Typography>
-                {/* Firmware updates content */}
+                {firmwareUpdates.length === 0 ? (
+                  <Typography color="textSecondary">
+                    {t('devices.noFirmwareUpdates')}
+                  </Typography>
+                ) : (
+                  <Box>
+                    {firmwareUpdates.map((update) => (
+                      <Paper key={update.id} sx={{ p: 2, mb: 2 }}>
+                        <Typography variant="h6">{update.version}</Typography>
+                        <Typography variant="body2" color="textSecondary">
+                          {update.description}
+                        </Typography>
+                        <Typography variant="caption">
+                          {t('devices.releaseDate')}: {format(new Date(update.release_date), 'dd/MM/yyyy')}
+                        </Typography>
+                      </Paper>
+                    ))}
+                  </Box>
+                )}
               </CardContent>
             </Card>
           )}
@@ -711,11 +804,14 @@ const DeviceManagement: React.FC = () => {
             value={JSON.stringify(commandForm.command_data, null, 2)}
             onChange={(e) => {
               try {
-                setCommandForm({ ...commandForm, command_data: JSON.parse(e.target.value) });
+                const parsed = JSON.parse(e.target.value);
+                setCommandForm({ ...commandForm, command_data: parsed });
               } catch (error) {
-                // Invalid JSON, keep as string for now
+                // Keep the raw string value for editing
+                setCommandForm({ ...commandForm, command_data: e.target.value });
               }
             }}
+            helperText={t('devices.jsonFormat')}
           />
         </DialogContent>
         <DialogActions>
@@ -732,24 +828,39 @@ const DeviceManagement: React.FC = () => {
       <Dialog open={configDialogOpen} onClose={() => setConfigDialogOpen(false)} maxWidth="md" fullWidth>
         <DialogTitle>{t('devices.configuration')}</DialogTitle>
         <DialogContent>
+          {configFormError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {configFormError}
+            </Alert>
+          )}
           <TextField
             fullWidth
             margin="normal"
             label={t('devices.configuration')}
             multiline
             rows={10}
-            value={JSON.stringify(configForm, null, 2)}
+            value={typeof configForm === 'string' ? configForm : JSON.stringify(configForm, null, 2)}
             onChange={(e) => {
+              setConfigFormError(null);
+              const value = e.target.value;
               try {
-                setConfigForm(JSON.parse(e.target.value));
+                // Try to parse as JSON for validation
+                JSON.parse(value);
+                setConfigForm(value);
               } catch (error) {
-                // Invalid JSON, keep as string for now
+                // Keep as string for editing
+                setConfigForm(value);
               }
             }}
+            error={!!configFormError}
+            helperText={configFormError || t('devices.jsonFormat')}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setConfigDialogOpen(false)}>
+          <Button onClick={() => {
+            setConfigDialogOpen(false);
+            setConfigFormError(null);
+          }}>
             {t('common.cancel')}
           </Button>
           <Button onClick={handleUpdateConfiguration} variant="contained">

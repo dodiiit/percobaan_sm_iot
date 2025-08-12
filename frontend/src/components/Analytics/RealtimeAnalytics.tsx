@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Box,
   Grid,
@@ -52,8 +52,8 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
-import { Line, Bar, Doughnut, Scatter } from 'react-chartjs-2';
-import { format, subHours, subDays, startOfDay, endOfDay } from 'date-fns';
+import { Line, Bar } from 'react-chartjs-2';
+import { format } from 'date-fns';
 import { enhancedApi } from '../../services/enhancedApi';
 import { enhancedRealtimeService } from '../../services/enhancedRealtimeService';
 
@@ -131,6 +131,7 @@ const RealtimeAnalytics: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
   const [timeSeriesData, setTimeSeriesData] = useState<TimeSeriesData[]>([]);
   const [deviceAnalytics, setDeviceAnalytics] = useState<DeviceAnalytics[]>([]);
@@ -139,77 +140,135 @@ const RealtimeAnalytics: React.FC = () => {
   const [isRealTimeEnabled, setIsRealTimeEnabled] = useState(true);
   const [chartType, setChartType] = useState<'line' | 'bar' | 'area'>('line');
   
-  // Real-time update interval
+  // Real-time update refs
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const subscriptionRef = useRef<string | null>(null);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
+    mountedRef.current = true;
     loadAnalyticsData();
-    if (isRealTimeEnabled) {
-      startRealTimeUpdates();
-    }
     
     return () => {
+      mountedRef.current = false;
       stopRealTimeUpdates();
     };
-  }, [selectedTimeRange, isRealTimeEnabled]);
+  }, []);
 
-  const loadAnalyticsData = async () => {
+  useEffect(() => {
+    if (isRealTimeEnabled) {
+      startRealTimeUpdates();
+    } else {
+      stopRealTimeUpdates();
+    }
+  }, [isRealTimeEnabled]);
+
+  useEffect(() => {
+    if (mountedRef.current) {
+      loadAnalyticsData();
+    }
+  }, [selectedTimeRange]);
+
+  const loadAnalyticsData = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
     try {
       setLoading(true);
+      setError(null);
       
-      // Load analytics summary
-      const analyticsResponse = await enhancedApi.get('/analytics/summary', {
-        params: { time_range: selectedTimeRange }
-      });
-      setAnalyticsData(analyticsResponse.data.data);
+      const [analyticsResponse, timeSeriesResponse, deviceResponse] = await Promise.allSettled([
+        enhancedApi.get('/analytics/summary', {
+          params: { time_range: selectedTimeRange }
+        }),
+        enhancedApi.get('/analytics/timeseries', {
+          params: { 
+            time_range: selectedTimeRange,
+            metric: selectedMetric,
+            interval: getInterval(selectedTimeRange)
+          }
+        }),
+        enhancedApi.get('/analytics/devices', {
+          params: { time_range: selectedTimeRange }
+        })
+      ]);
 
-      // Load time series data
-      const timeSeriesResponse = await enhancedApi.get('/analytics/timeseries', {
-        params: { 
-          time_range: selectedTimeRange,
-          metric: selectedMetric,
-          interval: getInterval(selectedTimeRange)
-        }
-      });
-      setTimeSeriesData(timeSeriesResponse.data.data);
+      if (!mountedRef.current) return;
 
-      // Load device analytics
-      const deviceResponse = await enhancedApi.get('/analytics/devices', {
-        params: { time_range: selectedTimeRange }
-      });
-      setDeviceAnalytics(deviceResponse.data.data);
+      if (analyticsResponse.status === 'fulfilled') {
+        setAnalyticsData(analyticsResponse.value.data.data);
+      }
+
+      if (timeSeriesResponse.status === 'fulfilled') {
+        setTimeSeriesData(timeSeriesResponse.value.data.data);
+      }
+
+      if (deviceResponse.status === 'fulfilled') {
+        setDeviceAnalytics(deviceResponse.value.data.data);
+      }
+
+      // Check if any request failed
+      const failedRequests = [analyticsResponse, timeSeriesResponse, deviceResponse]
+        .filter(result => result.status === 'rejected');
+      
+      if (failedRequests.length > 0) {
+        console.error('Some analytics requests failed:', failedRequests);
+        setError(t('analytics.partialLoadError'));
+      }
 
     } catch (error) {
       console.error('Failed to load analytics data:', error);
+      if (mountedRef.current) {
+        setError(t('analytics.loadError'));
+      }
     } finally {
-      setLoading(false);
+      if (mountedRef.current) {
+        setLoading(false);
+      }
     }
-  };
+  }, [selectedTimeRange, selectedMetric, t]);
 
-  const startRealTimeUpdates = async () => {
+  const startRealTimeUpdates = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
     try {
+      // Stop existing updates first
+      stopRealTimeUpdates();
+
       // Subscribe to real-time analytics updates
       const subscriptionId = await enhancedRealtimeService.subscribeUpdates(
         { type: 'analytics' },
         handleRealTimeUpdate,
-        (error) => console.error('Real-time analytics error:', error)
+        (error) => {
+          console.error('Real-time analytics error:', error);
+          if (mountedRef.current) {
+            setError(t('analytics.realtimeError'));
+          }
+        }
       );
       subscriptionRef.current = subscriptionId;
 
       // Set up periodic refresh for time series data
       intervalRef.current = setInterval(() => {
-        loadTimeSeriesData();
+        if (mountedRef.current) {
+          loadTimeSeriesData();
+        }
       }, 30000); // Update every 30 seconds
 
     } catch (error) {
       console.error('Failed to start real-time updates:', error);
+      if (mountedRef.current) {
+        setError(t('analytics.realtimeConnectionError'));
+      }
     }
-  };
+  }, [t]);
 
-  const stopRealTimeUpdates = () => {
+  const stopRealTimeUpdates = useCallback(() => {
     if (subscriptionRef.current) {
-      enhancedRealtimeService.unsubscribe(subscriptionRef.current);
+      try {
+        enhancedRealtimeService.unsubscribe(subscriptionRef.current);
+      } catch (error) {
+        console.error('Error unsubscribing from real-time updates:', error);
+      }
       subscriptionRef.current = null;
     }
     
@@ -217,18 +276,22 @@ const RealtimeAnalytics: React.FC = () => {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-  };
+  }, []);
 
   const handleRealTimeUpdate = useCallback((data: any) => {
-    if (data.type === 'analytics_update') {
-      setAnalyticsData(prevData => ({
+    if (!mountedRef.current) return;
+    
+    if (data.type === 'analytics_update' && data.analytics) {
+      setAnalyticsData(prevData => prevData ? {
         ...prevData,
         ...data.analytics
-      }));
+      } : data.analytics);
     }
   }, []);
 
-  const loadTimeSeriesData = async () => {
+  const loadTimeSeriesData = useCallback(async () => {
+    if (!mountedRef.current) return;
+    
     try {
       const response = await enhancedApi.get('/analytics/timeseries', {
         params: { 
@@ -237,13 +300,16 @@ const RealtimeAnalytics: React.FC = () => {
           interval: getInterval(selectedTimeRange)
         }
       });
-      setTimeSeriesData(response.data.data);
+      
+      if (mountedRef.current) {
+        setTimeSeriesData(response.data.data);
+      }
     } catch (error) {
       console.error('Failed to load time series data:', error);
     }
-  };
+  }, [selectedTimeRange, selectedMetric]);
 
-  const getInterval = (timeRange: string) => {
+  const getInterval = useCallback((timeRange: string) => {
     switch (timeRange) {
       case '1h':
         return '1m';
@@ -258,7 +324,7 @@ const RealtimeAnalytics: React.FC = () => {
       default:
         return '15m';
     }
-  };
+  }, []);
 
   const formatValue = (value: number, metric: string) => {
     switch (metric) {
@@ -288,7 +354,11 @@ const RealtimeAnalytics: React.FC = () => {
     }
   };
 
-  const getChartData = () => {
+  const getChartData = useMemo(() => {
+    if (!timeSeriesData.length) {
+      return { labels: [], datasets: [] };
+    }
+
     const labels = timeSeriesData.map(d => 
       format(new Date(d.timestamp), selectedTimeRange === '1h' ? 'HH:mm' : 'dd/MM HH:mm')
     );
@@ -315,6 +385,26 @@ const RealtimeAnalytics: React.FC = () => {
         fill: chartType === 'area',
         tension: 0.4,
       });
+    } else if (selectedMetric === 'pressure') {
+      datasets.push({
+        label: t('analytics.pressure'),
+        data: timeSeriesData.map(d => d.pressure),
+        borderColor: theme.palette.warning.main,
+        backgroundColor: chartType === 'area' ? 
+          `${theme.palette.warning.main}20` : theme.palette.warning.main,
+        fill: chartType === 'area',
+        tension: 0.4,
+      });
+    } else if (selectedMetric === 'temperature') {
+      datasets.push({
+        label: t('analytics.temperature'),
+        data: timeSeriesData.map(d => d.temperature),
+        borderColor: theme.palette.error.main,
+        backgroundColor: chartType === 'area' ? 
+          `${theme.palette.error.main}20` : theme.palette.error.main,
+        fill: chartType === 'area',
+        tension: 0.4,
+      });
     } else if (selectedMetric === 'all') {
       datasets.push(
         {
@@ -323,6 +413,7 @@ const RealtimeAnalytics: React.FC = () => {
           borderColor: theme.palette.primary.main,
           backgroundColor: `${theme.palette.primary.main}20`,
           yAxisID: 'y',
+          tension: 0.4,
         },
         {
           label: t('analytics.flowRate'),
@@ -330,14 +421,15 @@ const RealtimeAnalytics: React.FC = () => {
           borderColor: theme.palette.secondary.main,
           backgroundColor: `${theme.palette.secondary.main}20`,
           yAxisID: 'y1',
+          tension: 0.4,
         }
       );
     }
 
     return { labels, datasets };
-  };
+  }, [timeSeriesData, selectedMetric, chartType, theme, t, selectedTimeRange]);
 
-  const getChartOptions = () => {
+  const getChartOptions = useMemo(() => {
     const baseOptions = {
       responsive: true,
       maintainAspectRatio: false,
@@ -393,9 +485,9 @@ const RealtimeAnalytics: React.FC = () => {
     }
 
     return baseOptions;
-  };
+  }, [selectedMetric, t]);
 
-  const exportData = async () => {
+  const exportData = useCallback(async () => {
     try {
       const response = await enhancedApi.get('/analytics/export', {
         params: { 
@@ -412,15 +504,36 @@ const RealtimeAnalytics: React.FC = () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Failed to export data:', error);
+      if (mountedRef.current) {
+        setError(t('analytics.exportError'));
+      }
     }
-  };
+  }, [selectedTimeRange, t]);
 
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box p={3}>
+        <Alert 
+          severity="error" 
+          action={
+            <Button color="inherit" size="small" onClick={loadAnalyticsData}>
+              {t('common.retry')}
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
       </Box>
     );
   }
@@ -606,10 +719,18 @@ const RealtimeAnalytics: React.FC = () => {
                 {t('analytics.timeSeriesChart')}
               </Typography>
               <Box height={400}>
-                {chartType === 'line' || chartType === 'area' ? (
-                  <Line data={getChartData()} options={getChartOptions()} />
+                {getChartData.labels.length > 0 ? (
+                  chartType === 'line' || chartType === 'area' ? (
+                    <Line data={getChartData} options={getChartOptions} />
+                  ) : (
+                    <Bar data={getChartData} options={getChartOptions} />
+                  )
                 ) : (
-                  <Bar data={getChartData()} options={getChartOptions()} />
+                  <Box display="flex" justifyContent="center" alignItems="center" height="100%">
+                    <Typography color="textSecondary">
+                      {t('analytics.noData')}
+                    </Typography>
+                  </Box>
                 )}
               </Box>
             </CardContent>
