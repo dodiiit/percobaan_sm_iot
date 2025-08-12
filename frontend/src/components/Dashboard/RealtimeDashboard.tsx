@@ -48,8 +48,9 @@ import {
   Legend,
 } from 'chart.js';
 import { format } from 'date-fns';
-import { enhancedRealtimeService, MeterRealtimeData, NotificationData } from '../../services/enhancedRealtimeService';
-import { enhancedMeterService } from '../../services/enhancedMeterService';
+import enhancedRealtimeService, { MeterRealtimeData, NotificationData } from '../../services/enhancedRealtimeService';
+import enhancedMeterService from '../../services/enhancedMeterService';
+import { enhancedApi } from '../../services/enhancedApi';
 
 // Register Chart.js components
 ChartJS.register(
@@ -171,7 +172,7 @@ const RealtimeDashboard: React.FC = () => {
     if (!mountedRef.current) return;
     
     try {
-      const response = await enhancedRealtimeService.getNotifications();
+      const response = await enhancedApi.get('/notifications');
       if (mountedRef.current) {
         setNotifications(response.data.slice(0, 10)); // Show latest 10
       }
@@ -202,7 +203,7 @@ const RealtimeDashboard: React.FC = () => {
       // Subscribe to notifications
       const notificationSubscription = await enhancedRealtimeService.subscribeNotifications(
         handleNotificationUpdate,
-        (error) => {
+        (error: any) => {
           console.error('Notification subscription error:', error);
           if (mountedRef.current) {
             setError(t('dashboard.notificationError'));

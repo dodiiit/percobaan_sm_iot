@@ -55,7 +55,7 @@ import {
 import { Line, Bar } from 'react-chartjs-2';
 import { format } from 'date-fns';
 import { enhancedApi } from '../../services/enhancedApi';
-import { enhancedRealtimeService } from '../../services/enhancedRealtimeService';
+import enhancedRealtimeService from '../../services/enhancedRealtimeService';
 
 // Register Chart.js components
 ChartJS.register(
@@ -238,7 +238,7 @@ const RealtimeAnalytics: React.FC = () => {
       const subscriptionId = await enhancedRealtimeService.subscribeUpdates(
         { type: 'analytics' },
         handleRealTimeUpdate,
-        (error) => {
+        (error: any) => {
           console.error('Real-time analytics error:', error);
           if (mountedRef.current) {
             setError(t('analytics.realtimeError'));
@@ -470,7 +470,7 @@ const RealtimeAnalytics: React.FC = () => {
     };
 
     if (selectedMetric === 'all') {
-      baseOptions.scales.y1 = {
+      (baseOptions.scales as any).y1 = {
         type: 'linear' as const,
         display: true,
         position: 'right' as const,

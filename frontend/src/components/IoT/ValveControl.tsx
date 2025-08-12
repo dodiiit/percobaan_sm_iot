@@ -52,7 +52,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { format, addMinutes, addHours } from 'date-fns';
 import { enhancedApi } from '../../services/enhancedApi';
-import { enhancedRealtimeService } from '../../services/enhancedRealtimeService';
+import enhancedRealtimeService from '../../services/enhancedRealtimeService';
 
 interface Valve {
   id: string;
@@ -227,7 +227,7 @@ const ValveControl: React.FC = () => {
       const valveSubscription = await enhancedRealtimeService.subscribeUpdates(
         { type: 'valve_updates' },
         handleValveUpdate,
-        (error) => {
+        (error: any) => {
           console.error('Valve subscription error:', error);
           if (mountedRef.current) {
             setError(t('valves.realtimeError'));
@@ -282,7 +282,7 @@ const ValveControl: React.FC = () => {
       
       // Poll command status
       await enhancedRealtimeService.pollCommandStatus(response.data.command_id, {
-        onUpdate: (status) => {
+        onUpdate: (status: string) => {
           console.log(`Command ${response.data.command_id} status: ${status}`);
         }
       });

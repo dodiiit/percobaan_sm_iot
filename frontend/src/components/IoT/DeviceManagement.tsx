@@ -59,7 +59,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { enhancedApi } from '../../services/enhancedApi';
-import { enhancedRealtimeService } from '../../services/enhancedRealtimeService';
+import enhancedRealtimeService from '../../services/enhancedRealtimeService';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface IoTDevice {
