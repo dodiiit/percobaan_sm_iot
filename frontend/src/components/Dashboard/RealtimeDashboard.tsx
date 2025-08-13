@@ -48,11 +48,12 @@ import {
   Legend,
 } from 'chart.js';
 import { format } from 'date-fns';
-import enhancedRealtimeService, { MeterRealtimeData, NotificationData } from '../../services/enhancedRealtimeService';
+// Import service instance default, tanpa destructure
+import enhancedRealtimeService from '../../services/enhancedRealtimeService';
 import enhancedMeterService from '../../services/enhancedMeterService';
 import { enhancedApi } from '../../services/enhancedApi';
 
-// Register Chart.js components
+// Registrasi komponen Chart.js
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -63,6 +64,7 @@ ChartJS.register(
   Legend
 );
 
+// Interface status meter
 interface MeterStatus {
   id: string;
   meter_id: string;
@@ -74,6 +76,7 @@ interface MeterStatus {
   alerts: string[];
 }
 
+// Interface data sistem
 interface SystemStats {
   totalMeters: number;
   onlineMeters: number;
@@ -83,9 +86,13 @@ interface SystemStats {
   totalConsumption: number;
 }
 
+// Import tipe data dari service (tidak destructure, gunakan yang sudah di-export)
+import type { MeterRealtimeData, NotificationData } from '../../services/enhancedRealtimeService';
+
 const RealtimeDashboard: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
+  // State utama dashboard
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRealTimeEnabled, setIsRealTimeEnabled] = useState(true);
@@ -103,11 +110,12 @@ const RealtimeDashboard: React.FC = () => {
   const [chartData, setChartData] = useState<any>({});
   const [connectionStatus, setConnectionStatus] = useState<string>('disconnected');
 
-  // Real-time data storage
+  // Ref untuk data realtime
   const realtimeDataRef = useRef<Map<string, MeterRealtimeData[]>>(new Map());
   const subscriptionsRef = useRef<string[]>([]);
   const mountedRef = useRef(true);
 
+  // Effect pertama: inisialisasi dan cleanup
   useEffect(() => {
     mountedRef.current = true;
     loadInitialData();
@@ -117,6 +125,7 @@ const RealtimeDashboard: React.FC = () => {
     };
   }, []);
 
+  // Effect untuk realtime
   useEffect(() => {
     if (isRealTimeEnabled && meters.length > 0) {
       startRealTimeUpdates();
@@ -125,14 +134,14 @@ const RealtimeDashboard: React.FC = () => {
     }
   }, [isRealTimeEnabled, meters]);
 
+  // Fungsi untuk load data awal
   const loadInitialData = useCallback(async () => {
     if (!mountedRef.current) return;
-    
     try {
       setLoading(true);
       setError(null);
 
-      // Load meters
+      // Ambil data meter
       const metersResponse = await enhancedMeterService.getMeters({
         include_realtime: true,
         limit: 50
@@ -153,9 +162,8 @@ const RealtimeDashboard: React.FC = () => {
       setMeters(meterData);
       updateSystemStats(meterData);
 
-      // Load notifications
+      // Ambil notifikasi
       await loadNotifications();
-
     } catch (err: any) {
       console.error('Dashboard loading error:', err);
       if (mountedRef.current) {
@@ -168,29 +176,28 @@ const RealtimeDashboard: React.FC = () => {
     }
   }, [t]);
 
+  // Fungsi untuk load notifikasi
   const loadNotifications = useCallback(async () => {
     if (!mountedRef.current) return;
-    
     try {
       const response = await enhancedApi.get('/notifications');
       if (mountedRef.current) {
-        setNotifications(response.data.slice(0, 10)); // Show latest 10
+        setNotifications(response.data.slice(0, 10)); // Hanya tampilkan 10 terakhir
       }
     } catch (err) {
       console.error('Failed to load notifications:', err);
     }
   }, []);
 
+  // Fungsi untuk mulai realtime
   const startRealTimeUpdates = useCallback(async () => {
     if (!mountedRef.current) return;
-    
     try {
-      // Stop existing updates first
+      // Stop update yang lama
       await stopRealTimeUpdates();
 
-      // Subscribe to meter updates for all meters
+      // Subscribe update meter
       const meterIds = meters.map(m => m.id);
-      
       if (meterIds.length > 0) {
         const subscriptionIds = await enhancedRealtimeService.bulkSubscribeMeterUpdates(
           meterIds,
@@ -200,7 +207,7 @@ const RealtimeDashboard: React.FC = () => {
         subscriptionsRef.current = subscriptionIds;
       }
 
-      // Subscribe to notifications
+      // Subscribe notifikasi
       const notificationSubscription = await enhancedRealtimeService.subscribeNotifications(
         handleNotificationUpdate,
         (error: any) => {
@@ -224,6 +231,7 @@ const RealtimeDashboard: React.FC = () => {
     }
   }, [meters, t]);
 
+  // Fungsi stop realtime
   const stopRealTimeUpdates = useCallback(async () => {
     try {
       for (const subscriptionId of subscriptionsRef.current) {
@@ -238,9 +246,9 @@ const RealtimeDashboard: React.FC = () => {
     }
   }, []);
 
+  // Handler update meter dari realtime
   const handleMeterUpdate = useCallback((meterId: string, data: MeterRealtimeData) => {
     if (!mountedRef.current) return;
-    
     setMeters(prevMeters => {
       const updatedMeters = prevMeters.map(meter => {
         if (meter.id === meterId) {
@@ -254,16 +262,15 @@ const RealtimeDashboard: React.FC = () => {
         }
         return meter;
       });
-      
       updateSystemStats(updatedMeters);
       updateChartData(meterId, data);
       return updatedMeters;
     });
   }, []);
 
+  // Handler error meter dari realtime
   const handleMeterError = useCallback((meterId: string, error: any) => {
     if (!mountedRef.current) return;
-    
     setMeters(prevMeters => 
       prevMeters.map(meter => {
         if (meter.id === meterId) {
@@ -278,15 +285,15 @@ const RealtimeDashboard: React.FC = () => {
     );
   }, []);
 
+  // Handler notifikasi dari realtime
   const handleNotificationUpdate = useCallback((data: NotificationData) => {
     if (!mountedRef.current) return;
-    
     setNotifications(prev => [data, ...prev.slice(0, 9)]);
   }, []);
 
+  // Update statistik sistem
   const updateSystemStats = useCallback((meterData: MeterStatus[]) => {
     if (!mountedRef.current) return;
-    
     const stats: SystemStats = {
       totalMeters: meterData.length,
       onlineMeters: meterData.filter(m => m.status === 'online').length,
@@ -299,11 +306,11 @@ const RealtimeDashboard: React.FC = () => {
     setSystemStats(stats);
   }, []);
 
+  // Update data chart
   const updateChartData = useCallback((meterId: string, data: MeterRealtimeData) => {
     if (!mountedRef.current) return;
-    
     const currentData = realtimeDataRef.current.get(meterId) || [];
-    const newData = [...currentData, data].slice(-20); // Keep last 20 points
+    const newData = [...currentData, data].slice(-20); // Simpan maksimal 20 data terakhir
     realtimeDataRef.current.set(meterId, newData);
 
     if (selectedMeter === meterId) {
@@ -311,11 +318,10 @@ const RealtimeDashboard: React.FC = () => {
     }
   }, [selectedMeter]);
 
+  // Update chart meter yang dipilih
   const updateSelectedMeterChart = useCallback((data: MeterRealtimeData[]) => {
     if (!mountedRef.current) return;
-    
     const labels = data.map(d => format(new Date(d.timestamp), 'HH:mm:ss'));
-    
     setChartData({
       labels,
       datasets: [
@@ -337,18 +343,22 @@ const RealtimeDashboard: React.FC = () => {
     });
   }, [t, theme]);
 
+  // Cleanup realtime
   const cleanup = useCallback(() => {
     stopRealTimeUpdates();
   }, [stopRealTimeUpdates]);
 
+  // Handler refresh
   const handleRefresh = useCallback(() => {
     loadInitialData();
   }, [loadInitialData]);
 
+  // Handler toggle realtime
   const toggleRealTime = useCallback(() => {
     setIsRealTimeEnabled(!isRealTimeEnabled);
   }, [isRealTimeEnabled]);
 
+  // Helper icon status
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'online':
@@ -364,6 +374,7 @@ const RealtimeDashboard: React.FC = () => {
     }
   };
 
+  // Helper warna status
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'online':
@@ -379,10 +390,12 @@ const RealtimeDashboard: React.FC = () => {
     }
   };
 
+  // Helper format value dengan satuan
   const formatValue = (value: number, unit: string) => {
     return `${value.toFixed(2)} ${unit}`;
   };
 
+  // Render loading
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -391,6 +404,7 @@ const RealtimeDashboard: React.FC = () => {
     );
   }
 
+  // Render error
   if (error) {
     return (
       <Box p={3}>
@@ -405,6 +419,7 @@ const RealtimeDashboard: React.FC = () => {
     );
   }
 
+  // Render UI utama dashboard
   return (
     <Box>
       {/* Header */}
