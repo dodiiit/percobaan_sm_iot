@@ -58,10 +58,12 @@ import {
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
+// Import service instance default
 import { enhancedApi } from '../../services/enhancedApi';
 import enhancedRealtimeService from '../../services/enhancedRealtimeService';
 import { useAuth } from '../../contexts/AuthContext';
 
+// Interface device, command, firmware
 interface IoTDevice {
   id: string;
   device_id: string;
@@ -113,6 +115,8 @@ interface FirmwareUpdate {
 const DeviceManagement: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
+
+  // State utama dan dialog
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [devices, setDevices] = useState<IoTDevice[]>([]);
@@ -120,13 +124,13 @@ const DeviceManagement: React.FC = () => {
   const [commands, setCommands] = useState<DeviceCommand[]>([]);
   const [firmwareUpdates, setFirmwareUpdates] = useState<FirmwareUpdate[]>([]);
   const [activeTab, setActiveTab] = useState(0);
-  
+
   // Dialog states
   const [deviceDialogOpen, setDeviceDialogOpen] = useState(false);
   const [commandDialogOpen, setCommandDialogOpen] = useState(false);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
   const [firmwareDialogOpen, setFirmwareDialogOpen] = useState(false);
-  
+
   // Form states
   const [deviceForm, setDeviceForm] = useState<Partial<IoTDevice>>({});
   const [commandForm, setCommandForm] = useState({
@@ -135,14 +139,14 @@ const DeviceManagement: React.FC = () => {
   });
   const [configForm, setConfigForm] = useState<any>({});
   const [configFormError, setConfigFormError] = useState<string | null>(null);
-  
+
   const mountedRef = useRef(true);
 
+  // Load data awal
   useEffect(() => {
     mountedRef.current = true;
     loadDevices();
     loadFirmwareUpdates();
-    
     return () => {
       mountedRef.current = false;
     };
@@ -154,21 +158,20 @@ const DeviceManagement: React.FC = () => {
     }
   }, [selectedDevice]);
 
+  // Fungsi load devices
   const loadDevices = useCallback(async () => {
     if (!mountedRef.current) return;
-    
     try {
       setLoading(true);
       setError(null);
       const response = await enhancedApi.get('/devices', {
         params: { include_stats: true }
       });
-      
       if (mountedRef.current) {
         setDevices(response.data.data);
       }
     } catch (error) {
-      console.error('Failed to load devices:', error);
+      console.error('Gagal load devices:', error);
       if (mountedRef.current) {
         setError(t('devices.loadError'));
       }
@@ -179,39 +182,37 @@ const DeviceManagement: React.FC = () => {
     }
   }, [t]);
 
+  // Fungsi load commands dari device
   const loadDeviceCommands = useCallback(async (deviceId: string) => {
     if (!mountedRef.current) return;
-    
     try {
       const response = await enhancedApi.get(`/devices/${deviceId}/commands`, {
         params: { limit: 50 }
       });
-      
       if (mountedRef.current) {
         setCommands(response.data.data);
       }
     } catch (error) {
-      console.error('Failed to load device commands:', error);
+      console.error('Gagal load device commands:', error);
     }
   }, []);
 
+  // Fungsi load firmware updates
   const loadFirmwareUpdates = useCallback(async () => {
     if (!mountedRef.current) return;
-    
     try {
       const response = await enhancedApi.get('/firmware/updates');
-      
       if (mountedRef.current) {
         setFirmwareUpdates(response.data.data);
       }
     } catch (error) {
-      console.error('Failed to load firmware updates:', error);
+      console.error('Gagal load firmware updates:', error);
     }
   }, []);
 
+  // Handler aksi device (reboot, update config, firmware update, delete)
   const handleDeviceAction = useCallback(async (action: string, deviceId: string, data?: any) => {
     if (!mountedRef.current) return;
-    
     try {
       switch (action) {
         case 'reboot':
@@ -230,7 +231,6 @@ const DeviceManagement: React.FC = () => {
           await enhancedApi.delete(`/devices/${deviceId}`);
           break;
       }
-      
       if (mountedRef.current) {
         await loadDevices();
         if (selectedDevice?.id === deviceId) {
@@ -238,39 +238,37 @@ const DeviceManagement: React.FC = () => {
         }
       }
     } catch (error) {
-      console.error(`Failed to ${action} device:`, error);
+      console.error(`Gagal ${action} device:`, error);
       if (mountedRef.current) {
         setError(t('devices.actionError', { action }));
       }
     }
   }, [loadDevices, loadDeviceCommands, selectedDevice, t]);
 
+  // Handler kirim command ke device
   const handleSendCommand = useCallback(async () => {
     if (!selectedDevice || !mountedRef.current) return;
-
     try {
       await enhancedApi.post(`/devices/${selectedDevice.id}/commands`, commandForm);
-      
       if (mountedRef.current) {
         setCommandDialogOpen(false);
         setCommandForm({ command_type: 'reboot', command_data: {} });
         await loadDeviceCommands(selectedDevice.id);
       }
     } catch (error) {
-      console.error('Failed to send command:', error);
+      console.error('Gagal kirim command:', error);
       if (mountedRef.current) {
         setError(t('devices.commandError'));
       }
     }
   }, [selectedDevice, commandForm, loadDeviceCommands, t]);
 
+  // Handler update konfigurasi device
   const handleUpdateConfiguration = useCallback(async () => {
     if (!selectedDevice || !mountedRef.current) return;
-
     try {
       setConfigFormError(null);
-      
-      // Validate JSON if it's a string
+      // Validasi JSON jika string
       let configData = configForm;
       if (typeof configForm === 'string') {
         try {
@@ -280,21 +278,20 @@ const DeviceManagement: React.FC = () => {
           return;
         }
       }
-
       await enhancedApi.put(`/devices/${selectedDevice.id}/configuration`, configData);
-      
       if (mountedRef.current) {
         setConfigDialogOpen(false);
         await loadDevices();
       }
     } catch (error) {
-      console.error('Failed to update configuration:', error);
+      console.error('Gagal update konfigurasi:', error);
       if (mountedRef.current) {
         setError(t('devices.configError'));
       }
     }
   }, [selectedDevice, configForm, loadDevices, t]);
 
+  // Helper icon status device
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'online':
@@ -310,6 +307,7 @@ const DeviceManagement: React.FC = () => {
     }
   };
 
+  // Helper warna status device
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'online':
@@ -325,12 +323,14 @@ const DeviceManagement: React.FC = () => {
     }
   };
 
+  // Helper icon baterai
   const getBatteryIcon = (level?: number) => {
     if (!level) return <Battery90 color="disabled" />;
     if (level < 20) return <BatteryAlert color="error" />;
     return <Battery90 color="success" />;
   };
 
+  // Helper format uptime
   const formatUptime = (seconds: number) => {
     const days = Math.floor(seconds / 86400);
     const hours = Math.floor((seconds % 86400) / 3600);
@@ -338,6 +338,7 @@ const DeviceManagement: React.FC = () => {
     return `${days}d ${hours}h ${minutes}m`;
   };
 
+  // Helper format bytes
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -346,6 +347,7 @@ const DeviceManagement: React.FC = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
+  // Komponen overview device
   const DeviceOverview = () => (
     <Grid container spacing={3}>
       {devices.map((device) => (
@@ -367,7 +369,6 @@ const DeviceManagement: React.FC = () => {
                 </Typography>
                 {getStatusIcon(device.status)}
               </Box>
-
               <Box mb={2}>
                 <Chip
                   label={device.status}
@@ -381,11 +382,9 @@ const DeviceManagement: React.FC = () => {
                   size="small"
                 />
               </Box>
-
               <Typography variant="body2" color="textSecondary" gutterBottom>
                 {device.location}
               </Typography>
-
               <Box display="flex" alignItems="center" gap={2} mb={1}>
                 {device.battery_level && (
                   <Box display="flex" alignItems="center" gap={0.5}>
@@ -395,14 +394,12 @@ const DeviceManagement: React.FC = () => {
                     </Typography>
                   </Box>
                 )}
-                
                 <Box display="flex" alignItems="center" gap={0.5}>
                   <Wifi fontSize="small" />
                   <Typography variant="caption">
                     {device.signal_strength}%
                   </Typography>
                 </Box>
-
                 {device.temperature && (
                   <Box display="flex" alignItems="center" gap={0.5}>
                     <Thermostat fontSize="small" />
@@ -412,11 +409,9 @@ const DeviceManagement: React.FC = () => {
                   </Box>
                 )}
               </Box>
-
               <Typography variant="caption" color="textSecondary">
                 {t('devices.lastSeen')}: {format(new Date(device.last_seen), 'dd/MM HH:mm')}
               </Typography>
-
               {device.alerts.length > 0 && (
                 <Box mt={1}>
                   <Chip
@@ -426,7 +421,6 @@ const DeviceManagement: React.FC = () => {
                   />
                 </Box>
               )}
-
               <Box mt={2} display="flex" gap={1}>
                 <Tooltip title={t('devices.reboot')}>
                   <IconButton
@@ -439,7 +433,6 @@ const DeviceManagement: React.FC = () => {
                     <PowerSettingsNew />
                   </IconButton>
                 </Tooltip>
-                
                 <Tooltip title={t('devices.configure')}>
                   <IconButton
                     size="small"
@@ -453,7 +446,6 @@ const DeviceManagement: React.FC = () => {
                     <Settings />
                   </IconButton>
                 </Tooltip>
-                
                 <Tooltip title={t('devices.update')}>
                   <IconButton
                     size="small"
@@ -474,6 +466,7 @@ const DeviceManagement: React.FC = () => {
     </Grid>
   );
 
+  // Komponen detail device
   const DeviceDetails = () => {
     if (!selectedDevice) {
       return (
@@ -484,7 +477,6 @@ const DeviceManagement: React.FC = () => {
         </Box>
       );
     }
-
     return (
       <Grid container spacing={3}>
         <Grid item xs={12} md={6}>
@@ -493,7 +485,6 @@ const DeviceManagement: React.FC = () => {
               <Typography variant="h6" gutterBottom>
                 {t('devices.deviceInfo')}
               </Typography>
-              
               <Box mb={2}>
                 <Typography variant="body2" color="textSecondary">
                   {t('devices.deviceId')}
@@ -502,7 +493,6 @@ const DeviceManagement: React.FC = () => {
                   {selectedDevice.device_id}
                 </Typography>
               </Box>
-
               <Box mb={2}>
                 <Typography variant="body2" color="textSecondary">
                   {t('devices.firmwareVersion')}
@@ -511,7 +501,6 @@ const DeviceManagement: React.FC = () => {
                   {selectedDevice.firmware_version}
                 </Typography>
               </Box>
-
               <Box mb={2}>
                 <Typography variant="body2" color="textSecondary">
                   {t('devices.hardwareVersion')}
@@ -520,7 +509,6 @@ const DeviceManagement: React.FC = () => {
                   {selectedDevice.hardware_version}
                 </Typography>
               </Box>
-
               <Box mb={2}>
                 <Typography variant="body2" color="textSecondary">
                   {t('devices.macAddress')}
@@ -529,7 +517,6 @@ const DeviceManagement: React.FC = () => {
                   {selectedDevice.mac_address}
                 </Typography>
               </Box>
-
               {selectedDevice.ip_address && (
                 <Box mb={2}>
                   <Typography variant="body2" color="textSecondary">
@@ -540,7 +527,6 @@ const DeviceManagement: React.FC = () => {
                   </Typography>
                 </Box>
               )}
-
               <Box mb={2}>
                 <Typography variant="body2" color="textSecondary">
                   {t('devices.uptime')}
@@ -552,14 +538,12 @@ const DeviceManagement: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
                 {t('devices.systemStats')}
               </Typography>
-
               {selectedDevice.memory_usage && (
                 <Box mb={2}>
                   <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
@@ -577,7 +561,6 @@ const DeviceManagement: React.FC = () => {
                   />
                 </Box>
               )}
-
               {selectedDevice.storage_usage && (
                 <Box mb={2}>
                   <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
@@ -595,7 +578,6 @@ const DeviceManagement: React.FC = () => {
                   />
                 </Box>
               )}
-
               <Box mb={2}>
                 <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
                   <Typography variant="body2">
@@ -611,7 +593,6 @@ const DeviceManagement: React.FC = () => {
                   color={selectedDevice.signal_strength < 30 ? 'error' : 'success'}
                 />
               </Box>
-
               {selectedDevice.battery_level && (
                 <Box mb={2}>
                   <Box display="flex" alignItems="center" justifyContent="space-between" mb={1}>
@@ -632,7 +613,6 @@ const DeviceManagement: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-
         <Grid item xs={12}>
           <Card>
             <CardContent>
@@ -648,7 +628,6 @@ const DeviceManagement: React.FC = () => {
                   {t('devices.sendCommand')}
                 </Button>
               </Box>
-
               <TableContainer>
                 <Table size="small">
                   <TableHead>
@@ -692,6 +671,7 @@ const DeviceManagement: React.FC = () => {
     );
   };
 
+  // Render UI utama device management
   return (
     <Box>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
@@ -716,7 +696,6 @@ const DeviceManagement: React.FC = () => {
           </Button>
         </Box>
       </Box>
-
       <Box mb={3}>
         <Tabs value={activeTab} onChange={(_, newValue) => setActiveTab(newValue)}>
           <Tab label={t('devices.overview')} />
@@ -724,7 +703,6 @@ const DeviceManagement: React.FC = () => {
           <Tab label={t('devices.firmware')} />
         </Tabs>
       </Box>
-
       {loading ? (
         <Box display="flex" justifyContent="center" py={4}>
           <CircularProgress />
@@ -794,7 +772,6 @@ const DeviceManagement: React.FC = () => {
               <MenuItem value="custom">{t('devices.custom')}</MenuItem>
             </Select>
           </FormControl>
-          
           <TextField
             fullWidth
             margin="normal"
@@ -807,7 +784,6 @@ const DeviceManagement: React.FC = () => {
                 const parsed = JSON.parse(e.target.value);
                 setCommandForm({ ...commandForm, command_data: parsed });
               } catch (error) {
-                // Keep the raw string value for editing
                 setCommandForm({ ...commandForm, command_data: e.target.value });
               }
             }}
@@ -844,11 +820,9 @@ const DeviceManagement: React.FC = () => {
               setConfigFormError(null);
               const value = e.target.value;
               try {
-                // Try to parse as JSON for validation
                 JSON.parse(value);
                 setConfigForm(value);
               } catch (error) {
-                // Keep as string for editing
                 setConfigForm(value);
               }
             }}
