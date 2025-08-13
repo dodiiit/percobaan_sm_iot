@@ -6,6 +6,7 @@ import { compression } from 'vite-plugin-compression2';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: process.env.NODE_ENV === 'production' ? './' : '/',
   plugins: [
     react(),
     compression({
@@ -26,6 +27,13 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+  },
+  define: {
+    global: 'globalThis',
+  },
+  optimizeDeps: {
+    include: ['react', 'react-dom'],
+    exclude: ['@vite/client', '@vite/env'],
   },
   server: {
     port: 12000,
@@ -64,11 +72,11 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: process.env.NODE_ENV !== 'production',
     minify: 'terser',
+    target: 'es2015',
     terserOptions: {
       compress: {
-        drop_console: true,
-        drop_debugger: true,
-        pure_funcs: ['console.log', 'console.info', 'console.debug'],
+        drop_console: false,
+        drop_debugger: false,
         passes: 2,
       },
       mangle: {
