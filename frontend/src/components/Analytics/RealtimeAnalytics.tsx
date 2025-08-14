@@ -54,10 +54,11 @@ import {
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 import { format } from 'date-fns';
+// Import service instance
 import { enhancedApi } from '../../services/enhancedApi';
 import enhancedRealtimeService from '../../services/enhancedRealtimeService';
 
-// Register Chart.js components
+// Registrasi komponen Chart.js
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -71,6 +72,7 @@ ChartJS.register(
   Filler
 );
 
+// Tipe data analytics, timeseries, dan device
 interface AnalyticsData {
   consumption: {
     current: number;
@@ -130,6 +132,7 @@ interface DeviceAnalytics {
 const RealtimeAnalytics: React.FC = () => {
   const { t } = useTranslation();
   const theme = useTheme();
+  // State utama untuk analytics
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
@@ -140,21 +143,22 @@ const RealtimeAnalytics: React.FC = () => {
   const [isRealTimeEnabled, setIsRealTimeEnabled] = useState(true);
   const [chartType, setChartType] = useState<'line' | 'bar' | 'area'>('line');
   
-  // Real-time update refs
+  // Ref untuk interval polling dan subscription realtime
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const subscriptionRef = useRef<string | null>(null);
   const mountedRef = useRef(true);
 
+  // Effect utama untuk load data dan realtime
   useEffect(() => {
     mountedRef.current = true;
     loadAnalyticsData();
-    
     return () => {
       mountedRef.current = false;
       stopRealTimeUpdates();
     };
   }, []);
 
+  // Effect untuk realtime enable/disable
   useEffect(() => {
     if (isRealTimeEnabled) {
       startRealTimeUpdates();
@@ -163,19 +167,20 @@ const RealtimeAnalytics: React.FC = () => {
     }
   }, [isRealTimeEnabled]);
 
+  // Effect jika range waktu berubah
   useEffect(() => {
     if (mountedRef.current) {
       loadAnalyticsData();
     }
   }, [selectedTimeRange]);
 
+  // Fungsi load analytics summary, timeseries, dan device
   const loadAnalyticsData = useCallback(async () => {
     if (!mountedRef.current) return;
-    
     try {
       setLoading(true);
       setError(null);
-      
+      // Load 3 endpoint sekaligus
       const [analyticsResponse, timeSeriesResponse, deviceResponse] = await Promise.allSettled([
         enhancedApi.get('/analytics/summary', {
           params: { time_range: selectedTimeRange }
@@ -197,26 +202,22 @@ const RealtimeAnalytics: React.FC = () => {
       if (analyticsResponse.status === 'fulfilled') {
         setAnalyticsData(analyticsResponse.value.data.data);
       }
-
       if (timeSeriesResponse.status === 'fulfilled') {
         setTimeSeriesData(timeSeriesResponse.value.data.data);
       }
-
       if (deviceResponse.status === 'fulfilled') {
         setDeviceAnalytics(deviceResponse.value.data.data);
       }
 
-      // Check if any request failed
+      // Jika ada request gagal
       const failedRequests = [analyticsResponse, timeSeriesResponse, deviceResponse]
         .filter(result => result.status === 'rejected');
-      
       if (failedRequests.length > 0) {
-        console.error('Some analytics requests failed:', failedRequests);
+        console.error('Beberapa request analytics gagal:', failedRequests);
         setError(t('analytics.partialLoadError'));
       }
-
     } catch (error) {
-      console.error('Failed to load analytics data:', error);
+      console.error('Gagal load analytics data:', error);
       if (mountedRef.current) {
         setError(t('analytics.loadError'));
       }
@@ -227,60 +228,56 @@ const RealtimeAnalytics: React.FC = () => {
     }
   }, [selectedTimeRange, selectedMetric, t]);
 
+  // Fungsi untuk memulai realtime analytics
   const startRealTimeUpdates = useCallback(async () => {
     if (!mountedRef.current) return;
-    
     try {
-      // Stop existing updates first
       stopRealTimeUpdates();
-
-      // Subscribe to real-time analytics updates
+      // Subscribe ke realtime analytics
       const subscriptionId = await enhancedRealtimeService.subscribeUpdates(
         { type: 'analytics' },
         handleRealTimeUpdate,
         (error: any) => {
-          console.error('Real-time analytics error:', error);
+          console.error('Error realtime analytics:', error);
           if (mountedRef.current) {
             setError(t('analytics.realtimeError'));
           }
         }
       );
       subscriptionRef.current = subscriptionId;
-
-      // Set up periodic refresh for time series data
+      // Polling timeseries setiap 30 detik
       intervalRef.current = setInterval(() => {
         if (mountedRef.current) {
           loadTimeSeriesData();
         }
-      }, 30000); // Update every 30 seconds
-
+      }, 30000);
     } catch (error) {
-      console.error('Failed to start real-time updates:', error);
+      console.error('Gagal memulai realtime updates:', error);
       if (mountedRef.current) {
         setError(t('analytics.realtimeConnectionError'));
       }
     }
   }, [t]);
 
+  // Fungsi untuk stop realtime updates dan polling
   const stopRealTimeUpdates = useCallback(() => {
     if (subscriptionRef.current) {
       try {
         enhancedRealtimeService.unsubscribe(subscriptionRef.current);
       } catch (error) {
-        console.error('Error unsubscribing from real-time updates:', error);
+        console.error('Error unsubscribe realtime:', error);
       }
       subscriptionRef.current = null;
     }
-    
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
   }, []);
 
+  // Handler data dari realtime event
   const handleRealTimeUpdate = useCallback((data: any) => {
     if (!mountedRef.current) return;
-    
     if (data.type === 'analytics_update' && data.analytics) {
       setAnalyticsData(prevData => prevData ? {
         ...prevData,
@@ -289,9 +286,9 @@ const RealtimeAnalytics: React.FC = () => {
     }
   }, []);
 
+  // Fungsi untuk polling timeseries data
   const loadTimeSeriesData = useCallback(async () => {
     if (!mountedRef.current) return;
-    
     try {
       const response = await enhancedApi.get('/analytics/timeseries', {
         params: { 
@@ -300,15 +297,15 @@ const RealtimeAnalytics: React.FC = () => {
           interval: getInterval(selectedTimeRange)
         }
       });
-      
       if (mountedRef.current) {
         setTimeSeriesData(response.data.data);
       }
     } catch (error) {
-      console.error('Failed to load time series data:', error);
+      console.error('Gagal load timeseries data:', error);
     }
   }, [selectedTimeRange, selectedMetric]);
 
+  // Helper interval berdasarkan range waktu
   const getInterval = useCallback((timeRange: string) => {
     switch (timeRange) {
       case '1h':
@@ -326,6 +323,7 @@ const RealtimeAnalytics: React.FC = () => {
     }
   }, []);
 
+  // Helper format value beserta satuan
   const formatValue = (value: number, metric: string) => {
     switch (metric) {
       case 'consumption':
@@ -343,6 +341,7 @@ const RealtimeAnalytics: React.FC = () => {
     }
   };
 
+  // Helper icon trend
   const getTrendIcon = (trend: 'up' | 'down' | 'stable') => {
     switch (trend) {
       case 'up':
@@ -354,17 +353,15 @@ const RealtimeAnalytics: React.FC = () => {
     }
   };
 
+  // Chart data untuk time series
   const getChartData = useMemo(() => {
     if (!timeSeriesData.length) {
       return { labels: [], datasets: [] };
     }
-
     const labels = timeSeriesData.map(d => 
       format(new Date(d.timestamp), selectedTimeRange === '1h' ? 'HH:mm' : 'dd/MM HH:mm')
     );
-
     const datasets = [];
-
     if (selectedMetric === 'consumption') {
       datasets.push({
         label: t('analytics.consumption'),
@@ -425,10 +422,10 @@ const RealtimeAnalytics: React.FC = () => {
         }
       );
     }
-
     return { labels, datasets };
   }, [timeSeriesData, selectedMetric, chartType, theme, t, selectedTimeRange]);
 
+  // Chart options
   const getChartOptions = useMemo(() => {
     const baseOptions = {
       responsive: true,
@@ -468,7 +465,6 @@ const RealtimeAnalytics: React.FC = () => {
         },
       },
     };
-
     if (selectedMetric === 'all') {
       (baseOptions.scales as any).y1 = {
         type: 'linear' as const,
@@ -483,10 +479,10 @@ const RealtimeAnalytics: React.FC = () => {
         },
       };
     }
-
     return baseOptions;
   }, [selectedMetric, t]);
 
+  // Fungsi export data
   const exportData = useCallback(async () => {
     try {
       const response = await enhancedApi.get('/analytics/export', {
@@ -496,7 +492,6 @@ const RealtimeAnalytics: React.FC = () => {
         },
         responseType: 'blob'
       });
-
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -506,13 +501,14 @@ const RealtimeAnalytics: React.FC = () => {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Failed to export data:', error);
+      console.error('Gagal export data:', error);
       if (mountedRef.current) {
         setError(t('analytics.exportError'));
       }
     }
   }, [selectedTimeRange, t]);
 
+  // Render loading
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -521,6 +517,7 @@ const RealtimeAnalytics: React.FC = () => {
     );
   }
 
+  // Render error
   if (error) {
     return (
       <Box p={3}>
@@ -538,6 +535,7 @@ const RealtimeAnalytics: React.FC = () => {
     );
   }
 
+  // Render UI utama analytics
   return (
     <Box>
       {/* Header */}
@@ -568,7 +566,7 @@ const RealtimeAnalytics: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Controls */}
+      {/* Controls filter */}
       <Box display="flex" gap={2} mb={3} flexWrap="wrap">
         <FormControl size="small" sx={{ minWidth: 120 }}>
           <InputLabel>{t('analytics.timeRange')}</InputLabel>
@@ -611,7 +609,7 @@ const RealtimeAnalytics: React.FC = () => {
         </FormControl>
       </Box>
 
-      {/* Summary Cards */}
+      {/* Ringkasan utama */}
       {analyticsData && (
         <Grid container spacing={3} mb={4}>
           <Grid item xs={12} sm={6} md={3}>
