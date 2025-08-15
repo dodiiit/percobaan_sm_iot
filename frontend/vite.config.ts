@@ -36,10 +36,17 @@ export default defineConfig({
     exclude: ['@vite/client', '@vite/env'],
   },
   server: {
-    port: 12000,
+    port: 3000,
     host: '0.0.0.0',
     cors: true,
-    allowedHosts: ['work-1-poddzmxlxrhcypeu.prod-runtime.all-hands.dev', 'work-2-poddzmxlxrhcypeu.prod-runtime.all-hands.dev', 'localhost', '127.0.0.1'],
+    allowedHosts: [
+      'work-1-rsgbiecbkfudrrgt.prod-runtime.all-hands.dev', 
+      'work-2-rsgbiecbkfudrrgt.prod-runtime.all-hands.dev', 
+      'work-1-poddzmxlxrhcypeu.prod-runtime.all-hands.dev', 
+      'work-2-poddzmxlxrhcypeu.prod-runtime.all-hands.dev', 
+      'localhost', 
+      '127.0.0.1'
+    ],
     headers: {
       'Access-Control-Allow-Origin': '*',
       'X-Frame-Options': 'ALLOWALL',
