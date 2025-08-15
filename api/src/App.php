@@ -24,6 +24,7 @@ use IndoWater\Api\Services\EmailService;
 use IndoWater\Api\Services\PaymentService;
 use IndoWater\Api\Services\RealtimeService;
 use IndoWater\Api\Services\ServiceFeeService;
+use IndoWater\Api\Services\InternalMonitoringService;
 use IndoWater\Api\Controllers\AuthController;
 use IndoWater\Api\Controllers\UserController;
 use IndoWater\Api\Controllers\MeterController;
@@ -35,6 +36,7 @@ use IndoWater\Api\Controllers\ServiceFeeController;
 use IndoWater\Api\Middleware\AuthMiddleware;
 use IndoWater\Api\Middleware\CorsMiddleware;
 use IndoWater\Api\Middleware\CsrfMiddleware;
+use IndoWater\Api\Middleware\LoggerMiddleware;
 use IndoWater\Api\Middleware\RateLimitMiddleware;
 use IndoWater\Api\Middleware\SecurityHeadersMiddleware;
 use IndoWater\Api\Middleware\SessionMiddleware;
@@ -183,6 +185,24 @@ class App
             );
         });
 
+        // Monitoring Service
+        $this->container->set(InternalMonitoringService::class, function ($container) {
+            return new InternalMonitoringService(
+                $container->get('db'),
+                $container->get('logger'),
+                [
+                    'alert_email' => $this->config['alert_email'] ?? 'admin@lingindustri.com',
+                    'alert_thresholds' => [
+                        'error_rate' => (int)($this->config['alert_error_rate'] ?? 10),
+                        'response_time' => (int)($this->config['alert_response_time'] ?? 5000),
+                        'memory_usage' => (int)($this->config['alert_memory_usage'] ?? 80),
+                        'disk_usage' => (int)($this->config['alert_disk_usage'] ?? 90),
+                    ],
+                    'retention_days' => (int)($this->config['monitoring_retention_days'] ?? 30),
+                ]
+            );
+        });
+
         // Controllers
         $this->container->set(AuthController::class, function ($container) {
             return new AuthController(
@@ -260,6 +280,10 @@ class App
         $this->container->set(CsrfMiddleware::class, function ($container) {
             return new CsrfMiddleware($container);
         });
+
+        $this->container->set(LoggerMiddleware::class, function ($container) {
+            return new LoggerMiddleware($container->get('logger'));
+        });
     }
 
     private function setupMiddleware(): void
@@ -270,6 +294,9 @@ class App
             true,
             true
         );
+
+        // Add logging middleware (first to capture all requests)
+        $this->app->add($this->container->get(LoggerMiddleware::class));
 
         // Add security headers middleware
         $this->app->add($this->container->get(SecurityHeadersMiddleware::class));

@@ -19,7 +19,7 @@ const dbConfig = {
   host: process.env.DB_HOST || 'localhost',
   user: process.env.DB_USER || 'root',
   password: process.env.DB_PASS || 'password',
-  database: process.env.DB_NAME || 'indowater'
+  database: process.env.DB_NAME || 'lingindustri'
 };
 
 // WebSocket server for real-time updates
@@ -279,7 +279,7 @@ app.get('/', (req, res) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>IndoWater Monitoring Dashboard</title>
+        <title>Ling Industri Monitoring Dashboard</title>
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <style>
             body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
@@ -301,8 +301,8 @@ app.get('/', (req, res) => {
     <body>
         <div class="container">
             <div class="header">
-                <h1>IndoWater System Monitoring</h1>
-                <p>Real-time monitoring dashboard for IndoWater Smart Water Management System</p>
+                <h1>Ling Industri System Monitoring</h1>
+                <p>Real-time monitoring dashboard for Ling Industri IoT Smart Water Management System</p>
             </div>
             
             <div class="grid">
@@ -455,6 +455,6 @@ cron.schedule('*/5 * * * *', async () => {
 
 // Start server
 app.listen(port, () => {
-  console.log(`IndoWater Monitoring Dashboard running on port ${port}`);
+  console.log(`Ling Industri Monitoring Dashboard running on port ${port}`);
   console.log(`WebSocket server running on port 8080`);
 });

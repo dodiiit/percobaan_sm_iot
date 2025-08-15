@@ -19,7 +19,7 @@ class InternalMonitoringService
         $this->pdo = $pdo;
         $this->logger = $logger;
         $this->config = array_merge([
-            'alert_email' => 'admin@indowater.com',
+            'alert_email' => 'admin@lingindustri.com',
             'alert_thresholds' => [
                 'error_rate' => 10, // errors per hour
                 'response_time' => 5000, // milliseconds
@@ -437,7 +437,7 @@ class InternalMonitoringService
         try {
             // Simple email sending (you can enhance this with proper email service)
             $to = $this->config['alert_email'];
-            $subject = "IndoWater Alert: {$title}";
+            $subject = "Ling Industri Alert: {$title}";
             $body = "
                 Alert Type: {$type}
                 Severity: {$severity}

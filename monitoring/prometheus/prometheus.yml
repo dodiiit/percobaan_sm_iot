@@ -12,15 +12,15 @@ alerting:
           - alertmanager:9093
 
 scrape_configs:
-  # IndoWater API monitoring
-  - job_name: 'indowater-api'
+  # Ling Industri API monitoring
+  - job_name: 'lingindustri-api'
     static_configs:
       - targets: ['api:80']
     metrics_path: '/api/metrics'
     scrape_interval: 30s
 
-  # IndoWater Frontend monitoring
-  - job_name: 'indowater-frontend'
+  # Ling Industri Frontend monitoring
+  - job_name: 'lingindustri-frontend'
     static_configs:
       - targets: ['frontend:3000']
     metrics_path: '/metrics'

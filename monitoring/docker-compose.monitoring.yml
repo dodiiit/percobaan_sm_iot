@@ -4,7 +4,7 @@ services:
   # Elasticsearch for log storage
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: indowater-elasticsearch
+    container_name: lingindustri-elasticsearch
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
@@ -19,7 +19,7 @@ services:
   # Kibana for log visualization
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.0
-    container_name: indowater-kibana
+    container_name: lingindustri-kibana
     ports:
       - "5601:5601"
     environment:
@@ -32,13 +32,13 @@ services:
   # Logstash for log processing
   logstash:
     image: docker.elastic.co/logstash/logstash:8.11.0
-    container_name: indowater-logstash
+    container_name: lingindustri-logstash
     ports:
       - "5044:5044"
       - "9600:9600"
     volumes:
       - ./logstash/config:/usr/share/logstash/pipeline
-      - ../api/logs:/var/log/indowater
+      - ../api/logs:/var/log/lingindustri
     depends_on:
       - elasticsearch
     networks:
@@ -47,7 +47,7 @@ services:
   # Prometheus for metrics collection
   prometheus:
     image: prom/prometheus:latest
-    container_name: indowater-prometheus
+    container_name: lingindustri-prometheus
     ports:
       - "9090:9090"
     volumes:
@@ -64,7 +64,7 @@ services:
   # Grafana for metrics visualization
   grafana:
     image: grafana/grafana:latest
-    container_name: indowater-grafana
+    container_name: lingindustri-grafana
     ports:
       - "3001:3000"
     environment:
@@ -81,12 +81,12 @@ services:
   # Custom monitoring dashboard
   monitoring-dashboard:
     build: ./monitoring-dashboard
-    container_name: indowater-monitoring
+    container_name: lingindustri-monitoring
     ports:
       - "3002:3000"
     environment:
       - DB_HOST=mysql
-      - DB_NAME=indowater
+      - DB_NAME=lingindustri
       - DB_USER=root
       - DB_PASS=password
     volumes:
