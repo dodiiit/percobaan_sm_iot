@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ling Industri IoT - Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            padding: 2rem;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            text-align: center;
+            max-width: 600px;
+        }
+        button {
+            padding: 12px 24px;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 16px;
+        }
+        button:hover {
+            background-color: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Ling Industri IoT</h1>
+    <div class="container">
+        <h2>Frontend Test - Static HTML</h2>
+        <p>✅ HTML is loading correctly</p>
+        <p>✅ CSS styling is working</p>
+        <p>✅ Server is responding</p>
+        <button onclick="testJS()">Test JavaScript</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function testJS() {
+            document.getElementById('result').innerHTML = '<p style="color: #4ade80; margin-top: 16px;">✅ JavaScript is working!</p>';
+            console.log('JavaScript test successful');
+        }
+        console.log('Minimal test page loaded successfully');
+    </script>
+</body>
+</html>

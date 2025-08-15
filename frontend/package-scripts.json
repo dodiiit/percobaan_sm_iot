@@ -1,0 +1,7 @@
+{
+  "scripts": {
+    "dev-production": "npm run build && cd dist && python3 -m http.server 12000 --bind 0.0.0.0",
+    "dev-watch": "npm run build -- --watch",
+    "serve-dist": "cd dist && python3 -m http.server 12000 --bind 0.0.0.0"
+  }
+}

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        h1 { color: #fff; text-align: center; }
+        .status { 
+            padding: 15px; 
+            margin: 10px 0; 
+            border-radius: 8px; 
+            background: rgba(255,255,255,0.2);
+        }
+        .success { background: rgba(76, 175, 80, 0.3); }
+        .error { background: rgba(244, 67, 54, 0.3); }
+        .info { background: rgba(33, 150, 243, 0.3); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Ling Industri IoT - Frontend Test</h1>
+        
+        <div class="status success">
+            ✅ HTML loaded successfully
+        </div>
+        
+        <div class="status info">
+            📊 Testing JavaScript functionality...
+        </div>
+        
+        <div id="js-test" class="status error">
+            ❌ JavaScript not loaded
+        </div>
+        
+        <div id="react-test" class="status error">
+            ❌ React not tested yet
+        </div>
+        
+        <div class="status info">
+            🔧 Environment Variables:
+            <ul>
+                <li>NODE_ENV: <span id="node-env">-</span></li>
+                <li>API URL: <span id="api-url">-</span></li>
+                <li>Current URL: <span id="current-url">-</span></li>
+            </ul>
+        </div>
+        
+        <div class="status info">
+            📝 Next Steps:
+            <ol>
+                <li>Verify this page loads correctly</li>
+                <li>Check browser console for errors</li>
+                <li>Test React components</li>
+                <li>Check API connectivity</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        // Test basic JavaScript
+        document.getElementById('js-test').innerHTML = '✅ JavaScript is working!';
+        document.getElementById('js-test').className = 'status success';
+        
+        // Show environment info
+        document.getElementById('node-env').textContent = 'development';
+        document.getElementById('api-url').textContent = 'http://localhost:8000/api';
+        document.getElementById('current-url').textContent = window.location.href;
+        
+        // Test React (simple simulation)
+        setTimeout(() => {
+            document.getElementById('react-test').innerHTML = '✅ Ready for React testing';
+            document.getElementById('react-test').className = 'status success';
+        }, 1000);
+        
+        console.log('🎯 Frontend test page loaded successfully!');
+        console.log('Environment:', {
+            url: window.location.href,
+            userAgent: navigator.userAgent,
+            timestamp: new Date().toISOString()
+        });
+    </script>
+</body>
+</html>

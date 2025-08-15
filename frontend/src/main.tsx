@@ -1,8 +1,10 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App';
-import './index.css';
-import './config/environment';
+import TestApp from './TestApp';
+// import SimpleApp from './SimpleApp';
+// import App from './App';
+// import './index.css';
+// import './config/environment';
 
 // Simple error boundary component
 class ErrorBoundary extends React.Component<
@@ -73,7 +75,7 @@ try {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <ErrorBoundary>
-      <App />
+      <TestApp />
     </ErrorBoundary>
   );
 } catch (error) {
