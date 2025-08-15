@@ -7,20 +7,20 @@ export const environment = {
   development: isDevelopment,
   apiUrl: process.env.VITE_API_URL || (
     isProduction 
-      ? '/api' 
-      : 'http://localhost:8000/api'
+      ? 'https://api.lingindustri.com/api' 
+      : 'https://api.lingindustri.com/api'
   ),
   authUrl: process.env.VITE_AUTH_URL || (
     isProduction 
-      ? '/auth' 
-      : 'http://localhost:8000/auth'
+      ? 'https://api.lingindustri.com/auth' 
+      : 'https://api.lingindustri.com/auth'
   ),
   webhookUrl: process.env.VITE_WEBHOOK_URL || (
     isProduction 
-      ? '/webhooks' 
-      : 'http://localhost:8000/webhooks'
+      ? 'https://api.lingindustri.com/webhooks' 
+      : 'https://api.lingindustri.com/webhooks'
   ),
-  appName: 'IndoWater Solution',
+  appName: 'Ling Industri IoT Solution',
   version: '1.0.0',
 };
 

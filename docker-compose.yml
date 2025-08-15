@@ -6,7 +6,7 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile
-    container_name: indowater-api
+    container_name: lingindustri-api
     restart: unless-stopped
     volumes:
       - ./api:/var/www/html
@@ -15,7 +15,7 @@ services:
       - db
       - redis
     networks:
-      - indowater-network
+      - lingindustri-network
     ports:
       - "8000:80"
     environment:
@@ -23,9 +23,9 @@ services:
       - APP_DEBUG=true
       - DB_HOST=db
       - DB_PORT=3306
-      - DB_DATABASE=indowater
-      - DB_USERNAME=indowater
-      - DB_PASSWORD=indowater_password
+      - DB_DATABASE=lingindustri
+      - DB_USERNAME=lingindustri
+      - DB_PASSWORD=lingindustri_password
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - MAIL_HOST=mailhog
@@ -37,18 +37,18 @@ services:
   # MySQL Database
   db:
     image: mysql:8.0
-    container_name: indowater-db
+    container_name: lingindustri-db
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: indowater
-      MYSQL_USER: indowater
-      MYSQL_PASSWORD: indowater_password
+      MYSQL_DATABASE: lingindustri
+      MYSQL_USER: lingindustri
+      MYSQL_PASSWORD: lingindustri_password
       MYSQL_ROOT_PASSWORD: root_password
     volumes:
-      - indowater-db-data:/var/lib/mysql
+      - lingindustri-db-data:/var/lib/mysql
       - ./api/database/init:/docker-entrypoint-initdb.d
     networks:
-      - indowater-network
+      - lingindustri-network
     ports:
       - "3306:3306"
 
@@ -57,7 +57,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.dev
-    container_name: indowater-frontend
+    container_name: lingindustri-frontend
     restart: unless-stopped
     volumes:
       - ./frontend:/app
@@ -65,12 +65,12 @@ services:
     depends_on:
       - api
     networks:
-      - indowater-network
+      - lingindustri-network
     ports:
       - "3000:3000"
     environment:
       - NODE_ENV=development
-      - REACT_APP_API_URL=http://localhost:8000/api
+      - REACT_APP_API_URL=https://api.lingindustri.com/api
       - REACT_APP_USE_MOCK_API=false
       - CHOKIDAR_USEPOLLING=true
       - WDS_SOCKET_PORT=3000
@@ -78,7 +78,7 @@ services:
   # PHPMyAdmin for Database Management
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: indowater-phpmyadmin
+    container_name: lingindustri-phpmyadmin
     restart: unless-stopped
     environment:
       - PMA_HOST=db
@@ -89,37 +89,37 @@ services:
     depends_on:
       - db
     networks:
-      - indowater-network
+      - lingindustri-network
 
   # Redis Service
   redis:
     image: redis:alpine
-    container_name: indowater-redis
+    container_name: lingindustri-redis
     restart: unless-stopped
     networks:
-      - indowater-network
+      - lingindustri-network
     ports:
       - "6379:6379"
     volumes:
-      - indowater-redis-data:/data
+      - lingindustri-redis-data:/data
 
   # Mailhog Service (for email testing)
   mailhog:
     image: mailhog/mailhog
-    container_name: indowater-mailhog
+    container_name: lingindustri-mailhog
     restart: unless-stopped
     ports:
       - "1025:1025" # SMTP port
       - "8025:8025" # Web UI port
     networks:
-      - indowater-network
+      - lingindustri-network
 
 networks:
-  indowater-network:
+  lingindustri-network:
     driver: bridge
 
 volumes:
-  indowater-db-data:
+  lingindustri-db-data:
     driver: local
-  indowater-redis-data:
+  lingindustri-redis-data:
     driver: local

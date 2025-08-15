@@ -4,8 +4,8 @@ import { vi } from 'vitest';
 // Mock window.location
 Object.defineProperty(window, 'location', {
   value: {
-    href: 'http://localhost:3000',
-    origin: 'http://localhost:3000',
+    href: 'https://lingindustri.com',
+    origin: 'https://lingindustri.com',
     pathname: '/',
     search: '',
     hash: ''

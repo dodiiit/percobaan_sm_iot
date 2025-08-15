@@ -14,7 +14,7 @@ interface EnvironmentVariables {
 // Default values for environment variables
 const defaultEnv: EnvironmentVariables = {
   NODE_ENV: 'development',
-  REACT_APP_API_URL: 'https://api.indowater.com',
+  REACT_APP_API_URL: 'https://api.lingindustri.com',
   REACT_APP_USE_MOCK_DATA: 'false',
   REACT_APP_CACHE_ENABLED: 'true',
 };

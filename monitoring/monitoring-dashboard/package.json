@@ -1,7 +1,7 @@
 {
-  "name": "indowater-monitoring-dashboard",
+  "name": "lingindustri-monitoring-dashboard",
   "version": "1.0.0",
-  "description": "Internal monitoring dashboard for IndoWater system",
+  "description": "Internal monitoring dashboard for Ling Industri IoT system",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

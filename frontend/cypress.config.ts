@@ -2,7 +2,7 @@ import { defineConfig } from 'cypress';
 
 export default defineConfig({
   e2e: {
-    baseUrl: 'http://localhost:3000',
+    baseUrl: 'https://lingindustri.com',
     supportFile: 'cypress/support/e2e.ts',
     specPattern: 'cypress/e2e/**/*.cy.{js,jsx,ts,tsx}',
     viewportWidth: 1280,
@@ -13,7 +13,7 @@ export default defineConfig({
     requestTimeout: 10000,
     responseTimeout: 10000,
     env: {
-      apiUrl: 'http://localhost:8000/api',
+      apiUrl: 'https://api.lingindustri.com/api',
       testUser: {
         email: 'test@example.com',
         password: 'password123',

@@ -1,12 +1,12 @@
 {
-    "name": "indowater/api",
-    "description": "IndoWater Prepaid Water Meter Management System API",
+    "name": "lingindustri/api",
+    "description": "Ling Industri IoT Water Management System API",
     "type": "project",
     "license": "proprietary",
     "authors": [
         {
-            "name": "IndoWater System",
-            "email": "info@indowater.example.com"
+            "name": "Ling Industri System",
+            "email": "info@lingindustri.com"
         }
     ],
     "require": {

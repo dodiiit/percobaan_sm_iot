@@ -6,7 +6,7 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile.prod
-    container_name: indowater-api-prod
+    container_name: lingindustri-api-prod
     restart: always
     volumes:
       - ./api/storage:/var/www/html/storage
@@ -14,13 +14,13 @@ services:
       - db
       - redis
     networks:
-      - indowater-network
+      - lingindustri-network
     environment:
       - APP_ENV=production
       - APP_DEBUG=false
       - DB_HOST=db
       - DB_PORT=3306
-      - DB_DATABASE=indowater
+      - DB_DATABASE=lingindustri
       - DB_USERNAME=${DB_USERNAME}
       - DB_PASSWORD=${DB_PASSWORD}
       - REDIS_HOST=redis
@@ -36,29 +36,29 @@ services:
   # MySQL Database
   db:
     image: mysql:8.0
-    container_name: indowater-db-prod
+    container_name: lingindustri-db-prod
     restart: always
     environment:
-      MYSQL_DATABASE: indowater
+      MYSQL_DATABASE: lingindustri
       MYSQL_USER: ${DB_USERNAME}
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
     volumes:
-      - indowater-db-data:/var/lib/mysql
+      - lingindustri-db-data:/var/lib/mysql
     networks:
-      - indowater-network
+      - lingindustri-network
 
   # React Frontend
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: indowater-frontend-prod
+    container_name: lingindustri-frontend-prod
     restart: always
     depends_on:
       - api
     networks:
-      - indowater-network
+      - lingindustri-network
     environment:
       - REACT_APP_ENV=production
       - REACT_APP_API_URL=https://api.lingindustri.com/api
@@ -67,17 +67,17 @@ services:
   # Redis Service
   redis:
     image: redis:alpine
-    container_name: indowater-redis-prod
+    container_name: lingindustri-redis-prod
     restart: always
     networks:
-      - indowater-network
+      - lingindustri-network
     volumes:
-      - indowater-redis-data:/data
+      - lingindustri-redis-data:/data
 
   # Nginx Service for Reverse Proxy
   nginx:
     image: nginx:alpine
-    container_name: indowater-nginx
+    container_name: lingindustri-nginx
     restart: always
     ports:
       - "80:80"
@@ -90,14 +90,14 @@ services:
       - api
       - frontend
     networks:
-      - indowater-network
+      - lingindustri-network
 
 networks:
-  indowater-network:
+  lingindustri-network:
     driver: bridge
 
 volumes:
-  indowater-db-data:
+  lingindustri-db-data:
     driver: local
-  indowater-redis-data:
+  lingindustri-redis-data:
     driver: local
