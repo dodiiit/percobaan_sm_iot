@@ -1,10 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import App from './App';
 import TestApp from './TestApp';
-// import SimpleApp from './SimpleApp';
-// import App from './App';
-// import './index.css';
-// import './config/environment';
+import './index.css';
+import './config/environment';
 
 // Simple error boundary component
 class ErrorBoundary extends React.Component<
@@ -70,12 +69,16 @@ if (!rootElement) {
   throw new Error('Root element not found');
 }
 
+const USE_TEST_APP =
+  (typeof import.meta !== 'undefined' && (import.meta as any).env?.VITE_USE_TEST_APP === 'true') ||
+  (typeof window !== 'undefined' && (window as any).env?.USE_TEST_APP === 'true');
+
 // Render app
 try {
   const root = ReactDOM.createRoot(rootElement);
   root.render(
     <ErrorBoundary>
-      <TestApp />
+      {USE_TEST_APP ? <TestApp /> : <App />}
     </ErrorBoundary>
   );
 } catch (error) {
