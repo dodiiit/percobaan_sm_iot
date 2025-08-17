@@ -18,8 +18,24 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    "types": ["vite/client", "node"],
+    "typeRoots": [
+      "./node_modules/@types",
+      "./src/types"
+    ]
   },
-  "include": ["src", "src/types"],
-  "exclude": ["src/__tests__/services/CacheService.test.ts", "src/__tests__/services/CachedApi.test.ts"]
+  "include": [
+    "src",
+    "src/types",
+    "env.d.ts",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/__tests__/services/CacheService.test.ts",
+    "src/__tests__/services/CachedApi.test.ts"
+  ],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }
