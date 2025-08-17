@@ -1,12 +1,6 @@
 // Centralized type definitions to avoid conflicts
 
 // API Response types
-export interface ApiResponse<T = unknown> {
-  data: T;
-  message?: string;
-  status: 'success' | 'error';
-  errors?: Record<string, string[]>;
-}
 
 export interface PaginatedResponse<T = unknown> {
   data: T[];

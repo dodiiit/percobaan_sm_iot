@@ -1,8 +1,10 @@
 import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import { CONFIG } from '@/constants/config';
+
 
 // Create axios instance with base configuration
 const api: AxiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:8000/api',
+  baseURL: CONFIG.API_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -70,8 +72,16 @@ export const authAPI = {
     api.post('/auth/logout'),
   forgotPassword: (email: string) => 
     api.post('/auth/forgot-password', { email }),
-  resetPassword: (token: string, password: string, password_confirmation: string) => 
-    api.post('/auth/reset-password', { token, password, password_confirmation }),
+  resetPassword: (
+    tokenOrPayload: string | { token: string; password: string; password_confirmation: string },
+    password?: string,
+    password_confirmation?: string
+  ) => {
+    const payload = typeof tokenOrPayload === 'string'
+      ? { token: tokenOrPayload, password: password as string, password_confirmation: password_confirmation as string }
+      : tokenOrPayload;
+    return api.post('/auth/reset-password', payload);
+  },
   refreshToken: (refreshToken: string) => 
     api.post('/auth/refresh', { refresh_token: refreshToken }),
   verifyEmail: (token: string) =>
@@ -100,7 +110,7 @@ export const meterAPI = {
     api.get(`/meters/${id}/consumption`, { params }),
   getCredits: (id: string, params = {}) => 
     api.get(`/meters/${id}/credits`, { params }),
-  topup: (id: string, amount: number, description: string) => 
+  topup: (id: string, amount: number, description?: string) => 
     api.post(`/meters/${id}/topup`, { amount, description }),
   getStatus: (id: string) => 
     api.get(`/meters/${id}/status`),
