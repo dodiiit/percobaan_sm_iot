@@ -28,8 +28,7 @@
   "include": [
     "src",
     "src/types",
-    "env.d.ts",
-    "vite.config.ts"
+    "env.d.ts"
   ],
   "exclude": [
     "node_modules",
@@ -37,5 +36,5 @@
     "src/__tests__/services/CacheService.test.ts",
     "src/__tests__/services/CachedApi.test.ts"
   ],
-  "references": [{ "path": "./tsconfig.node.json" }]
+  "references": []
 }
