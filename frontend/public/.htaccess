@@ -1,0 +1,28 @@
+# Enable Rewrite Engine for SPA routing
+<IfModule mod_rewrite.c>
+  Options -MultiViews
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve existing files/directories directly
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Fallback all other requests to index.html (React Router)
+  RewriteRule . /index.html [L]
+</IfModule>
+
+# Ensure correct MIME types (some hosts misconfigure these)
+AddType application/javascript .js .mjs
+AddType application/json .json
+AddType text/css .css
+
+# Caching for static assets
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType text/css "access plus 30 days"
+  ExpiresByType application/javascript "access plus 30 days"
+  ExpiresByType application/json "access plus 1 hour"
+  ExpiresByType image/svg+xml "access plus 30 days"
+</IfModule>
