@@ -26,7 +26,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'react-is': path.resolve(__dirname, './node_modules/react-is/cjs/react-is.production.js'),
     },
+    dedupe: ['react', 'react-dom', 'react-is']
   },
   define: {
     global: 'globalThis',
