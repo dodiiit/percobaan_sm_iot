@@ -19,16 +19,11 @@
     "paths": {
       "@/*": ["./src/*"]
     },
-    "types": ["node"],
-    "typeRoots": [
-      "./node_modules/@types",
-      "./src/types"
-    ]
+    "types": ["node"]
   },
   "include": [
     "src",
-    "src/types",
-    "env.d.ts"
+    "src/types"
   ],
   "exclude": [
     "node_modules",
