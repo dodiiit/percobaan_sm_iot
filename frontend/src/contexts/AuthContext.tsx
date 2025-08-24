@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { authAPI, userAPI } from '../services/api';
+import { mockApi, shouldUseMockApi } from '../services/mockApi';
 
 export enum UserRole {
   CUSTOMER = 'customer',
@@ -56,21 +57,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const token = localStorage.getItem('access_token');
       if (token) {
         try {
-          const response = await userAPI.getProfile();
-          const userData = response.data.data;
-          
-          // Ensure the role is one of the defined UserRole values
-          const userRoleValue = userData.role as UserRole;
-          if (Object.values(UserRole).includes(userRoleValue)) {
-            setUserRole(userRoleValue);
+          if (shouldUseMockApi()) {
+            const result = await mockApi.getProfile(token);
+            const userData = result.data;
+            const userRoleValue = userData.role as UserRole;
+            if (Object.values(UserRole).includes(userRoleValue)) {
+              setUserRole(userRoleValue);
+            } else {
+              console.warn(`Unrecognized role: ${userData.role}, defaulting to customer`);
+              userData.role = UserRole.CUSTOMER;
+              setUserRole(UserRole.CUSTOMER);
+            }
+            setUser(userData);
           } else {
-            // Default to customer if role is not recognized
-            console.warn(`Unrecognized role: ${userData.role}, defaulting to customer`);
-            userData.role = UserRole.CUSTOMER;
-            setUserRole(UserRole.CUSTOMER);
+            const response = await userAPI.getProfile();
+            const userData = response.data.data;
+            const userRoleValue = userData.role as UserRole;
+            if (Object.values(UserRole).includes(userRoleValue)) {
+              setUserRole(userRoleValue);
+            } else {
+              console.warn(`Unrecognized role: ${userData.role}, defaulting to customer`);
+              userData.role = UserRole.CUSTOMER;
+              setUserRole(UserRole.CUSTOMER);
+            }
+            setUser(userData);
           }
-          
-          setUser(userData);
         } catch (error) {
           console.error('Failed to fetch user profile:', error);
           localStorage.removeItem('access_token');
@@ -88,25 +99,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await authAPI.login({ email, password, remember });
-      const { user, access_token, refresh_token } = response.data.data;
-      
-      // Ensure the role is one of the defined UserRole values
-      const userRoleValue = user.role as UserRole;
-      if (Object.values(UserRole).includes(userRoleValue)) {
-        setUserRole(userRoleValue);
+      if (shouldUseMockApi()) {
+        const result = await mockApi.login(email, password);
+        const { user } = result.data;
+        const access_token = result.data.token;
+        const refresh_token = 'mock_refresh_token';
+
+        const userRoleValue = user.role as UserRole;
+        if (Object.values(UserRole).includes(userRoleValue)) {
+          setUserRole(userRoleValue);
+        } else {
+          console.warn(`Unrecognized role: ${user.role}, defaulting to customer`);
+          user.role = UserRole.CUSTOMER;
+          setUserRole(UserRole.CUSTOMER);
+        }
+
+        const storage = remember ? localStorage : sessionStorage;
+        storage.setItem('access_token', access_token);
+        storage.setItem('refresh_token', refresh_token);
+        setUser(user);
       } else {
-        // Default to customer if role is not recognized
-        console.warn(`Unrecognized role: ${user.role}, defaulting to customer`);
-        user.role = UserRole.CUSTOMER;
-        setUserRole(UserRole.CUSTOMER);
+        const response = await authAPI.login({ email, password, remember });
+        const { user, access_token, refresh_token } = response.data.data;
+
+        const userRoleValue = user.role as UserRole;
+        if (Object.values(UserRole).includes(userRoleValue)) {
+          setUserRole(userRoleValue);
+        } else {
+          console.warn(`Unrecognized role: ${user.role}, defaulting to customer`);
+          user.role = UserRole.CUSTOMER;
+          setUserRole(UserRole.CUSTOMER);
+        }
+
+        const storage = remember ? localStorage : sessionStorage;
+        storage.setItem('access_token', access_token);
+        storage.setItem('refresh_token', refresh_token);
+        setUser(user);
       }
-      
-      // Store tokens in localStorage or sessionStorage based on remember flag
-      const storage = remember ? localStorage : sessionStorage;
-      storage.setItem('access_token', access_token);
-      storage.setItem('refresh_token', refresh_token);
-      setUser(user);
     } catch (error: any) {
       console.error('Login failed:', error);
       setError(error?.response?.data?.message || 'Login failed. Please try again.');
@@ -119,12 +148,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = async () => {
     setIsLoading(true);
     try {
-      await authAPI.logout();
+      if (!shouldUseMockApi()) {
+        await authAPI.logout();
+      }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
+      sessionStorage.removeItem('access_token');
+      sessionStorage.removeItem('refresh_token');
       setUser(null);
       setUserRole(null);
       setIsLoading(false);
